@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "proto";
+option java_outer_classname = "ServerProto";
+option objc_class_prefix = "CTS";
+
+package proto;
+
+service Server {
+    rpc Greeting (GreetingRequest) returns (GreetingReply);
+}
+
+
+message GreetingRequest {
+    string message = 1;
+}
+
+message GreetingReply {
+    string message = 1;
+}
+
