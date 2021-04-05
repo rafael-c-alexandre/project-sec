@@ -19,7 +19,7 @@ import static io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall;
  */
 @javax.annotation.Generated(
     value = "by gRPC proto compiler (version 1.33.1)",
-    comments = "Source: Server.proto")
+    comments = "Source: ClientToServer.proto")
 public final class ServerGrpc {
 
   private ServerGrpc() {}
@@ -27,35 +27,66 @@ public final class ServerGrpc {
   public static final String SERVICE_NAME = "proto.Server";
 
   // Static method descriptors that strictly reflect the proto.
-  private static volatile io.grpc.MethodDescriptor<proto.GreetingRequest,
-      proto.GreetingReply> getGreetingMethod;
+  private static volatile io.grpc.MethodDescriptor<proto.SubmitLocationReportRequest,
+      proto.SubmitLocationReportReply> getSubmitLocationReportMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "Greeting",
-      requestType = proto.GreetingRequest.class,
-      responseType = proto.GreetingReply.class,
+      fullMethodName = SERVICE_NAME + '/' + "SubmitLocationReport",
+      requestType = proto.SubmitLocationReportRequest.class,
+      responseType = proto.SubmitLocationReportReply.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<proto.GreetingRequest,
-      proto.GreetingReply> getGreetingMethod() {
-    io.grpc.MethodDescriptor<proto.GreetingRequest, proto.GreetingReply> getGreetingMethod;
-    if ((getGreetingMethod = ServerGrpc.getGreetingMethod) == null) {
+  public static io.grpc.MethodDescriptor<proto.SubmitLocationReportRequest,
+      proto.SubmitLocationReportReply> getSubmitLocationReportMethod() {
+    io.grpc.MethodDescriptor<proto.SubmitLocationReportRequest, proto.SubmitLocationReportReply> getSubmitLocationReportMethod;
+    if ((getSubmitLocationReportMethod = ServerGrpc.getSubmitLocationReportMethod) == null) {
       synchronized (ServerGrpc.class) {
-        if ((getGreetingMethod = ServerGrpc.getGreetingMethod) == null) {
-          ServerGrpc.getGreetingMethod = getGreetingMethod =
-              io.grpc.MethodDescriptor.<proto.GreetingRequest, proto.GreetingReply>newBuilder()
+        if ((getSubmitLocationReportMethod = ServerGrpc.getSubmitLocationReportMethod) == null) {
+          ServerGrpc.getSubmitLocationReportMethod = getSubmitLocationReportMethod =
+              io.grpc.MethodDescriptor.<proto.SubmitLocationReportRequest, proto.SubmitLocationReportReply>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "Greeting"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "SubmitLocationReport"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  proto.GreetingRequest.getDefaultInstance()))
+                  proto.SubmitLocationReportRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  proto.GreetingReply.getDefaultInstance()))
-              .setSchemaDescriptor(new ServerMethodDescriptorSupplier("Greeting"))
+                  proto.SubmitLocationReportReply.getDefaultInstance()))
+              .setSchemaDescriptor(new ServerMethodDescriptorSupplier("SubmitLocationReport"))
               .build();
         }
       }
     }
-    return getGreetingMethod;
+    return getSubmitLocationReportMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<proto.ObtainLocationReportRequest,
+      proto.ObtainLocationReportReply> getObtainLocationReportMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "ObtainLocationReport",
+      requestType = proto.ObtainLocationReportRequest.class,
+      responseType = proto.ObtainLocationReportReply.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<proto.ObtainLocationReportRequest,
+      proto.ObtainLocationReportReply> getObtainLocationReportMethod() {
+    io.grpc.MethodDescriptor<proto.ObtainLocationReportRequest, proto.ObtainLocationReportReply> getObtainLocationReportMethod;
+    if ((getObtainLocationReportMethod = ServerGrpc.getObtainLocationReportMethod) == null) {
+      synchronized (ServerGrpc.class) {
+        if ((getObtainLocationReportMethod = ServerGrpc.getObtainLocationReportMethod) == null) {
+          ServerGrpc.getObtainLocationReportMethod = getObtainLocationReportMethod =
+              io.grpc.MethodDescriptor.<proto.ObtainLocationReportRequest, proto.ObtainLocationReportReply>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ObtainLocationReport"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  proto.ObtainLocationReportRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  proto.ObtainLocationReportReply.getDefaultInstance()))
+              .setSchemaDescriptor(new ServerMethodDescriptorSupplier("ObtainLocationReport"))
+              .build();
+        }
+      }
+    }
+    return getObtainLocationReportMethod;
   }
 
   /**
@@ -108,20 +139,34 @@ public final class ServerGrpc {
 
     /**
      */
-    public void greeting(proto.GreetingRequest request,
-        io.grpc.stub.StreamObserver<proto.GreetingReply> responseObserver) {
-      asyncUnimplementedUnaryCall(getGreetingMethod(), responseObserver);
+    public void submitLocationReport(proto.SubmitLocationReportRequest request,
+        io.grpc.stub.StreamObserver<proto.SubmitLocationReportReply> responseObserver) {
+      asyncUnimplementedUnaryCall(getSubmitLocationReportMethod(), responseObserver);
+    }
+
+    /**
+     */
+    public void obtainLocationReport(proto.ObtainLocationReportRequest request,
+        io.grpc.stub.StreamObserver<proto.ObtainLocationReportReply> responseObserver) {
+      asyncUnimplementedUnaryCall(getObtainLocationReportMethod(), responseObserver);
     }
 
     @java.lang.Override public final io.grpc.ServerServiceDefinition bindService() {
       return io.grpc.ServerServiceDefinition.builder(getServiceDescriptor())
           .addMethod(
-            getGreetingMethod(),
+            getSubmitLocationReportMethod(),
             asyncUnaryCall(
               new MethodHandlers<
-                proto.GreetingRequest,
-                proto.GreetingReply>(
-                  this, METHODID_GREETING)))
+                proto.SubmitLocationReportRequest,
+                proto.SubmitLocationReportReply>(
+                  this, METHODID_SUBMIT_LOCATION_REPORT)))
+          .addMethod(
+            getObtainLocationReportMethod(),
+            asyncUnaryCall(
+              new MethodHandlers<
+                proto.ObtainLocationReportRequest,
+                proto.ObtainLocationReportReply>(
+                  this, METHODID_OBTAIN_LOCATION_REPORT)))
           .build();
     }
   }
@@ -142,10 +187,18 @@ public final class ServerGrpc {
 
     /**
      */
-    public void greeting(proto.GreetingRequest request,
-        io.grpc.stub.StreamObserver<proto.GreetingReply> responseObserver) {
+    public void submitLocationReport(proto.SubmitLocationReportRequest request,
+        io.grpc.stub.StreamObserver<proto.SubmitLocationReportReply> responseObserver) {
       asyncUnaryCall(
-          getChannel().newCall(getGreetingMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getSubmitLocationReportMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     */
+    public void obtainLocationReport(proto.ObtainLocationReportRequest request,
+        io.grpc.stub.StreamObserver<proto.ObtainLocationReportReply> responseObserver) {
+      asyncUnaryCall(
+          getChannel().newCall(getObtainLocationReportMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -165,9 +218,16 @@ public final class ServerGrpc {
 
     /**
      */
-    public proto.GreetingReply greeting(proto.GreetingRequest request) {
+    public proto.SubmitLocationReportReply submitLocationReport(proto.SubmitLocationReportRequest request) {
       return blockingUnaryCall(
-          getChannel(), getGreetingMethod(), getCallOptions(), request);
+          getChannel(), getSubmitLocationReportMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public proto.ObtainLocationReportReply obtainLocationReport(proto.ObtainLocationReportRequest request) {
+      return blockingUnaryCall(
+          getChannel(), getObtainLocationReportMethod(), getCallOptions(), request);
     }
   }
 
@@ -187,14 +247,23 @@ public final class ServerGrpc {
 
     /**
      */
-    public com.google.common.util.concurrent.ListenableFuture<proto.GreetingReply> greeting(
-        proto.GreetingRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<proto.SubmitLocationReportReply> submitLocationReport(
+        proto.SubmitLocationReportRequest request) {
       return futureUnaryCall(
-          getChannel().newCall(getGreetingMethod(), getCallOptions()), request);
+          getChannel().newCall(getSubmitLocationReportMethod(), getCallOptions()), request);
+    }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<proto.ObtainLocationReportReply> obtainLocationReport(
+        proto.ObtainLocationReportRequest request) {
+      return futureUnaryCall(
+          getChannel().newCall(getObtainLocationReportMethod(), getCallOptions()), request);
     }
   }
 
-  private static final int METHODID_GREETING = 0;
+  private static final int METHODID_SUBMIT_LOCATION_REPORT = 0;
+  private static final int METHODID_OBTAIN_LOCATION_REPORT = 1;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -213,9 +282,13 @@ public final class ServerGrpc {
     @java.lang.SuppressWarnings("unchecked")
     public void invoke(Req request, io.grpc.stub.StreamObserver<Resp> responseObserver) {
       switch (methodId) {
-        case METHODID_GREETING:
-          serviceImpl.greeting((proto.GreetingRequest) request,
-              (io.grpc.stub.StreamObserver<proto.GreetingReply>) responseObserver);
+        case METHODID_SUBMIT_LOCATION_REPORT:
+          serviceImpl.submitLocationReport((proto.SubmitLocationReportRequest) request,
+              (io.grpc.stub.StreamObserver<proto.SubmitLocationReportReply>) responseObserver);
+          break;
+        case METHODID_OBTAIN_LOCATION_REPORT:
+          serviceImpl.obtainLocationReport((proto.ObtainLocationReportRequest) request,
+              (io.grpc.stub.StreamObserver<proto.ObtainLocationReportReply>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -278,7 +351,8 @@ public final class ServerGrpc {
         if (result == null) {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new ServerFileDescriptorSupplier())
-              .addMethod(getGreetingMethod())
+              .addMethod(getSubmitLocationReportMethod())
+              .addMethod(getObtainLocationReportMethod())
               .build();
         }
       }

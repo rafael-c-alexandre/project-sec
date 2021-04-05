@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "proto";
+option java_outer_classname = "ClientToClientProto";
+option objc_class_prefix = "CTC";
+
+package proto;
+
+service ClientToClient {
+  rpc RequestLocationProof (RequestLocationProofRequest) returns (RequestLocationProofReply){}
+}
+
+
+message RequestLocationProofRequest {
+  int32 x = 1;
+  int32 y = 2;
+
+}
+
+message RequestLocationProofReply {
+  bool isNear = 1;
+}

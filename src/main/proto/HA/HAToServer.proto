@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "proto.HA";
+option java_outer_classname = "HAToServerProto";
+option objc_class_prefix = "HATS";
+
+package proto.HA;
+
+service HAToServer {
+  rpc ObtainLocationReport (ObtainLocationReportRequest) returns (ObtainLocationReportReply){}
+  rpc ObtainUsersAtLocation (ObtainUsersAtLocationRequest) returns (ObtainUsersAtLocationReply){}
+}
+
+message ObtainLocationReportRequest {
+  string user_id = 1;
+  int32 ep = 2;
+}
+
+message ObtainLocationReportReply {
+
+}
+
+message ObtainUsersAtLocationRequest {
+  string user_id = 1;
+  int32 ep = 2;
+}
+
+message ObtainUsersAtLocationReply {
+
+}
+
+
+

@@ -8,15 +8,27 @@ option objc_class_prefix = "CTS";
 package proto;
 
 service Server {
-    rpc Greeting (GreetingRequest) returns (GreetingReply);
+    rpc SubmitLocationReport (SubmitLocationReportRequest) returns (SubmitLocationReportReply){}
+    rpc ObtainLocationReport (ObtainLocationReportRequest) returns (ObtainLocationReportReply){}
 }
 
 
-message GreetingRequest {
-    string message = 1;
+message SubmitLocationReportRequest {
+    string user_id = 1;
+    int32 ep = 2;
+    //TODO REPORT
 }
 
-message GreetingReply {
-    string message = 1;
+message SubmitLocationReportReply {
+
+}
+
+message ObtainLocationReportRequest {
+    string user_id = 1;
+    int32 ep = 2;
+}
+
+message ObtainLocationReportReply {
+
 }
 

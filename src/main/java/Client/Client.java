@@ -2,6 +2,7 @@ package Client;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.stub.StreamObserver;
 import proto.*;
 import proto.ServerGrpc;
 
@@ -18,13 +19,18 @@ public class Client {
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost",8080).usePlaintext().build();
         ServerGrpc.ServerBlockingStub blockingStub = ServerGrpc.newBlockingStub(channel);
 
-        GreetingRequest request = GreetingRequest.newBuilder().setMessage(message).build();
-
-        GreetingReply reply = blockingStub.greeting(request);
-
-        System.out.println("Got message from Server: " + reply.getMessage());
 
         channel.shutdown();
+
+    }
+
+    static class ClientToClientImp extends ClientToClientGrpc.ClientToClientImplBase {
+
+
+        public ClientToClientImp() {
+
+        }
+
 
     }
 }

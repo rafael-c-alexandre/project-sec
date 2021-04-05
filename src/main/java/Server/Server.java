@@ -1,14 +1,10 @@
 package Server;
 
-import io.grpc.ManagedChannel;
 import io.grpc.ServerBuilder;
 
-import io.grpc.stub.StreamObserver;
-import proto.GreetingReply;
-import proto.GreetingRequest;
+import proto.HA.HAToServerGrpc;
 import proto.ServerGrpc;
 
-import java.io.IOException;
 
 
 public class Server {
@@ -38,12 +34,13 @@ public class Server {
 
         }
 
-        @Override
-        public void greeting(GreetingRequest request, StreamObserver<GreetingReply> responseObserver) {
 
-            GreetingReply reply = GreetingReply.newBuilder().setMessage("Hello from Server. Received: " + request.getMessage()).build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+    }
+
+    static class HAToServerImp extends HAToServerGrpc.HAToServerImplBase{
+
+        public HAToServerImp(){
+
         }
     }
 }
