@@ -10,15 +10,24 @@ import java.util.Scanner;
 
 public class Client {
 
+    private static ClientLogic clientLogic;
 
     public static void main(String[] args){
 
-        Scanner in = new Scanner(System.in);
-        String message = in.nextLine();
+        if(args.length != 2){
+            System.err.println("Invalid args. Try -> Client username gridFilePath privKeyFilePath certFilePath");
+            return;
+        }
+        String username = args[0];
+        String gridFilePath = args[1];
+
 
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost",8080).usePlaintext().build();
         ServerGrpc.ServerBlockingStub blockingStub = ServerGrpc.newBlockingStub(channel);
 
+
+
+        clientLogic = new ClientLogic(username,gridFilePath);
 
         channel.shutdown();
 
@@ -31,6 +40,9 @@ public class Client {
 
         }
 
-
+        @Override
+        public void requestLocationProof(RequestLocationProofRequest request, StreamObserver<RequestLocationProofReply> responseObserver) {
+            super.requestLocationProof(request, responseObserver);
+        }
     }
 }

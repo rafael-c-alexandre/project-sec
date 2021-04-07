@@ -15,7 +15,9 @@ service ClientToClient {
 message RequestLocationProofRequest {
   int32 x = 1;
   int32 y = 2;
-
+  string username = 3;
+  int32 epoch = 4;
+  string nonce = 5;
 }
 
 message RequestLocationProofReply {
