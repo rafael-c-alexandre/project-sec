@@ -21,5 +21,9 @@ message RequestLocationProofRequest {
 }
 
 message RequestLocationProofReply {
-  bool isNear = 1;
+  int32 x = 1;
+  int32 y = 2;
+  string username = 3;
+  int32 epoch = 4;
+  bool isNear = 5;
 }

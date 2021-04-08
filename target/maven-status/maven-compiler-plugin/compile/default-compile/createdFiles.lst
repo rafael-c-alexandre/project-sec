@@ -2,12 +2,12 @@ proto/ServerGrpc$ServerBlockingStub.class
 proto/ServerGrpc$2.class
 proto/RequestLocationProofReplyOrBuilder.class
 proto/HA/HAToServerGrpc$HAToServerBlockingStub.class
-Server/Server$ServerImp.class
-HA/HAClient.class
+Server/UserReport.class
 proto/ServerGrpc$ServerImplBase.class
 proto/ClientToClientGrpc$ClientToClientMethodDescriptorSupplier.class
 proto/ClientToClientGrpc$ClientToClientFileDescriptorSupplier.class
 proto/HA/ObtainLocationReportRequest.class
+Server/database/Connector.class
 proto/RequestLocationProofRequest$1.class
 proto/ClientToClientGrpc$3.class
 proto/ClientToClientGrpc$ClientToClientImplBase.class
@@ -18,7 +18,6 @@ proto/HA/HAToServerGrpc$2.class
 proto/RequestLocationProofRequestOrBuilder.class
 proto/RequestLocationProofReply$1.class
 proto/ServerGrpc$1.class
-Server/Server$HAToServerImp.class
 proto/ServerGrpc$3.class
 proto/SubmitLocationReportRequest$Builder.class
 proto/ObtainLocationReportReply$Builder.class
@@ -40,7 +39,6 @@ proto/SubmitLocationReportRequest$1.class
 proto/HA/HAToServerGrpc$1.class
 proto/HA/HAToServerGrpc.class
 proto/HA/HAToServerGrpc$HAToServerMethodDescriptorSupplier.class
-Client/Client$ClientToClientImp.class
 proto/ClientToClientGrpc.class
 proto/ObtainLocationReportRequest$1.class
 proto/HA/HAToServerGrpc$HAToServerFileDescriptorSupplier.class
@@ -50,6 +48,7 @@ proto/SubmitLocationReportReply$Builder.class
 proto/HA/HAToServerProto.class
 proto/HA/ObtainUsersAtLocationRequest$1.class
 proto/ServerGrpc$ServerMethodDescriptorSupplier.class
+Client/ClientToClientFrontend.class
 proto/ServerGrpc$ServerStub.class
 proto/HA/ObtainLocationReportReply.class
 proto/RequestLocationProofReply.class
@@ -59,7 +58,6 @@ proto/RequestLocationProofRequest.class
 proto/SubmitLocationReportRequestOrBuilder.class
 proto/ServerGrpc.class
 proto/HA/ObtainLocationReportRequest$Builder.class
-Client/Client.class
 proto/ObtainLocationReportRequestOrBuilder.class
 proto/ClientToClientGrpc$ClientToClientBaseDescriptorSupplier.class
 proto/HA/HAToServerGrpc$HAToServerStub.class
@@ -68,6 +66,7 @@ proto/HA/ObtainUsersAtLocationReply.class
 proto/HA/HAToServerGrpc$HAToServerFutureStub.class
 proto/HA/ObtainLocationReportReply$1.class
 proto/HA/ObtainLocationReportReplyOrBuilder.class
+util/Coords.class
 proto/ServerProto.class
 proto/HA/ObtainUsersAtLocationReply$1.class
 proto/HA/HAToServerGrpc$MethodHandlers.class
@@ -75,11 +74,11 @@ proto/ClientToClientGrpc$ClientToClientBlockingStub.class
 proto/ObtainLocationReportRequest.class
 proto/ClientToClientGrpc$ClientToClientFutureStub.class
 proto/HA/HAToServerGrpc$3.class
+Server/database/UserReportsRepository.class
 proto/ObtainLocationReportReply.class
 proto/ClientToClientGrpc$2.class
 proto/ObtainLocationReportRequest$Builder.class
 proto/ObtainLocationReportReply$1.class
 proto/HA/ObtainLocationReportReply$Builder.class
-Server/Server.class
 proto/ServerGrpc$ServerFutureStub.class
 proto/ClientToClientProto.class

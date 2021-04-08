@@ -45,16 +45,17 @@ public final class ServerProto {
     java.lang.String[] descriptorData = {
       "\n\024ClientToServer.proto\022\005proto\":\n\033SubmitL" +
       "ocationReportRequest\022\017\n\007user_id\030\001 \001(\t\022\n\n" +
-      "\002ep\030\002 \001(\005\"\033\n\031SubmitLocationReportReply\":" +
-      "\n\033ObtainLocationReportRequest\022\017\n\007user_id" +
-      "\030\001 \001(\t\022\n\n\002ep\030\002 \001(\005\"\033\n\031ObtainLocationRepo" +
-      "rtReply2\310\001\n\006Server\022^\n\024SubmitLocationRepo" +
-      "rt\022\".proto.SubmitLocationReportRequest\032 " +
-      ".proto.SubmitLocationReportReply\"\000\022^\n\024Ob" +
-      "tainLocationReport\022\".proto.ObtainLocatio" +
-      "nReportRequest\032 .proto.ObtainLocationRep" +
-      "ortReply\"\000B\034\n\005protoB\013ServerProtoP\001\242\002\003CTS" +
-      "b\006proto3"
+      "\002ep\030\002 \001(\005\"?\n\031SubmitLocationReportReply\022\017" +
+      "\n\007message\030\001 \001(\014\022\021\n\tsignature\030\002 \001(\014\":\n\033Ob" +
+      "tainLocationReportRequest\022\017\n\007user_id\030\001 \001" +
+      "(\t\022\n\n\002ep\030\002 \001(\005\"\033\n\031ObtainLocationReportRe" +
+      "ply2\310\001\n\006Server\022^\n\024SubmitLocationReport\022\"" +
+      ".proto.SubmitLocationReportRequest\032 .pro" +
+      "to.SubmitLocationReportReply\"\000\022^\n\024Obtain" +
+      "LocationReport\022\".proto.ObtainLocationRep" +
+      "ortRequest\032 .proto.ObtainLocationReportR" +
+      "eply\"\000B\034\n\005protoB\013ServerProtoP\001\242\002\003CTSb\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -71,7 +72,7 @@ public final class ServerProto {
     internal_static_proto_SubmitLocationReportReply_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_proto_SubmitLocationReportReply_descriptor,
-        new java.lang.String[] { });
+        new java.lang.String[] { "Message", "Signature", });
     internal_static_proto_ObtainLocationReportRequest_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_proto_ObtainLocationReportRequest_fieldAccessorTable = new

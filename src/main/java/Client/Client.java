@@ -5,6 +5,7 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import proto.*;
 import proto.ServerGrpc;
+import util.Coords;
 
 import java.util.Scanner;
 
@@ -40,6 +41,10 @@ public class Client {
         @Override
         public void requestLocationProof(RequestLocationProofRequest request, StreamObserver<RequestLocationProofReply> responseObserver) {
             super.requestLocationProof(request, responseObserver);
+
+            clientLogic.generateLocationProof(new Coords(request.getX(), request.getY()), request.getUsername(), request.getEpoch());
+
+
         }
     }
 }

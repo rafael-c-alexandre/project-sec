@@ -27,12 +27,14 @@ public class ClientToClientFrontend {
         stubMap.put(username,ClientToClientGrpc.newBlockingStub(channel));
     }
 
-    public void broadcastProofRequest(){
-        for(ClientToClientGrpc.ClientToClientBlockingStub stub : stubMap.values() ){
-            stub.requestLocationProof(
+    public void broadcastProofRequest(List<String> closePeers){
+        for(String user : closePeers ){
+            stubMap.get(user).requestLocationProof(
                     RequestLocationProofRequest.newBuilder()
                             .build()
             );
         }
     }
+
+
 }
