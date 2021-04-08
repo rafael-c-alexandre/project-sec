@@ -20,7 +20,8 @@ message SubmitLocationReportRequest {
 }
 
 message SubmitLocationReportReply {
-
+    bytes message = 1;
+    bytes signature = 2;
 }
 
 message ObtainLocationReportRequest {

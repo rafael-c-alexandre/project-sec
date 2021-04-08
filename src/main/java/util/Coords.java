@@ -1,6 +1,4 @@
-package Client;
-
-import java.util.Objects;
+package util;
 
 public class Coords {
     private int x;

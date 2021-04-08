@@ -1,5 +1,7 @@
 package Client;
 
+import util.Coords;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -12,27 +14,55 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
 public class ClientLogic {
 
     private final static String CRYPTO_FOLDER_PATH = "src/main/assets/crypto/";
 
     private String username;
-    private Map<String, Map<Integer,Coords>> grid = new HashMap<>();
+    private Map<String, Map<Integer, Coords>> grid = new HashMap<>();
+    private ClientToClientFrontend clientToClientFrontend = new ClientToClientFrontend();
+    private ClientToServerFrontend clientToServerFrontend;
 
-    public ClientLogic(String username,String gridFilePath) {
+    public ClientLogic(String username,String gridFilePath, String clientAddrMappingsFile) {
 
         this.username = username;
+        Scanner scanner = null;
+
+        //Build frontends
+        try {
+            scanner = new Scanner(new File(clientAddrMappingsFile));
+        } catch (FileNotFoundException e) {
+            System.out.println("No such client mapping file!");
+            return;
+        }
+
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            // process the line
+            String[] parts = line.split(",");
+            String user = parts[0].trim();
+            String host = parts[1].trim();
+            int port = Integer.parseInt(parts[2].trim());
+
+            //SERVER
+            if(user.equals("#SERVER#")){
+                this.clientToServerFrontend = new ClientToServerFrontend(host,port);
+                continue;
+            }
+
+            //CLIENTS
+            clientToClientFrontend.addUser(user,host,port);
+
+
+        }
 
         //Populate the grid
-        Scanner scanner = null;
         try {
             scanner = new Scanner(new File(gridFilePath));
         } catch (FileNotFoundException e) {
-            System.out.println("No such file!");
+            System.out.println("No such grid file!");
             return;
         }
 
@@ -55,8 +85,6 @@ public class ClientLogic {
 
         }
 
-        System.out.println(getUserPublicKey(this.username));
-        System.out.println(getUserPrivateKey(this.username));
 
 
     }

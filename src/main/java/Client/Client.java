@@ -14,22 +14,19 @@ public class Client {
 
     public static void main(String[] args){
 
-        if(args.length != 2){
+        if(args.length != 3){
             System.err.println("Invalid args. Try -> Client username gridFilePath privKeyFilePath certFilePath");
             return;
         }
         String username = args[0];
         String gridFilePath = args[1];
-
-
-        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost",8080).usePlaintext().build();
-        ServerGrpc.ServerBlockingStub blockingStub = ServerGrpc.newBlockingStub(channel);
+        String clientAddrMappingsFile = args[2];
 
 
 
-        clientLogic = new ClientLogic(username,gridFilePath);
 
-        channel.shutdown();
+
+        clientLogic = new ClientLogic(username,gridFilePath,clientAddrMappingsFile);
 
     }
 
