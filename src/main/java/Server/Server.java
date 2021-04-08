@@ -1,5 +1,6 @@
 package Server;
 
+import Server.database.Connector;
 import io.grpc.ServerBuilder;
 
 import io.grpc.stub.StreamObserver;
@@ -9,18 +10,23 @@ import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 
 public class Server {
 
     private String dbuser;
     private String dbpassword;
+    private Connector connector;
+    private ServerLogic serverLogic;
 
     private io.grpc.Server server;
 
-    public Server(String user, String pass) {
+    public Server(String user, String pass) throws SQLException {
         this.dbuser = user;
         this.dbpassword = pass;
+        this.connector = new Connector(user,pass);
+        this.serverLogic = new ServerLogic(this.connector.getConnection());
     }
 
     public static void main(String[] args) throws Exception {
@@ -46,8 +52,8 @@ public class Server {
     private void start() throws IOException {
         server = ServerBuilder
                 .forPort(8080)
-                .addService(new ServerImp())
-                .addService(new HAToServerImp())
+                .addService(new ServerImp(this.serverLogic))
+                .addService(new HAToServerImp(this.serverLogic))
                 .build();
 
         server.start();
@@ -72,10 +78,10 @@ public class Server {
 
 
     static class ServerImp extends ServerGrpc.ServerImplBase {
+        private ServerLogic serverLogic;
 
-
-        public ServerImp() {
-
+        public ServerImp(ServerLogic serverLogic) {
+            this.serverLogic = serverLogic;
         }
 
         @Override
@@ -90,9 +96,9 @@ public class Server {
     }
 
     static class HAToServerImp extends HAToServerGrpc.HAToServerImplBase{
-
-        public HAToServerImp(){
-
+        private ServerLogic serverLogic;
+        public HAToServerImp(ServerLogic serverLogic){
+            this.serverLogic = serverLogic;
         }
 
         @Override

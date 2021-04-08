@@ -15,19 +15,18 @@ public class Client {
 
     public static void main(String[] args){
 
-        if(args.length != 3){
+        if(args.length != 2){
             System.err.println("Invalid args. Try -> Client username gridFilePath privKeyFilePath certFilePath");
             return;
         }
         String username = args[0];
         String gridFilePath = args[1];
-        String clientAddrMappingsFile = args[2];
+        //String clientAddrMappingsFile = args[2];
 
 
 
 
-
-        clientLogic = new ClientLogic(username,gridFilePath,clientAddrMappingsFile);
+        clientLogic = new ClientLogic(username,gridFilePath);
 
     }
 
