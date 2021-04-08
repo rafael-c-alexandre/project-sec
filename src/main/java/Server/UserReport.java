@@ -25,12 +25,11 @@ public class UserReport {
     public UserReport(String JsonUserReport){
         try {
             JSONObject obj = new JSONObject(JsonUserReport);
-            JSONObject message = obj.getJSONObject("userReport");
-            this.epoch = message.getInt("epoch");
-            this.username = message.getString("username");
+            this.epoch = obj.getInt("epoch");
+            this.username = obj.getString("username");
             this.coords = new Coords(
-                    message.getInt("x"),
-                    message.getInt("y")
+                    obj.getInt("x"),
+                    obj.getInt("y")
             );
 
         } catch (JSONException e) {

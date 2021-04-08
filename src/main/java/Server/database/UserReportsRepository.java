@@ -44,6 +44,30 @@ public class UserReportsRepository {
         return null;
     }
 
+    public List<UserReport> getAllUserReports(){
+        List<UserReport> result = new ArrayList<>();
+        try{
+            String sql = "SELECT username,epoch,x,y FROM UserReports";
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            ResultSet rs = preparedStatement.executeQuery();
+
+            while (rs.next()){
+                UserReport userReport = new UserReport();
+                userReport.setUsername(rs.getString("username"));
+                userReport.setEpoch(rs.getInt("epoch"));
+                userReport.setCoords(new Coords(
+                        rs.getInt("x"),
+                        rs.getInt("y")
+                ));
+                result.add(userReport);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
     public List<String> getUsersAtPos(int epoch, int x, int y){
         try{
             String sql = "SELECT username FROM UserReports WHERE epoch = ? AND x = ? AND y = ?";
