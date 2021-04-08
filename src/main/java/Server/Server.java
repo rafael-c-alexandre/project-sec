@@ -42,10 +42,8 @@ public class Server {
         );
 
         server.start();
-
+        
         System.out.println("Server Started");
-
-        server.start();
 
     }
 

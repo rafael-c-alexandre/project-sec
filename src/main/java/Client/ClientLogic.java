@@ -27,20 +27,18 @@ public class ClientLogic {
     private ClientToClientFrontend clientToClientFrontend = new ClientToClientFrontend();
     private ClientToServerFrontend clientToServerFrontend;
 
-    public ClientLogic(String username,String gridFilePath) {
+    public ClientLogic(String username,String gridFilePath, String clientAddrMappingsFile) {
 
         this.username = username;
         Scanner scanner = null;
 
         //Build frontends
-        /*
         try {
             scanner = new Scanner(new File(clientAddrMappingsFile));
         } catch (FileNotFoundException e) {
             System.out.println("No such client mapping file!");
             return;
         }
-
 
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
@@ -61,8 +59,6 @@ public class ClientLogic {
 
 
         }
-
-         */
 
         //Populate the grid
         try {
