@@ -1,7 +1,9 @@
 package Client;
 
+import proto.ClientToClientGrpc;
 import util.Coords;
 
+import javax.crypto.Cipher;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -82,12 +84,47 @@ public class ClientLogic {
 
             this.grid.get(user).put(epoch,new Coords(x,y));
 
-
         }
 
+    }
 
+
+    public boolean generateLocationProof(Coords userCords, String user, int epoch) {
+
+        if (isClose(grid.get(this.username).get(epoch),userCords )) {
+
+            byte[] clientData;
+            // Create request message
+        }
 
     }
+
+
+    public List<String> closePeers( int epoch) {
+        List<String> peers = new ArrayList<>();
+
+        for (String user : grid.keySet()) {
+            if (!user.equals(this.username) && isClose(grid.get(this.username).get(epoch),grid.get(user).get(epoch))) {
+                peers.add(user);
+            }
+        }
+        return peers;
+
+    }
+
+    public boolean isClose(Coords c1, Coords c2) {
+
+        //let's assume a radius of 5
+        int radius = 5;
+        return (Math.pow(c2.getX() - c1.getX(),2)) + (Math.pow(c2.getY() - c1.getY(),2)) < Math.pow(radius,2);
+    }
+
+
+
+
+
+
+    // --------------------------- Cryptographic functions --------------------------------
 
     public PublicKey getUserPublicKey(String username ){
         try {
