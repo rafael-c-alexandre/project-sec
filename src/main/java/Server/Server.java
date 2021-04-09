@@ -1,5 +1,8 @@
 package Server;
 
+import Client.ClientLogic;
+import Server.database.Connector;
+import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
 
 import io.grpc.stub.StreamObserver;
@@ -9,12 +12,15 @@ import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Objects;
 
 
 public class Server {
 
     private String dbuser;
     private String dbpassword;
+    private static ServerLogic serverLogic;
 
     private io.grpc.Server server;
 
@@ -35,17 +41,32 @@ public class Server {
                 args[1]
         );
 
-        server.start();
+        Connector connector = null;
+        try {
+            connector = new Connector(server.dbuser, server.dbpassword);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
+        serverLogic = new ServerLogic(Objects.requireNonNull(connector).getConnection());
+
+        server.start();
         System.out.println("Server Started");
 
-        server.start();
+        server.blockUntilShutdown();
 
     }
 
+    private void blockUntilShutdown() throws InterruptedException {
+        if (server != null) {
+            server.awaitTermination();
+        }
+    }
+
+
     private void start() throws IOException {
         server = ServerBuilder
-                .forPort(8080)
+                .forPort(8084)
                 .addService(new ServerImp())
                 .addService(new HAToServerImp())
                 .build();
@@ -55,12 +76,10 @@ public class Server {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.
             System.err.println("*** shutting down gRPC server since JVM is shutting down");
-            Server.this.stop();
+            server.shutdown();
             System.err.println("*** server shut down");
         }));
     }
-
-
 
 
 
@@ -71,8 +90,7 @@ public class Server {
     }
 
 
-    static class ServerImp extends ServerGrpc.ServerImplBase {
-
+    static class ServerImp extends ClientToServerGrpc.ClientToServerImplBase {
 
         public ServerImp() {
 
@@ -80,7 +98,9 @@ public class Server {
 
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
-            super.submitLocationReport(request, responseObserver);
+            System.out.println("Received submit location report request");
+            serverLogic.submitReport(request.getMessage());
+
         }
 
         @Override

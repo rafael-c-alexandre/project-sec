@@ -2,10 +2,13 @@ package Server;
 
 import Server.database.Connector;
 import Server.database.UserReportsRepository;
+import com.google.protobuf.ByteString;
 import util.Coords;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,8 +52,8 @@ public class ServerLogic {
                 .collect(Collectors.toList());
     }
 
-    public void submitReport(String json){
-        this.reportList.add(new UserReport(json));
+    public void submitReport(ByteString message){
+        this.reportList.add(new UserReport(new String(message.toByteArray())));
     }
 
 

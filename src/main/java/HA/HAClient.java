@@ -2,7 +2,7 @@ package HA;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import proto.ServerGrpc;
+import proto.ClientToServerGrpc;
 
 import java.util.Scanner;
 
@@ -13,8 +13,8 @@ public class HAClient {
         Scanner in = new Scanner(System.in);
         String message = in.nextLine();
 
-        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost",8080).usePlaintext().build();
-        ServerGrpc.ServerBlockingStub blockingStub = ServerGrpc.newBlockingStub(channel);
+        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost",8081).usePlaintext().build();
+        ClientToServerGrpc.ClientToServerBlockingStub blockingStub = ClientToServerGrpc.newBlockingStub(channel);
 
         channel.shutdown();
 

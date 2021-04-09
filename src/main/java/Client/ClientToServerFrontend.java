@@ -1,23 +1,27 @@
 package Client;
 
+import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import proto.ClientToServerGrpc;
 import proto.ObtainLocationReportRequest;
-import proto.ServerGrpc;
 import proto.SubmitLocationReportRequest;
+
+import java.util.Arrays;
 
 public class ClientToServerFrontend {
     private ManagedChannel channel ;
-    private ServerGrpc.ServerBlockingStub blockingStub;
+    private ClientToServerGrpc.ClientToServerBlockingStub blockingStub;
 
     public ClientToServerFrontend(String host, int port) {
         this.channel = ManagedChannelBuilder.forAddress(host,port).usePlaintext().build();
-        this.blockingStub = ServerGrpc.newBlockingStub(channel);
+        this.blockingStub = ClientToServerGrpc.newBlockingStub(channel);
     }
 
-    public void submitReport(){
+    public void submitReport(byte[] message){
         this.blockingStub.submitLocationReport(
                 SubmitLocationReportRequest.newBuilder()
+                        .setMessage(ByteString.copyFrom(message))
                         .build()
         );
     }

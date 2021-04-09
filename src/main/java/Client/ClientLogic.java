@@ -1,16 +1,18 @@
 package Client;
 
-import proto.ClientToClientGrpc;
+import org.json.JSONObject;
 import util.Coords;
 
-import javax.crypto.Cipher;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.*;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -49,7 +51,7 @@ public class ClientLogic {
             int port = Integer.parseInt(parts[2].trim());
 
             //SERVER
-            if(user.equals("#SERVER#")){
+            if(user.equals("server")){
                 this.clientToServerFrontend = new ClientToServerFrontend(host,port);
                 continue;
             }
@@ -88,15 +90,29 @@ public class ClientLogic {
 
     }
 
+    public void broadcast() {
+        clientToClientFrontend.broadcastProofRequest(this.username,  grid.get(this.username).get(0),0, closePeers(0));
+    }
 
-    public boolean generateLocationProof(Coords userCords, String user, int epoch) {
 
-        if (isClose(grid.get(this.username).get(epoch),userCords )) {
+    public byte[] generateLocationProof(Coords userCoords, String user, int epoch) {
 
-            byte[] clientData;
-            // Create request message
+        Coords currentUserCoords = grid.get(this.username).get(epoch);
+        JSONObject jsonProof = new JSONObject();
+
+        if (isClose(currentUserCoords,userCoords )) {
+
+            // Create response message
+            jsonProof.put("username", this.username);
+            jsonProof.put("x", currentUserCoords.getX());
+            jsonProof.put("y", currentUserCoords.getY());
+            jsonProof.put("epoch", epoch);
+            jsonProof.put("isNear", true);
         }
+        else
+            jsonProof.put("isNear", false);
 
+        return jsonProof.toString().getBytes();
     }
 
 
@@ -118,7 +134,6 @@ public class ClientLogic {
         int radius = 5;
         return (Math.pow(c2.getX() - c1.getX(),2)) + (Math.pow(c2.getY() - c1.getY(),2)) < Math.pow(radius,2);
     }
-
 
 
 

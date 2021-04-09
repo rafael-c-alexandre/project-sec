@@ -1,9 +1,14 @@
 package Server;
 
+import com.google.protobuf.ByteString;
+import com.mysql.cj.xdevapi.JsonArray;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import util.Coords;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public class UserReport {
@@ -23,6 +28,7 @@ public class UserReport {
     }
 
     public UserReport(String JsonUserReport){
+
         try {
             JSONObject obj = new JSONObject(JsonUserReport);
             this.epoch = obj.getInt("epoch");
@@ -32,10 +38,18 @@ public class UserReport {
                     obj.getInt("y")
             );
 
+            JSONArray proofs = (JSONArray) obj.get("reports");
+            for (int i = 0; i < proofs.length(); i++) {
+                JSONObject proof = proofs.getJSONObject(i);
+                //TODO
+            }
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
+
+
 
     public int getEpoch() {
         return epoch;

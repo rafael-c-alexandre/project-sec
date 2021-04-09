@@ -2,21 +2,20 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 option java_package = "proto";
-option java_outer_classname = "ServerProto";
+option java_outer_classname = "ClientToServerProto";
 option objc_class_prefix = "CTS";
 
 package proto;
 
-service Server {
+service ClientToServer {
     rpc SubmitLocationReport (SubmitLocationReportRequest) returns (SubmitLocationReportReply){}
     rpc ObtainLocationReport (ObtainLocationReportRequest) returns (ObtainLocationReportReply){}
 }
 
 
 message SubmitLocationReportRequest {
-    string user_id = 1;
-    int32 ep = 2;
-    //TODO REPORT
+    bytes message = 1;
+    bytes signature = 2;
 }
 
 message SubmitLocationReportReply {
