@@ -1,7 +1,9 @@
 package Server;
 
 import Exceptions.InvalidNumberOfProofsException;
+import Exceptions.NoSuchCoordsException;
 import Server.database.Connector;
+import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
 
 import io.grpc.Status;
@@ -166,10 +168,12 @@ public class Server {
                         .setIv(ByteString.copyFrom(responseIv))
                         .build();
 
+                //TODO
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
-            } catch (NoSuchCoordsException e){
-                responseObserver.onError();
+            } catch (Exception e){
+                Status status = Status.NOT_FOUND.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
                 responseObserver.onCompleted();
             }
 

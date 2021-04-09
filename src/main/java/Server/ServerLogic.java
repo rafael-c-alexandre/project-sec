@@ -120,10 +120,4 @@ public class ServerLogic {
         }
 
     }
-
-
-    public boolean verifyProofs(){
-
-        return true;
-    }
 }
