@@ -46,7 +46,6 @@ public class Client {
 
         /* Initialize client logic */
         clientLogic = new ClientLogic(username,GRID_FILE_PATH);
-        clientToClientFrontend = new ClientToClientFrontend(clientToServerFrontend, clientLogic);
 
         Scanner scanner = new Scanner(System.in);
 
@@ -90,6 +89,7 @@ public class Client {
             //SERVER
             if(mappingsUser.equals("server")){
                 clientToServerFrontend = new ClientToServerFrontend(mappingsHost,mappingsPort);
+                clientToClientFrontend = new ClientToClientFrontend(clientToServerFrontend, clientLogic);
                 continue;
             }
 

@@ -18,10 +18,12 @@ public class ClientToServerFrontend {
         this.blockingStub = ClientToServerGrpc.newBlockingStub(channel);
     }
 
-    public void submitReport(byte[] message){
+    public void submitReport(byte[] encryptedMessage, byte[] encryptedSessionKey, byte[] digitalSignature){
         this.blockingStub.submitLocationReport(
                 SubmitLocationReportRequest.newBuilder()
-                        .setMessage(ByteString.copyFrom(message))
+                        .setEncryptedMessage(ByteString.copyFrom(encryptedMessage))
+                        .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                        .setSignature(ByteString.copyFrom(digitalSignature))
                         .build()
         );
     }

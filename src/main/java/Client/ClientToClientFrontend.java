@@ -58,12 +58,13 @@ public class ClientToClientFrontend {
 
                     @Override
                     public void onNext(RequestLocationProofReply requestLocationProofReply) {
-                        System.out.println("Received proof reply from");
+                        System.out.println("Received proof reply");
                         proofs.add(new JSONObject(new String(requestLocationProofReply.getProof().toByteArray())));
 
                         if (proofs.size() == responseQuorum) {
-                            JSONObject message = clientLogic.createLocationProof(proofs);
-                            serverFrontend.submitReport(message.toString().getBytes());
+                            System.out.println("Got response quorum. Producing report...");
+                            byte[][] message = clientLogic.createLocationProof(proofs);
+                            serverFrontend.submitReport(message[0], message[1], message[2]);
                         }
                     }
 

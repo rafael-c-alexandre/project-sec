@@ -103,7 +103,10 @@ public class Server {
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
             System.out.println("Received submit location report request");
-            serverLogic.submitReport(request.getMessage());
+
+            System.out.println(request.getSignature().toByteArray());
+
+            //serverLogic.submitReport(request.getMessage());
 
         }
 
