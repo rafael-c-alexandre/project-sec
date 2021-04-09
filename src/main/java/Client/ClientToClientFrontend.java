@@ -11,7 +11,11 @@ import proto.ClientToServerGrpc;
 import proto.RequestLocationProofReply;
 import proto.RequestLocationProofRequest;
 import util.Coords;
+import util.EncryptionLogic;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -58,8 +62,25 @@ public class ClientToClientFrontend {
 
                     @Override
                     public void onNext(RequestLocationProofReply requestLocationProofReply) {
-                        System.out.println("Received proof reply from");
                         proofs.add(new JSONObject(new String(requestLocationProofReply.getProof().toByteArray())));
+
+                        /****** test digital signature validity | REMOVE  ******/
+                        JSONObject proof = new JSONObject(new String(requestLocationProofReply.getProof().toByteArray()));
+                        System.out.println("Received proof reply from " + proof.getString("username"));
+                        byte[] mes = requestLocationProofReply.getProof().toByteArray();
+                        byte[] digitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
+                        try {
+                            EncryptionLogic enc = new EncryptionLogic();
+                            boolean result = enc.verifyDigitalSignature(mes, digitalSignature, enc.getUserPublicKey(proof.getString("username")));
+                            System.out.println("CERTIFIED VALID ?" + result);
+                        } catch (NoSuchAlgorithmException e) {
+                            e.printStackTrace();
+                        } catch (InvalidKeyException e) {
+                            e.printStackTrace();
+                        } catch (SignatureException e) {
+                            e.printStackTrace();
+                        }
+                        /************/
 
                         if (proofs.size() == responseQuorum) {
                             JSONObject message = clientLogic.createLocationProof(proofs);

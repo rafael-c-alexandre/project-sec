@@ -91,26 +91,12 @@ public class EncryptionLogic {
         return (PublicKey) bytesToPubKey(ownerPublicKey);
     }
 
-    public PrivateKey getPrivateKey(String username, KeyStore keyStore) {
-        PrivateKey privateKey = null;
-        try {
-            privateKey = (PrivateKey) keyStore.getKey(username + "privkey", "".toCharArray());
-        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
-            e.printStackTrace();
-        }
-        return privateKey;
-    }
-
     public List<byte[]> getOthersAESEncrypted(List<byte[]> othersPubKeys, byte[] aesKey) {
         List<byte[]> othersAESEncrypted = new ArrayList<>();
         for (byte[] bytes : othersPubKeys) {
             othersAESEncrypted.add(encryptWithRSA(bytesToPubKey(bytes), aesKey));
         }
         return othersAESEncrypted;
-    }
-
-    public byte[] getAESKeyBytes(byte[] AESEncryptedBytes, String username, KeyStore keyStore) {
-        return decryptWithRSA(getPrivateKey(username, keyStore), AESEncryptedBytes);
     }
 
     public SecretKey generateAESKey() {
@@ -130,11 +116,6 @@ public class EncryptionLogic {
 
     }
 
-    public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted, byte[] iv, String username, KeyStore keyStore) throws BadPaddingException, IllegalBlockSizeException {
-        byte[] aesKeybytes = getAESKeyBytes(AESEncrypted, username, keyStore);
-        SecretKey aesKey = bytesToAESKey(aesKeybytes);
-        return decryptWithAES(aesKey, file_bytes, iv);
-    }
 
     public byte[] decryptWithAES(SecretKey secretKey, byte[] file_bytes, byte[] iv) throws BadPaddingException, IllegalBlockSizeException {
         Cipher cipher;

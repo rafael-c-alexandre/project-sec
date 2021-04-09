@@ -7,10 +7,14 @@ import proto.ClientToClientGrpc;
 import proto.RequestLocationProofReply;
 import proto.RequestLocationProofRequest;
 import util.Coords;
+import util.EncryptionLogic;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.util.Scanner;
 
 public class Client {
@@ -41,12 +45,11 @@ public class Client {
         this.username = username;
         this.manualMode = manualMode;
 
-        /* Import users and server from mappings */
-        importAddrMappings();
-
         /* Initialize client logic */
         clientLogic = new ClientLogic(username,GRID_FILE_PATH);
-        clientToClientFrontend = new ClientToClientFrontend(clientToServerFrontend, clientLogic);
+
+        /* Import users and server from mappings */
+        importAddrMappings();
 
         Scanner scanner = new Scanner(System.in);
 
@@ -90,6 +93,7 @@ public class Client {
             //SERVER
             if(mappingsUser.equals("server")){
                 clientToServerFrontend = new ClientToServerFrontend(mappingsHost,mappingsPort);
+                clientToClientFrontend = new ClientToClientFrontend(clientToServerFrontend, clientLogic);
                 continue;
             }
 
@@ -140,8 +144,9 @@ public class Client {
         public void requestLocationProof(RequestLocationProofRequest request, StreamObserver<RequestLocationProofReply> responseObserver){
 
             System.out.println("Received location report request " + request.getUsername());
+            String username = clientLogic.getUsername();
             try {
-                if(clientLogic.getUsername().equals("user2")){
+                if(username.equals("user2")){
                     Thread.sleep(2000);
                     System.out.println("user2 reply");
                 }
@@ -150,13 +155,28 @@ public class Client {
                     System.out.println("user3 reply");
                 }
             } catch(Exception e){}
-            byte[] responseJSON = clientLogic.generateLocationProof(new Coords(request.getX(), request.getY()), request.getUsername(), request.getEpoch());
 
-            RequestLocationProofReply reply = RequestLocationProofReply.newBuilder().setProof(ByteString.copyFrom(responseJSON)).build();
+            /* Create response message */
+            byte[] responseJSON = clientLogic.generateLocationProof(new Coords(request.getX(),
+                                                                            request.getY()),
+                                                                            request.getUsername(),
+                                                                            request.getEpoch());
 
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+            /* Create digital signature and reply*/
+            try {
+                EncryptionLogic enc = new EncryptionLogic();
+                byte[] digitalSignature = enc.createDigitalSignature(responseJSON, enc.getUserPrivateKey(username));
 
+                RequestLocationProofReply reply = RequestLocationProofReply.newBuilder().setProof(ByteString.copyFrom(responseJSON))
+                                                                                        .setDigitalSignature(ByteString.copyFrom(digitalSignature)).build();
+
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+
+
+            } catch(NoSuchAlgorithmException | InvalidKeyException | SignatureException e){
+                e.printStackTrace();
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
+server,localhost,8084
 user1,localhost,8001
 user2,localhost,8002
 user3,localhost,8003
-server,localhost,8084
