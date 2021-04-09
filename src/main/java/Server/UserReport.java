@@ -1,14 +1,10 @@
 package Server;
 
-import com.google.protobuf.ByteString;
-import com.mysql.cj.xdevapi.JsonArray;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import util.Coords;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 public class UserReport {

@@ -30,7 +30,7 @@ public class EncryptionLogic {
     public EncryptionLogic() {
     }
 
-    public KeyPair generateUserKeyPair() {
+    public static KeyPair generateUserKeyPair() {
         KeyPair keyPair = null;
         try {
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
@@ -176,6 +176,20 @@ public class EncryptionLogic {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static byte[] generateIV(){
+        //Generate new IV
+        Cipher cipher = null;
+        try {
+            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            e.printStackTrace();
+        }
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] iv = new byte[Objects.requireNonNull(cipher).getBlockSize()];
+        secureRandom.nextBytes(iv);
+        return iv;
     }
 
     public static byte[] decryptWithRSA(Key decryptionKey, byte[] bytes) {
