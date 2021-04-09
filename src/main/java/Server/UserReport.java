@@ -28,7 +28,6 @@ public class UserReport {
     }
 
     public UserReport(String JsonUserReport){
-
         try {
             JSONObject obj = new JSONObject(JsonUserReport);
             this.epoch = obj.getInt("epoch");

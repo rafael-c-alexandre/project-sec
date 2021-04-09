@@ -9,7 +9,8 @@ import java.sql.SQLException;
 
 public class Connector {
 
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/SecDB?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/SecDB?useLegacyDatetimeCode=false&serverTimezone=UTC";
+
 
     public Connection connection;
 

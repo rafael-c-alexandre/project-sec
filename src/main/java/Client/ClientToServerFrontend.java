@@ -26,9 +26,12 @@ public class ClientToServerFrontend {
         );
     }
 
-    public void obtainLocationReport(){
+    public void obtainLocationReport(byte[] message, byte[] signature, byte[] sessionKey){
         this.blockingStub.obtainLocationReport(
             ObtainLocationReportRequest.newBuilder()
+                    .setMessage(ByteString.copyFrom(message))
+                    .setSignature(ByteString.copyFrom(signature))
+                    .setSessionKey(ByteString.copyFrom(sessionKey))
                     .build()
         );
     }

@@ -113,6 +113,7 @@ public class ClientLogic {
             jsonProof.put("isNear", false);
 
         return jsonProof.toString().getBytes();
+
     }
 
 

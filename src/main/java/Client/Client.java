@@ -1,12 +1,11 @@
 package Client;
 
 import com.google.protobuf.ByteString;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
-import org.json.JSONObject;
-import proto.*;
+import proto.ClientToClientGrpc;
+import proto.RequestLocationProofReply;
+import proto.RequestLocationProofRequest;
 import util.Coords;
 
 import java.io.IOException;
@@ -17,7 +16,9 @@ public class Client {
     private static ClientLogic clientLogic;
     private io.grpc.Server server;
 
+
     public static void main(String[] args) throws IOException, InterruptedException {
+
 
         if(args.length != 4){
             System.err.println("Invalid args. Try -> Client username port gridFilePath clientAddrMappingsFilePath");
@@ -39,14 +40,13 @@ public class Client {
         final Client client = new Client();
         client.start(port);
 
+        //just to test request
         while (not) {
             if (scanner.next() != null) {
                 clientLogic.broadcast();
                 not = false;
             }
         }
-
-
         client.blockUntilShutdown();
 
     }
