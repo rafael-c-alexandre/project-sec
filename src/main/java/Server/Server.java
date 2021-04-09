@@ -8,6 +8,7 @@ import proto.*;
 import proto.HA.HAToServerGrpc;
 import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
+import util.EncryptionLogic;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -19,6 +20,7 @@ public class Server {
     private String dbpassword;
     private Connector connector;
     private ServerLogic serverLogic;
+    private EncryptionLogic encryptionLogic;
 
     private io.grpc.Server server;
 
@@ -27,6 +29,7 @@ public class Server {
         this.dbpassword = pass;
         this.connector = new Connector(user,pass);
         this.serverLogic = new ServerLogic(this.connector.getConnection());
+        this.encryptionLogic = new EncryptionLogic();
     }
 
     public static void main(String[] args) throws Exception {
@@ -42,7 +45,7 @@ public class Server {
         );
 
         server.start();
-        
+
         System.out.println("Server Started");
 
     }
@@ -50,8 +53,8 @@ public class Server {
     private void start() throws IOException {
         server = ServerBuilder
                 .forPort(8080)
-                .addService(new ServerImp(this.serverLogic))
-                .addService(new HAToServerImp(this.serverLogic))
+                .addService(new ServerImp(this.serverLogic,this.encryptionLogic))
+                .addService(new HAToServerImp(this.serverLogic,this.encryptionLogic))
                 .build();
 
         server.start();
@@ -77,9 +80,11 @@ public class Server {
 
     static class ServerImp extends ServerGrpc.ServerImplBase {
         private ServerLogic serverLogic;
+        private EncryptionLogic encryptionLogic;
 
-        public ServerImp(ServerLogic serverLogic) {
+        public ServerImp(ServerLogic serverLogic,EncryptionLogic encryptionLogic) {
             this.serverLogic = serverLogic;
+            this.encryptionLogic = encryptionLogic;
         }
 
         @Override
@@ -89,19 +94,26 @@ public class Server {
 
         @Override
         public void obtainLocationReport(ObtainLocationReportRequest request, StreamObserver<ObtainLocationReportReply> responseObserver) {
-            super.obtainLocationReport(request, responseObserver);
+            //TODO verify signature
+            //if(!serverLogic.verifySignature(username,request.getMessage(),request.getSignature()))
+            //
+
+            String messageJson = encryptionLogic.decryptWithRSA(request.getMessage(),request.getSessionKey());
         }
     }
 
     static class HAToServerImp extends HAToServerGrpc.HAToServerImplBase{
         private ServerLogic serverLogic;
-        public HAToServerImp(ServerLogic serverLogic){
+        private EncryptionLogic encryptionLogic;
+
+        public HAToServerImp(ServerLogic serverLogic, EncryptionLogic encryptionLogic){
             this.serverLogic = serverLogic;
+            this.encryptionLogic = encryptionLogic;
         }
 
         @Override
         public void obtainLocationReport(proto.HA.ObtainLocationReportRequest request, StreamObserver<proto.HA.ObtainLocationReportReply> responseObserver) {
-            super.obtainLocationReport(request, responseObserver);
+
         }
 
         @Override

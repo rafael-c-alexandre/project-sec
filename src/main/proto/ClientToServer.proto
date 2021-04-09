@@ -26,8 +26,9 @@ message SubmitLocationReportReply {
 }
 
 message ObtainLocationReportRequest {
-    string user_id = 1;
-    int32 ep = 2;
+    bytes message = 1;
+    bytes signature = 2;
+    bytes session_key = 3;
 }
 
 message ObtainLocationReportReply {

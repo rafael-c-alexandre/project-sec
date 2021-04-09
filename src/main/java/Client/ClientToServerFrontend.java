@@ -1,5 +1,6 @@
 package Client;
 
+import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import proto.ObtainLocationReportRequest;
@@ -22,9 +23,12 @@ public class ClientToServerFrontend {
         );
     }
 
-    public void obtainLocationReport(){
+    public void obtainLocationReport(byte[] message, byte[] signature, byte[] sessionKey){
         this.blockingStub.obtainLocationReport(
             ObtainLocationReportRequest.newBuilder()
+                    .setMessage(ByteString.copyFrom(message))
+                    .setSignature(ByteString.copyFrom(signature))
+                    .setSessionKey(ByteString.copyFrom(sessionKey))
                     .build()
         );
     }
