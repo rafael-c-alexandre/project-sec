@@ -1,21 +1,18 @@
 package Server;
 
-import Client.ClientLogic;
+import Exceptions.InvalidNumberOfProofsException;
 import Server.database.Connector;
-import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import proto.*;
 import proto.HA.HAToServerGrpc;
 import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
-import util.EncryptionLogic;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Objects;
-
 
 
 public class Server {
@@ -94,10 +91,14 @@ public class Server {
 
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
-            System.out.println("Received submit location report request from " + request.getUsername());
-
-            serverLogic.submitReport(request.getEncryptedMessage(), request.getEncryptedSessionKey(), request.getSignature(), request.getIv());
-
+            System.out.println("Received submit location report request from ");
+            try {
+                serverLogic.submitReport(request.getEncryptedMessage(), request.getEncryptedSessionKey(), request.getSignature(), request.getIv());
+            } catch (InvalidNumberOfProofsException e) {
+                System.out.println("InvalidNumberOfProofsException: " + e.getMessage());
+                Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            }
         }
 
         @Override

@@ -3,8 +3,10 @@ package Client;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.stub.StreamObserver;
 import proto.ClientToServerGrpc;
 import proto.ObtainLocationReportRequest;
+import proto.SubmitLocationReportReply;
 import proto.SubmitLocationReportRequest;
 
 import java.util.Arrays;
@@ -21,7 +23,8 @@ public class ClientToServerFrontend {
     }
 
     public void submitReport(byte[] encryptedMessage, byte[] encryptedSessionKey, byte[] digitalSignature, byte[] iv){
-        this.blockingStub.submitLocationReport(
+        try{
+        SubmitLocationReportReply reply = this.blockingStub.submitLocationReport(
                 SubmitLocationReportRequest.newBuilder()
                         .setEncryptedMessage(ByteString.copyFrom(encryptedMessage))
                         .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
@@ -29,6 +32,11 @@ public class ClientToServerFrontend {
                         .setIv(ByteString.copyFrom(iv))
                         .build()
         );
+        } catch (Exception e){
+            io.grpc.Status status = io.grpc.Status.fromThrowable(e);
+            System.out.println("Exception received from server:" + status.getDescription());
+        }
+
     }
 
     public void obtainLocationReport(byte[] message, byte[] signature, byte[] sessionKey){

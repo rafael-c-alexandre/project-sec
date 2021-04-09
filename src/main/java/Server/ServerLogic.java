@@ -1,5 +1,6 @@
 package Server;
 
+import Exceptions.InvalidNumberOfProofsException;
 import Server.database.UserReportsRepository;
 import com.google.protobuf.ByteString;
 import org.json.JSONArray;
@@ -10,13 +11,13 @@ import util.EncryptionLogic;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.sql.Connection;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 public class ServerLogic {
 
@@ -44,7 +45,7 @@ public class ServerLogic {
                 .collect(Collectors.toList());
     }
 
-    public void submitReport( ByteString encryptedMessage, ByteString encryptedSessionKey, ByteString digitalSignature, ByteString iv){
+    public void submitReport( ByteString encryptedMessage, ByteString encryptedSessionKey, ByteString digitalSignature, ByteString iv) throws InvalidNumberOfProofsException {
 
         PrivateKey serverPrivKey = EncryptionLogic.getPrivateKey("server");
         //decipher session key
@@ -84,7 +85,7 @@ public class ServerLogic {
     }
 
 
-    public void verifyProofs(byte[] decipheredMessage) {
+    public void verifyProofs(byte[] decipheredMessage) throws InvalidNumberOfProofsException {
 
         try {
             JSONObject obj = new JSONObject(new String(decipheredMessage));
@@ -111,6 +112,7 @@ public class ServerLogic {
                 //verify digital signature
                 //TODO
                 System.out.println("Proof digital signature from " + messageJSON.getString("username") + " valid? " + EncryptionLogic.verifyDigitalSignature(message, digitalSignature, userPubKey));
+                throw new InvalidNumberOfProofsException();
             }
 
         } catch (JSONException e) {
