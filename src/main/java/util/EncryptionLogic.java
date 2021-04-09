@@ -4,8 +4,17 @@ import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.*;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +25,7 @@ import java.util.Objects;
  */
 public class EncryptionLogic {
     private final static int ITERATIONS = 10000;
+    private final static String CRYPTO_FOLDER_PATH = "src/main/assets/crypto/";
 
     public EncryptionLogic() {
     }
@@ -191,6 +201,36 @@ public class EncryptionLogic {
 
     public SecretKey bytesToAESKey(byte[] bytes) {
         return new SecretKeySpec(bytes, 0, bytes.length, "AES");
+    }
+
+
+
+    public PublicKey getUserPublicKey(String username ){
+        try {
+            CertificateFactory fact = CertificateFactory.getInstance("X.509");
+            FileInputStream is = new FileInputStream(CRYPTO_FOLDER_PATH + username + "/" + username + ".pem");
+            X509Certificate cer = (X509Certificate) fact.generateCertificate(is);
+            return cer.getPublicKey();
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public PrivateKey getUserPrivateKey(String username){
+        try {
+            byte[] keyBytes = Files.readAllBytes(Paths.get(CRYPTO_FOLDER_PATH + username + "/" + username + ".key"));
+
+            PKCS8EncodedKeySpec spec =
+                    new PKCS8EncodedKeySpec(keyBytes);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return kf.generatePrivate(spec);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

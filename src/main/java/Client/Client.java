@@ -8,47 +8,94 @@ import proto.RequestLocationProofReply;
 import proto.RequestLocationProofRequest;
 import util.Coords;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Scanner;
 
 public class Client {
 
-    private static ClientLogic clientLogic;
-    private io.grpc.Server server;
+    final String GRID_FILE_PATH = "src/main/assets/grid_examples/grid1.txt";
+    final String CLIENT_ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings.txt";
 
+    private ClientToClientFrontend clientToClientFrontend;
+    private ClientToServerFrontend clientToServerFrontend;
+    private ClientLogic clientLogic;
+    private io.grpc.Server server;
+    protected String username;
+    private int manualMode;
+    private int port;
 
     public static void main(String[] args) throws IOException, InterruptedException {
-
-
-        if(args.length != 4){
-            System.err.println("Invalid args. Try -> Client username port gridFilePath clientAddrMappingsFilePath");
+        if(args.length != 2){
+            System.err.println("Invalid args. Try -> Client username manualMode");
             return;
         }
         String username = args[0];
-        int port = Integer.parseInt(args[1]);
-        String gridFilePath = args[2];
-        String clientAddrMappingsFile = args[3];
+        int manualMode = Integer.parseInt(args[1]);
+        Client client = new Client(username, manualMode);
 
-        System.out.println("Client Started");
+    }
 
-        clientLogic = new ClientLogic(username,gridFilePath,clientAddrMappingsFile);
+    public Client(String username, int manualMode) throws IOException, InterruptedException {
+        this.username = username;
+        this.manualMode = manualMode;
+
+        /* Import users and server from mappings */
+        importAddrMappings();
+
+        /* Initialize client logic */
+        clientLogic = new ClientLogic(username,GRID_FILE_PATH);
+        clientToClientFrontend = new ClientToClientFrontend(clientToServerFrontend, clientLogic);
 
         Scanner scanner = new Scanner(System.in);
 
         boolean not = true;
 
-        final Client client = new Client();
-        client.start(port);
+        System.out.println(this.username + " Started");
+        start(port);
 
         //just to test request
         while (not) {
-            if (scanner.next() != null) {
-                clientLogic.broadcast();
+            if (scanner.nextLine().contains("requestProof")) {
+                int epoch = 0;
+                clientToClientFrontend.broadcastProofRequest(username, clientLogic.getCoords(epoch), epoch, clientLogic.closePeers(epoch));
                 not = false;
             }
         }
-        client.blockUntilShutdown();
 
+        blockUntilShutdown();
+    }
+
+    private void importAddrMappings(){
+        Scanner scanner;
+        //Build frontends
+        try {
+            scanner = new Scanner(new File(CLIENT_ADDR_MAPPINGS_FILE));
+        } catch (FileNotFoundException e) {
+            System.out.println("No such client mapping file!");
+            return;
+        }
+
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            // process the line
+            String[] parts = line.split(",");
+            String mappingsUser = parts[0].trim();
+            String mappingsHost = parts[1].trim();
+            int mappingsPort = Integer.parseInt(parts[2].trim());
+            if(mappingsUser.equals(username)){
+                port = mappingsPort;
+            }
+            //SERVER
+            if(mappingsUser.equals("server")){
+                clientToServerFrontend = new ClientToServerFrontend(mappingsHost,mappingsPort);
+                continue;
+            }
+
+            //CLIENTS
+            clientToClientFrontend.addUser(mappingsUser,mappingsHost,mappingsPort);
+        }
     }
 
     private void blockUntilShutdown() throws InterruptedException {
@@ -60,7 +107,7 @@ public class Client {
     private void start(int port) throws IOException {
         server = ServerBuilder
                 .forPort(port)
-                .addService(new ClientToClientImp())
+                .addService(new ClientToClientImp(clientLogic))
                 .build();
 
         server.start();
@@ -83,16 +130,26 @@ public class Client {
 
     static class ClientToClientImp extends ClientToClientGrpc.ClientToClientImplBase {
 
-
-        public ClientToClientImp() {
-
+        ClientLogic clientLogic;
+        public ClientToClientImp(ClientLogic clientLogic) {
+            this.clientLogic = clientLogic;
         }
 
+
         @Override
-        public void requestLocationProof(RequestLocationProofRequest request, StreamObserver<RequestLocationProofReply> responseObserver) {
+        public void requestLocationProof(RequestLocationProofRequest request, StreamObserver<RequestLocationProofReply> responseObserver){
 
-            System.out.println("Received location report request");
-
+            System.out.println("Received location report request " + request.getUsername());
+            try {
+                if(clientLogic.getUsername().equals("user2")){
+                    Thread.sleep(2000);
+                    System.out.println("user2 reply");
+                }
+                else{
+                    Thread.sleep(5000);
+                    System.out.println("user3 reply");
+                }
+            } catch(Exception e){}
             byte[] responseJSON = clientLogic.generateLocationProof(new Coords(request.getX(), request.getY()), request.getUsername(), request.getEpoch());
 
             RequestLocationProofReply reply = RequestLocationProofReply.newBuilder().setProof(ByteString.copyFrom(responseJSON)).build();

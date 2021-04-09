@@ -1,67 +1,25 @@
 package Client;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import util.Coords;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
 
 public class ClientLogic {
-
-    private final static String CRYPTO_FOLDER_PATH = "src/main/assets/crypto/";
-
     private String username;
     private Map<String, Map<Integer, Coords>> grid = new HashMap<>();
-    private ClientToClientFrontend clientToClientFrontend = new ClientToClientFrontend();
-    private ClientToServerFrontend clientToServerFrontend;
+    private int epoch = 0;
 
-    public ClientLogic(String username,String gridFilePath, String clientAddrMappingsFile) {
-
+    public ClientLogic(String username,String gridFilePath) {
         this.username = username;
-        Scanner scanner = null;
+        populateGrid(gridFilePath);
+    }
 
-        //Build frontends
-        try {
-            scanner = new Scanner(new File(clientAddrMappingsFile));
-        } catch (FileNotFoundException e) {
-            System.out.println("No such client mapping file!");
-            return;
-        }
-
-        while (scanner.hasNextLine()) {
-            String line = scanner.nextLine();
-            // process the line
-            String[] parts = line.split(",");
-            String user = parts[0].trim();
-            String host = parts[1].trim();
-            int port = Integer.parseInt(parts[2].trim());
-
-            //SERVER
-            if(user.equals("server")){
-                this.clientToServerFrontend = new ClientToServerFrontend(host,port);
-                continue;
-            }
-
-            //CLIENTS
-            clientToClientFrontend.addUser(user,host,port);
-
-
-        }
-
+    public void populateGrid(String gridFilePath){
+        Scanner scanner;
         //Populate the grid
         try {
             scanner = new Scanner(new File(gridFilePath));
@@ -79,21 +37,17 @@ public class ClientLogic {
             int x = Integer.parseInt(parts[2].trim());
             int y = Integer.parseInt(parts[3].trim());
 
-
-
             if(!this.grid.containsKey(user))
                 this.grid.put(user, new HashMap<>());
 
             this.grid.get(user).put(epoch,new Coords(x,y));
 
         }
-
     }
 
-    public void broadcast() {
-        clientToClientFrontend.broadcastProofRequest(this.username,  grid.get(this.username).get(0),0, closePeers(0));
+    public Coords getCoords(int epoch){
+        return grid.get(username).get(epoch);
     }
-
 
     public byte[] generateLocationProof(Coords userCoords, String user, int epoch) {
 
@@ -136,39 +90,21 @@ public class ClientLogic {
         return (Math.pow(c2.getX() - c1.getX(),2)) + (Math.pow(c2.getY() - c1.getY(),2)) < Math.pow(radius,2);
     }
 
-
-
-
-
-    // --------------------------- Cryptographic functions --------------------------------
-
-    public PublicKey getUserPublicKey(String username ){
-        try {
-            CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            FileInputStream is = new FileInputStream(CRYPTO_FOLDER_PATH + username + "/" + username + ".pem");
-            X509Certificate cer = (X509Certificate) fact.generateCertificate(is);
-            return cer.getPublicKey();
-        } catch (CertificateException e) {
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        return null;
+    public String getUsername() {
+        return username;
     }
 
-    public PrivateKey getUserPrivateKey(String username){
-        try {
-            byte[] keyBytes = Files.readAllBytes(Paths.get(CRYPTO_FOLDER_PATH + username + "/" + username + ".key"));
+    public JSONObject createLocationProof(List<JSONObject> proofs) {
+        Coords coords = getCoords(epoch);
 
-            PKCS8EncodedKeySpec spec =
-                    new PKCS8EncodedKeySpec(keyBytes);
-            KeyFactory kf = KeyFactory.getInstance("RSA");
-            return kf.generatePrivate(spec);
-        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
-        }
-        return null;
+        JSONObject message = new JSONObject();
+        message.put("username", username);
+        message.put("epoch", epoch);
+        message.put("x", coords.getX());
+        message.put("y", coords.getY());
+        JSONArray ja = new JSONArray(proofs);
+        message.put("reports", ja);
+
+        return message;
     }
-
-
 }

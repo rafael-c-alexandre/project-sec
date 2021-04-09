@@ -22,10 +22,12 @@ public class ClientToClientFrontend {
     private Map<String,ClientToClientGrpc.ClientToClientStub> stubMap = new HashMap<>();
     private ClientToServerGrpc.ClientToServerBlockingStub serverStub;
     private ClientToServerFrontend serverFrontend;
-    private int responseQuorum = 1; //TODO: hardcoded value
+    private ClientLogic clientLogic;
+    private int responseQuorum = 2; //TODO: hardcoded value
 
-    public ClientToClientFrontend() {
-        serverFrontend = new ClientToServerFrontend("localhost", 8084);
+    public ClientToClientFrontend(ClientToServerFrontend serverFrontend, ClientLogic clientLogic) {
+        this.clientLogic = clientLogic;
+        this.serverFrontend = serverFrontend;
     }
 
     public void addUser(String username, String host, int port){
@@ -44,37 +46,37 @@ public class ClientToClientFrontend {
 
         List<JSONObject> proofs = new ArrayList<>();
 
+        /* Request proof of location to other close clients */
         for(String user : closePeers ){
-            stubMap.get(user).requestLocationProof(
-                    RequestLocationProofRequest.newBuilder().setUsername(username).setX(coords.getX()).setY(coords.getY()).setEpoch(epoch)
-                            .build(), new StreamObserver<RequestLocationProofReply>() {
-                        @Override
-                        public void onNext(RequestLocationProofReply requestLocationProofReply) {
-                            proofs.add(new JSONObject(new String(requestLocationProofReply.getProof().toByteArray())));
-                            numberResponses[0]++;
+            /* Create location proof request */
+            stubMap.get(user).requestLocationProof(RequestLocationProofRequest.newBuilder().
+                setUsername(username).
+                setX(coords.getX()).
+                setY(coords.getY()).
+                setEpoch(epoch)
+                .build(), new StreamObserver<RequestLocationProofReply>() {
 
-                            if (numberResponses[0] == responseQuorum) {
-                                JSONObject message = new JSONObject();
-                                message.put("username", username);
-                                message.put("epoch", epoch);
-                                message.put("x", coords.getX());
-                                message.put("y", coords.getY());
-                                JSONArray ja = new JSONArray(proofs);
-                                message.put("reports", ja);
-                                serverFrontend.submitReport(message.toString().getBytes());
-                            }
-                        }
+                    @Override
+                    public void onNext(RequestLocationProofReply requestLocationProofReply) {
+                        System.out.println("Received proof reply from");
+                        proofs.add(new JSONObject(new String(requestLocationProofReply.getProof().toByteArray())));
 
-                        @Override
-                        public void onError(Throwable throwable) {
-
-                        }
-
-                        @Override
-                        public void onCompleted() {
-
+                        if (proofs.size() == responseQuorum) {
+                            JSONObject message = clientLogic.createLocationProof(proofs);
+                            serverFrontend.submitReport(message.toString().getBytes());
                         }
                     }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+
+                    }
+
+                    @Override
+                    public void onCompleted() {
+
+                    }
+                }
             );
         }
     }
