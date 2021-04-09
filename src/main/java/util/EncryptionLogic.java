@@ -128,6 +128,7 @@ public class EncryptionLogic {
         return decryptWithAES(aesKey, file_bytes, iv);
     }*/
 
+
     public byte[] decryptWithAES(SecretKey secretKey, byte[] file_bytes, byte[] iv) throws BadPaddingException, IllegalBlockSizeException {
         Cipher cipher;
         try {

@@ -121,10 +121,10 @@ public class ClientLogic {
         result[0] = encryptedMessage;
 
         //get server public key
-        Key serverPubKey = encryptionLogic.getPrivateKey("server");
+        Key serverPubKey = encryptionLogic.getPublicKey("server");
 
         //encrypt session key with server public key
-        byte[] encryptedSessionKey = encryptionLogic.encryptWithRSA(serverPubKey, serverPubKey.getEncoded());
+        byte[] encryptedSessionKey = encryptionLogic.encryptWithRSA(serverPubKey, sessionKey.getEncoded());
         result[1] = encryptedSessionKey;
 
         //sign message
