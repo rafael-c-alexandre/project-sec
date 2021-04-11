@@ -8,6 +8,7 @@ import proto.ObtainLocationReportRequest;
 import proto.SubmitLocationReportRequest;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 public class ClientToServerFrontend {
     private String username;
@@ -39,5 +40,13 @@ public class ClientToServerFrontend {
                     .setSessionKey(ByteString.copyFrom(sessionKey))
                     .build()
         );
+    }
+
+    public void shutdown() {
+        try {
+            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -30,7 +30,7 @@ public class EncryptionLogic {
     public EncryptionLogic() {
     }
 
-    public KeyPair generateUserKeyPair() {
+    public static KeyPair generateUserKeyPair() {
         KeyPair keyPair = null;
         try {
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");

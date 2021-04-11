@@ -39,6 +39,57 @@ public class Client {
         int manualMode = Integer.parseInt(args[1]);
         Client client = new Client(username, manualMode);
 
+        client.start(client.port);
+        System.out.println(username + " Started");
+
+        try {
+            Scanner in = new Scanner(System.in);
+            boolean running = true;
+            while (running) {
+                System.out.print("Enter command ( Type 'help' for help menu ): ");
+                String cmd = in.nextLine();
+                if (manualMode == 1) {
+                    switch (cmd) {
+                        case "submit" -> client.clientToClientFrontend.broadcastProofRequest();
+                        case "obtain_report" -> client.obtainReport();
+                        case "exit" -> running = false;
+                        case "help" -> client.displayHelp(manualMode);
+                        default -> System.err.println("Error: Command not recognized");
+                    }
+                } else {
+                    switch (cmd) {
+                        case "obtain_report" -> client.obtainReport();
+                        case "exit" -> running = false;
+                        case "help" -> client.displayHelp(manualMode);
+                        default -> System.err.println("Error: Command not recognized");
+                    }
+                }
+            }
+        } finally {
+            client.clientToClientFrontend.shutdown();
+            client.clientToServerFrontend.shutdown();
+            client.blockUntilShutdown();
+        }
+
+    }
+
+
+    public void obtainReport() {
+        Scanner in = new Scanner(System.in);
+        System.out.print("From which epoch do you wish to get your location report? ");
+        int epoch = Integer.parseInt(in.nextLine());
+        clientToClientFrontend.obtainLocationReport(epoch);
+    }
+
+
+    public void displayHelp(int manualMode) {
+        if (manualMode == 1)
+            System.out.println("submit - submit location report");
+
+        System.out.println("obtain_report - obtain my location report from a specific epoch");
+        System.out.println("help - displays help message");
+        System.out.println("exit - exits client");
+
     }
 
     public Client(String username, int manualMode) throws IOException, InterruptedException {
@@ -47,28 +98,9 @@ public class Client {
 
         /* Initialize client logic */
         clientLogic = new ClientLogic(username,GRID_FILE_PATH);
-
-
         /* Import users and server from mappings */
         importAddrMappings();
 
-        Scanner scanner = new Scanner(System.in);
-
-        boolean not = true;
-
-        System.out.println(this.username + " Started");
-        start(port);
-
-        //just to test request
-        while (not) {
-            if (scanner.nextLine().contains("requestProof")) {
-                int epoch = 0;
-                clientToClientFrontend.broadcastProofRequest(username, clientLogic.getCoords(epoch), epoch, clientLogic.closePeers(epoch));
-                not = false;
-            }
-        }
-
-        blockUntilShutdown();
     }
 
     private void importAddrMappings(){
@@ -94,7 +126,7 @@ public class Client {
             //SERVER
             if(mappingsUser.equals("server")){
                 clientToServerFrontend = new ClientToServerFrontend(username,mappingsHost,mappingsPort);
-                clientToClientFrontend = new ClientToClientFrontend(clientToServerFrontend, clientLogic);
+                clientToClientFrontend = new ClientToClientFrontend(username, clientToServerFrontend, clientLogic);
                 continue;
             }
 
@@ -105,7 +137,7 @@ public class Client {
 
     private void blockUntilShutdown() throws InterruptedException {
         if (server != null) {
-            server.awaitTermination();
+            server.shutdown();
         }
     }
 
@@ -121,6 +153,8 @@ public class Client {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.
             System.err.println("*** shutting down gRPC server since JVM is shutting down");
             Client.this.stop();
+            clientToClientFrontend.shutdown();
+            clientToServerFrontend.shutdown();
             System.err.println("*** server shut down");
         }));
     }
@@ -169,7 +203,7 @@ public class Client {
             RequestLocationProofReply reply = null;
             if (digitalSignature != null) {
                 reply = RequestLocationProofReply.newBuilder().setProof(ByteString.copyFrom(responseJSON))
-                                                                                        .setDigitalSignature(ByteString.copyFrom(digitalSignature)).build();
+                        .setDigitalSignature(ByteString.copyFrom(digitalSignature)).build();
             }
 
             responseObserver.onNext(reply);

@@ -113,9 +113,7 @@ public class ClientLogic {
         JSONArray ja = new JSONArray(proofs);
         message.put("proofs", ja);
 
-
         byte[][] result = new byte[4][];
-
 
         //generate session key and encrypt message
         SecretKey sessionKey = EncryptionLogic.generateAESKey();
@@ -149,5 +147,9 @@ public class ClientLogic {
         result[3] = iv;
 
         return result;
+    }
+
+    public int getEpoch() {
+        return epoch;
     }
 }

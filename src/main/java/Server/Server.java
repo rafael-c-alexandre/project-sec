@@ -98,6 +98,10 @@ public class Server {
 
             serverLogic.submitReport(request.getEncryptedMessage(), request.getEncryptedSessionKey(), request.getSignature(), request.getIv());
 
+            SubmitLocationReportReply reply = SubmitLocationReportReply.newBuilder().build();
+
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
         }
 
         @Override
