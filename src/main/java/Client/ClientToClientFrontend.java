@@ -16,10 +16,7 @@ import util.EncryptionLogic;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ClientToClientFrontend {
     private Map<String,ManagedChannel> channelMap = new HashMap<>();
@@ -64,30 +61,29 @@ public class ClientToClientFrontend {
                     public void onNext(RequestLocationProofReply requestLocationProofReply) {
                         System.out.println("Received proof reply");
 
-                        proofs.add(new JSONObject(new String(requestLocationProofReply.getProof().toByteArray())));
+                        byte[] mes = requestLocationProofReply.getProof().toByteArray();
+                        byte[] digitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
+                        JSONObject proofObject = new JSONObject();
+                        //create a proof json object
+                        proofObject.put("message", Base64.getEncoder().encodeToString(mes));
+                        proofObject.put("digital_signature", Base64.getEncoder().encodeToString(digitalSignature));
+
+                        proofs.add(proofObject);
+
 
                         /****** test digital signature validity | REMOVE  ******/
                         JSONObject proof = new JSONObject(new String(requestLocationProofReply.getProof().toByteArray()));
                         System.out.println("Received proof reply from " + proof.getString("username"));
-                        byte[] mes = requestLocationProofReply.getProof().toByteArray();
-                        byte[] digitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
-                        try {
-                            EncryptionLogic enc = new EncryptionLogic();
-                            boolean result = enc.verifyDigitalSignature(mes, digitalSignature, enc.getPublicKey(proof.getString("username")));
-                            System.out.println("CERTIFIED VALID ?" + result);
-                        } catch (NoSuchAlgorithmException e) {
-                            e.printStackTrace();
-                        } catch (InvalidKeyException e) {
-                            e.printStackTrace();
-                        } catch (SignatureException e) {
-                            e.printStackTrace();
-                        }
+
+                        boolean result = EncryptionLogic.verifyDigitalSignature(mes, digitalSignature, EncryptionLogic.getPublicKey(proof.getString("username")));
+                        System.out.println("CERTIFIED VALID ?" + result);
+
                         /************/
 
                         if (proofs.size() == responseQuorum) {
                             System.out.println("Got response quorum. Producing report...");
-                            byte[][] message = clientLogic.createLocationProof(proofs);
-                            serverFrontend.submitReport(message[0], message[1], message[2]);
+                            byte[][] message = clientLogic.createLocationReport(proofs);
+                            serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
                         }
                     }
 

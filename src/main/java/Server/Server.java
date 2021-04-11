@@ -20,21 +20,15 @@ import java.util.Objects;
 
 public class Server {
 
-    private String dbuser;
-    private String dbpassword;
     private Connector connector;
     private ServerLogic serverLogic;
-    private EncryptionLogic encryptionLogic;
 
 
     private io.grpc.Server server;
 
     public Server(String user, String pass) throws SQLException {
-        this.dbuser = user;
-        this.dbpassword = pass;
         this.connector = new Connector(user,pass);
         this.serverLogic = new ServerLogic(this.connector.getConnection());
-        this.encryptionLogic = new EncryptionLogic();
     }
 
     public static void main(String[] args) throws Exception {
@@ -66,8 +60,8 @@ public class Server {
     private void start() throws IOException {
         server = ServerBuilder
                 .forPort(8084)
-                .addService(new ServerImp(this.serverLogic,this.encryptionLogic))
-                .addService(new HAToServerImp(this.serverLogic,this.encryptionLogic))
+                .addService(new ServerImp(this.serverLogic))
+                .addService(new HAToServerImp(this.serverLogic))
                 .build();
 
         server.start();
@@ -92,21 +86,17 @@ public class Server {
     static class ServerImp extends ClientToServerGrpc.ClientToServerImplBase {
 
         private ServerLogic serverLogic;
-        private EncryptionLogic encryptionLogic;
 
-        public ServerImp(ServerLogic serverLogic,EncryptionLogic encryptionLogic) {
+        public ServerImp(ServerLogic serverLogic) {
             this.serverLogic = serverLogic;
-            this.encryptionLogic = encryptionLogic;
 
         }
 
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
-            System.out.println("Received submit location report request");
+            System.out.println("Received submit location report request from " + request.getUsername());
 
-            System.out.println(request.getSignature().toByteArray());
-
-            //serverLogic.submitReport(request.getMessage());
+            serverLogic.submitReport(request.getEncryptedMessage(), request.getEncryptedSessionKey(), request.getSignature(), request.getIv());
 
         }
 
@@ -122,11 +112,9 @@ public class Server {
 
     static class HAToServerImp extends HAToServerGrpc.HAToServerImplBase{
         private ServerLogic serverLogic;
-        private EncryptionLogic encryptionLogic;
 
-        public HAToServerImp(ServerLogic serverLogic, EncryptionLogic encryptionLogic){
+        public HAToServerImp(ServerLogic serverLogic){
             this.serverLogic = serverLogic;
-            this.encryptionLogic = encryptionLogic;
         }
 
         @Override

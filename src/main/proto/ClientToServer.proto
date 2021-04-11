@@ -17,6 +17,7 @@ message SubmitLocationReportRequest {
     bytes encryptedMessage = 1;
     bytes signature = 2;
     bytes encryptedSessionKey = 3;
+    bytes iv = 4;
 }
 
 message SubmitLocationReportReply {

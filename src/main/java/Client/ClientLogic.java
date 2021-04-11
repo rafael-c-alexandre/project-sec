@@ -5,21 +5,23 @@ import org.json.JSONObject;
 import util.Coords;
 import util.EncryptionLogic;
 
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.*;
 
 public class ClientLogic {
 
-    private EncryptionLogic encryptionLogic;
     private String username;
     private Map<String, Map<Integer, Coords>> grid = new HashMap<>();
     private int epoch = 0;
 
     public ClientLogic(String username,String gridFilePath) {
-        encryptionLogic = new EncryptionLogic();
         this.username = username;
         populateGrid(gridFilePath);
     }
@@ -100,7 +102,7 @@ public class ClientLogic {
         return username;
     }
 
-    public byte[][] createLocationProof(List<JSONObject> proofs) {
+    public byte[][] createLocationReport(List<JSONObject> proofs) {
         Coords coords = getCoords(epoch);
 
         JSONObject message = new JSONObject();
@@ -109,28 +111,42 @@ public class ClientLogic {
         message.put("x", coords.getX());
         message.put("y", coords.getY());
         JSONArray ja = new JSONArray(proofs);
-        message.put("reports", ja);
+        message.put("proofs", ja);
 
 
-        byte[][] result = new byte[3][];
+        byte[][] result = new byte[4][];
 
 
         //generate session key and encrypt message
-        SecretKey sessionKey = encryptionLogic.generateAESKey();
-        byte[] encryptedMessage = encryptionLogic.encryptWithAES(sessionKey,message.toString().getBytes());
+        SecretKey sessionKey = EncryptionLogic.generateAESKey();
+
+        //Generate new IV
+        Cipher cipher = null;
+        try {
+            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            e.printStackTrace();
+        }
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] iv = new byte[Objects.requireNonNull(cipher).getBlockSize()];
+        secureRandom.nextBytes(iv);
+
+        byte[] encryptedMessage = EncryptionLogic.encryptWithAES(sessionKey,message.toString().getBytes(), iv);
         result[0] = encryptedMessage;
 
         //get server public key
-        Key serverPubKey = encryptionLogic.getPublicKey("server");
+        Key serverPubKey = EncryptionLogic.getPublicKey("server");
 
         //encrypt session key with server public key
-        byte[] encryptedSessionKey = encryptionLogic.encryptWithRSA(serverPubKey, sessionKey.getEncoded());
+        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(serverPubKey, sessionKey.getEncoded());
         result[1] = encryptedSessionKey;
 
         //sign message
-        byte[] digitalSignature = encryptionLogic.createDigitalSignature(message.toString().getBytes(),
-                encryptionLogic.getPrivateKey(this.username));
+        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
+                EncryptionLogic.getPrivateKey(this.username));
         result[2] = digitalSignature;
+
+        result[3] = iv;
 
         return result;
     }

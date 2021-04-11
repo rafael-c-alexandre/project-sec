@@ -10,20 +10,23 @@ import proto.SubmitLocationReportRequest;
 import java.util.Arrays;
 
 public class ClientToServerFrontend {
+    private String username;
     private ManagedChannel channel ;
     private ClientToServerGrpc.ClientToServerBlockingStub blockingStub;
 
-    public ClientToServerFrontend(String host, int port) {
+    public ClientToServerFrontend( String username, String host, int port) {
+        this.username = username;
         this.channel = ManagedChannelBuilder.forAddress(host,port).usePlaintext().build();
         this.blockingStub = ClientToServerGrpc.newBlockingStub(channel);
     }
 
-    public void submitReport(byte[] encryptedMessage, byte[] encryptedSessionKey, byte[] digitalSignature){
+    public void submitReport(byte[] encryptedMessage, byte[] encryptedSessionKey, byte[] digitalSignature, byte[] iv){
         this.blockingStub.submitLocationReport(
                 SubmitLocationReportRequest.newBuilder()
                         .setEncryptedMessage(ByteString.copyFrom(encryptedMessage))
                         .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
                         .setSignature(ByteString.copyFrom(digitalSignature))
+                        .setIv(ByteString.copyFrom(iv))
                         .build()
         );
     }
