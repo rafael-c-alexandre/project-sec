@@ -93,7 +93,7 @@ public class Client {
             }
             //SERVER
             if(mappingsUser.equals("server")){
-                clientToServerFrontend = new ClientToServerFrontend(mappingsHost,mappingsPort);
+                clientToServerFrontend = new ClientToServerFrontend(username,mappingsHost,mappingsPort);
                 clientToClientFrontend = new ClientToClientFrontend(clientToServerFrontend, clientLogic);
                 continue;
             }
@@ -164,11 +164,13 @@ public class Client {
                                                                             request.getEpoch());
 
             /* Create digital signature and reply*/
-            EncryptionLogic enc = new EncryptionLogic();
-            byte[] digitalSignature = enc.createDigitalSignature(responseJSON, enc.getPrivateKey(username));
+            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(responseJSON, EncryptionLogic.getPrivateKey(username));
 
-            RequestLocationProofReply reply = RequestLocationProofReply.newBuilder().setProof(ByteString.copyFrom(responseJSON))
-                                                                                    .setDigitalSignature(ByteString.copyFrom(digitalSignature)).build();
+            RequestLocationProofReply reply = null;
+            if (digitalSignature != null) {
+                reply = RequestLocationProofReply.newBuilder().setProof(ByteString.copyFrom(responseJSON))
+                                                                                        .setDigitalSignature(ByteString.copyFrom(digitalSignature)).build();
+            }
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
