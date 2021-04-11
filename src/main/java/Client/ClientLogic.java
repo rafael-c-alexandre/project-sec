@@ -3,17 +3,23 @@ package Client;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import util.Coords;
+import util.EncryptionLogic;
 
+import javax.crypto.SecretKey;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.security.Key;
 import java.util.*;
 
 public class ClientLogic {
+
+    private EncryptionLogic encryptionLogic;
     private String username;
     private Map<String, Map<Integer, Coords>> grid = new HashMap<>();
     private int epoch = 0;
 
     public ClientLogic(String username,String gridFilePath) {
+        encryptionLogic = new EncryptionLogic();
         this.username = username;
         populateGrid(gridFilePath);
     }
@@ -94,7 +100,7 @@ public class ClientLogic {
         return username;
     }
 
-    public JSONObject createLocationProof(List<JSONObject> proofs) {
+    public byte[][] createLocationProof(List<JSONObject> proofs) {
         Coords coords = getCoords(epoch);
 
         JSONObject message = new JSONObject();
@@ -105,6 +111,27 @@ public class ClientLogic {
         JSONArray ja = new JSONArray(proofs);
         message.put("reports", ja);
 
-        return message;
+
+        byte[][] result = new byte[3][];
+
+
+        //generate session key and encrypt message
+        SecretKey sessionKey = encryptionLogic.generateAESKey();
+        byte[] encryptedMessage = encryptionLogic.encryptWithAES(sessionKey,message.toString().getBytes());
+        result[0] = encryptedMessage;
+
+        //get server public key
+        Key serverPubKey = encryptionLogic.getPublicKey("server");
+
+        //encrypt session key with server public key
+        byte[] encryptedSessionKey = encryptionLogic.encryptWithRSA(serverPubKey, sessionKey.getEncoded());
+        result[1] = encryptedSessionKey;
+
+        //sign message
+        byte[] digitalSignature = encryptionLogic.createDigitalSignature(message.toString().getBytes(),
+                encryptionLogic.getPrivateKey(this.username));
+        result[2] = digitalSignature;
+
+        return result;
     }
 }

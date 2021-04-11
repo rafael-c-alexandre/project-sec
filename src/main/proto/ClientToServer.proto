@@ -14,23 +14,24 @@ service ClientToServer {
 
 
 message SubmitLocationReportRequest {
-    bytes message = 1;
+    bytes encryptedMessage = 1;
     bytes signature = 2;
+    bytes encryptedSessionKey = 3;
 }
 
 message SubmitLocationReportReply {
-    bytes message = 1;
-    bytes signature = 2;
-    bytes session_key = 3;
 }
 
 message ObtainLocationReportRequest {
     bytes message = 1;
     bytes signature = 2;
     bytes session_key = 3;
+    bytes iv = 4;
 }
 
 message ObtainLocationReportReply {
-
+    bytes message = 1;
+    bytes signature = 2;
+    bytes iv = 4;
 }
 

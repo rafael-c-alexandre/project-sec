@@ -22,4 +22,5 @@ message RequestLocationProofRequest {
 
 message RequestLocationProofReply {
   bytes proof = 1;
+  bytes digitalSignature = 2;
 }
