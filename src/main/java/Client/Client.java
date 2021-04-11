@@ -38,7 +38,9 @@ public class Client {
         String username = args[0];
         int manualMode = Integer.parseInt(args[1]);
         Client client = new Client(username, manualMode);
-
+        client.clientToServerFrontend.obtainLocationReport("user1",0);
+        System.out.println("terminou");
+        client.blockUntilShutdown();
     }
 
     public Client(String username, int manualMode) throws IOException, InterruptedException {
@@ -52,23 +54,8 @@ public class Client {
         /* Import users and server from mappings */
         importAddrMappings();
 
-        Scanner scanner = new Scanner(System.in);
-
-        boolean not = true;
-
         System.out.println(this.username + " Started");
         start(port);
-
-        //just to test request
-        while (not) {
-            if (scanner.nextLine().contains("requestProof")) {
-                int epoch = 0;
-                clientToClientFrontend.broadcastProofRequest(username, clientLogic.getCoords(epoch), epoch, clientLogic.closePeers(epoch));
-                not = false;
-            }
-        }
-
-        blockUntilShutdown();
     }
 
     private void importAddrMappings(){

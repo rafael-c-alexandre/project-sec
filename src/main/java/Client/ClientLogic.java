@@ -121,15 +121,7 @@ public class ClientLogic {
         SecretKey sessionKey = EncryptionLogic.generateAESKey();
 
         //Generate new IV
-        Cipher cipher = null;
-        try {
-            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            e.printStackTrace();
-        }
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] iv = new byte[Objects.requireNonNull(cipher).getBlockSize()];
-        secureRandom.nextBytes(iv);
+        byte[] iv = EncryptionLogic.generateIV();
 
         byte[] encryptedMessage = EncryptionLogic.encryptWithAES(sessionKey,message.toString().getBytes(), iv);
         result[0] = encryptedMessage;

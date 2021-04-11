@@ -8,6 +8,7 @@ import proto.ClientToServerGrpc;
 import proto.ObtainLocationReportReply;
 import proto.ObtainLocationReportRequest;
 import proto.SubmitLocationReportRequest;
+import util.Coords;
 import util.EncryptionLogic;
 
 import javax.crypto.SecretKey;
@@ -35,18 +36,17 @@ public class ClientToServerFrontend {
         );
     }
 
-    public void obtainLocationReport(String username, int epoch){
-
-        EncryptionLogic encryptionLogic = new EncryptionLogic();
+    public Coords obtainLocationReport(String username, int epoch){
+        
         JSONObject object = new JSONObject();
         JSONObject message = new JSONObject();
 
         //Generate a session Key
-        SecretKey sessionKey = encryptionLogic.generateAESKey();
+        SecretKey sessionKey = EncryptionLogic.generateAESKey();
         byte[] sessionKeyBytes = sessionKey.getEncoded();
 
         //Encrypt session jey with server public key
-        byte[] encryptedSessionKey = encryptionLogic.encryptWithRSA(encryptionLogic.getPublicKey("server"),sessionKeyBytes);
+        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"),sessionKeyBytes);
 
         //Pass data to json
         message.put("username",username);
@@ -55,15 +55,17 @@ public class ClientToServerFrontend {
         object.put("message",message);
 
         //Encrypt data with session key
-        byte[] encryptedData = encryptionLogic.encryptWithAES(
+        byte[] iv = EncryptionLogic.generateIV();
+        byte[] encryptedData = EncryptionLogic.encryptWithAES(
                 sessionKey,
-                object.toString().getBytes()
+                object.toString().getBytes(),
+                iv
         );
 
         //Generate digital signature
-        byte[] digitalSignature = encryptionLogic.createDigitalSignature(
+        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
                 object.toString().getBytes(),
-                encryptionLogic.getPrivateKey(username)
+                EncryptionLogic.getPrivateKey(username)
         );
 
 
@@ -72,9 +74,30 @@ public class ClientToServerFrontend {
                     .setMessage(ByteString.copyFrom(encryptedData))
                     .setSignature(ByteString.copyFrom(digitalSignature))
                     .setSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                    .setIv(ByteString.copyFrom(iv))
                     .build()
         );
 
+        byte[] encryptedResponse = reply.getMessage().toByteArray();
+        byte[] responseSignature = reply.getSignature().toByteArray();
+        byte[] responseIv = reply.getIv().toByteArray();
+
+        //Decrypt response
+        byte[] response = EncryptionLogic.decryptWithAES(sessionKey,encryptedResponse,responseIv);
+
+        //Verify response signature
+        if(!EncryptionLogic.verifyDigitalSignature(response,responseSignature,EncryptionLogic.getPublicKey("server")))
+            System.out.println("Invalid signature");
+        else
+            System.out.println("Valid signature");
+
+        //process response and return coords
+        String jsonString = new String(response);
+        System.out.println("json -> " + jsonString);
+        JSONObject jsonObject = new JSONObject(jsonString);
+        JSONObject msg = jsonObject.getJSONObject("message");
+
+        return new Coords(msg.getInt("x"),msg.getInt("y"));
 
     }
 }

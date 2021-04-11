@@ -102,7 +102,7 @@ public class Server {
 
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
-            System.out.println("Received submit location report request from " + request.getUsername());
+            System.out.println("Received submit location report request from ");
 
             serverLogic.submitReport(request.getEncryptedMessage(), request.getEncryptedSessionKey(), request.getSignature(), request.getIv());
 
@@ -110,22 +110,19 @@ public class Server {
 
         @Override
         public void obtainLocationReport(ObtainLocationReportRequest request, StreamObserver<ObtainLocationReportReply> responseObserver) {
-
-            EncryptionLogic encryptionLogic = new EncryptionLogic();
-
-            byte[] encryptedData = request.getMessage().toByteArray();
-            byte[] encryptedSessionKey = request.getSessionKey().toByteArray();
-            byte[] signature = request.getSignature().toByteArray();
-            byte[] iv = request.getIv().toByteArray();
-
-            //Decrypt session key
-            byte[] sessionKeyBytes = encryptionLogic.decryptWithRSA(encryptionLogic.getPrivateKey("server"),encryptedSessionKey);
-            SecretKey sessionKey = encryptionLogic.bytesToAESKey(sessionKeyBytes);
-
-
-            //Decrypt data
             try {
-                byte[] decryptedData = encryptionLogic.decryptWithAES(sessionKey,encryptedData,iv);
+                byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getSessionKey().toByteArray();
+                byte[] signature = request.getSignature().toByteArray();
+                byte[] iv = request.getIv().toByteArray();
+
+                //Decrypt session key
+                byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
+                SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+
+
+                //Decrypt data
+                byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
                 String jsonString = new String(decryptedData);
                 JSONObject jsonObject = new JSONObject(jsonString);
                 JSONObject message = jsonObject.getJSONObject("message");
@@ -135,46 +132,46 @@ public class Server {
 
                 //Verify signature
                 //TODO invalid signature response
-                if(!encryptionLogic.verifyDigitalSignature(decryptedData,signature,encryptionLogic.getPublicKey(username)))
+                if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username)))
                     System.out.println("Invalid signature!");
                 else
                     System.out.println("Valid signature!");
 
                 //process request
-                Coords coords = serverLogic.obtainLocationReport(username,epoch);
+                Coords coords = serverLogic.obtainLocationReport(username, epoch);
+                coords = new Coords(1, 2);
                 JSONObject jsonResponse = new JSONObject();
                 JSONObject jsonResponseMessage = new JSONObject();
 
-                jsonResponseMessage.put("x",coords.getX());
-                jsonResponseMessage.put("y",coords.getY());
+                jsonResponseMessage.put("x", coords.getX());
+                jsonResponseMessage.put("y", coords.getY());
 
-                jsonResponse.put("message",jsonResponseMessage);
+                jsonResponse.put("message", jsonResponseMessage);
+
 
                 //encrypt response
-                byte[] encryptedResponse = encryptionLogic.encryptWithAES(sessionKey,jsonResponse.toString().getBytes());
+                byte[] responseIv = EncryptionLogic.generateIV();
+                byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
 
 
                 //generate signature
-                byte[] responseSignature =  encryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(),encryptionLogic.getPrivateKey(username));
+                System.out.println(jsonResponse);
+                byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server"));
 
                 //Create reply
                 ObtainLocationReportReply reply = ObtainLocationReportReply.newBuilder()
+                        .setMessage(ByteString.copyFrom(encryptedResponse))
+                        .setSignature(ByteString.copyFrom(responseSignature))
+                        .setIv(ByteString.copyFrom(responseIv))
                         .build();
+
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
-
-
-            } catch (BadPaddingException e) {
-                e.printStackTrace();
-            } catch (IllegalBlockSizeException e) {
-                e.printStackTrace();
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (SignatureException e) {
-                e.printStackTrace();
-            } catch (InvalidKeyException e) {
-                e.printStackTrace();
+            } catch (NoSuchCoordsException e){
+                responseObserver.onError();
+                responseObserver.onCompleted();
             }
+
         }
     }
 

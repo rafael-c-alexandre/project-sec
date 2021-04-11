@@ -33,6 +33,6 @@ message ObtainLocationReportRequest {
 message ObtainLocationReportReply {
     bytes message = 1;
     bytes signature = 2;
-    bytes iv = 4;
+    bytes iv = 3;
 }
 
