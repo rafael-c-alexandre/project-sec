@@ -100,7 +100,6 @@ public class Client {
         clientLogic = new ClientLogic(username,GRID_FILE_PATH);
         /* Import users and server from mappings */
         importAddrMappings();
-
     }
 
     private void importAddrMappings(){

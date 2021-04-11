@@ -6,13 +6,21 @@ import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
 
 import io.grpc.stub.StreamObserver;
+import org.json.JSONObject;
 import proto.*;
 import proto.HA.HAToServerGrpc;
 import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
+import util.Coords;
 import util.EncryptionLogic;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.sql.SQLException;
 import java.util.Objects;
 
@@ -94,7 +102,7 @@ public class Server {
 
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
-            System.out.println("Received submit location report request from " + request.getUsername());
+            System.out.println("Received submit location report request from ");
 
             serverLogic.submitReport(request.getEncryptedMessage(), request.getEncryptedSessionKey(), request.getSignature(), request.getIv());
 
@@ -106,11 +114,68 @@ public class Server {
 
         @Override
         public void obtainLocationReport(ObtainLocationReportRequest request, StreamObserver<ObtainLocationReportReply> responseObserver) {
-            //TODO verify signature
-            //if(!serverLogic.verifySignature(username,request.getMessage(),request.getSignature()))
-            //
+            try {
+                byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getSessionKey().toByteArray();
+                byte[] signature = request.getSignature().toByteArray();
+                byte[] iv = request.getIv().toByteArray();
 
-            //String messageJson = encryptionLogic.decryptWithRSA(request.getMessage(),request.getSessionKey());
+                //Decrypt session key
+                byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
+                SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+
+
+                //Decrypt data
+                byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
+                String jsonString = new String(decryptedData);
+                JSONObject jsonObject = new JSONObject(jsonString);
+                JSONObject message = jsonObject.getJSONObject("message");
+                String username = message.getString("username");
+                int epoch = message.getInt("epoch");
+
+
+                //Verify signature
+                //TODO invalid signature response
+                if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username)))
+                    System.out.println("Invalid signature!");
+                else
+                    System.out.println("Valid signature!");
+
+                //process request
+                Coords coords = serverLogic.obtainLocationReport(username, epoch);
+                coords = new Coords(1, 2);
+                JSONObject jsonResponse = new JSONObject();
+                JSONObject jsonResponseMessage = new JSONObject();
+
+                jsonResponseMessage.put("x", coords.getX());
+                jsonResponseMessage.put("y", coords.getY());
+
+                jsonResponse.put("message", jsonResponseMessage);
+
+
+                //encrypt response
+                byte[] responseIv = EncryptionLogic.generateIV();
+                byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
+
+
+                //generate signature
+                System.out.println(jsonResponse);
+                byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server"));
+
+                //Create reply
+                ObtainLocationReportReply reply = ObtainLocationReportReply.newBuilder()
+                        .setMessage(ByteString.copyFrom(encryptedResponse))
+                        .setSignature(ByteString.copyFrom(responseSignature))
+                        .setIv(ByteString.copyFrom(responseIv))
+                        .build();
+
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            } catch (NoSuchCoordsException e){
+                responseObserver.onError();
+                responseObserver.onCompleted();
+            }
+
         }
     }
 
@@ -128,7 +193,8 @@ public class Server {
 
         @Override
         public void obtainUsersAtLocation(ObtainUsersAtLocationRequest request, StreamObserver<ObtainUsersAtLocationReply> responseObserver) {
-            super.obtainUsersAtLocation(request, responseObserver);
+
+
         }
     }
 }

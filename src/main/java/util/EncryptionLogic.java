@@ -178,6 +178,20 @@ public class EncryptionLogic {
         return null;
     }
 
+    public static byte[] generateIV(){
+        //Generate new IV
+        Cipher cipher = null;
+        try {
+            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            e.printStackTrace();
+        }
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] iv = new byte[Objects.requireNonNull(cipher).getBlockSize()];
+        secureRandom.nextBytes(iv);
+        return iv;
+    }
+
     public static byte[] decryptWithRSA(Key decryptionKey, byte[] bytes) {
         try {
             Cipher rsa;
