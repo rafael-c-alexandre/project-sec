@@ -16,11 +16,12 @@ import java.security.PublicKey;
 import java.sql.Connection;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 public class ServerLogic {
 
-    private List<UserReport> reportList;
+    private CopyOnWriteArrayList<UserReport> reportList;
     private UserReportsRepository reportsRepository;
 
 

@@ -5,6 +5,7 @@ import Server.database.Connector;
 import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.json.JSONObject;
 import proto.*;
@@ -172,7 +173,8 @@ public class Server {
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
             } catch (NoSuchCoordsException e){
-                responseObserver.onError();
+                Status status = Status.NOT_FOUND.withDescription("No report found for the given location");
+                responseObserver.onError(status.asRuntimeException());
                 responseObserver.onCompleted();
             }
 
@@ -188,7 +190,68 @@ public class Server {
 
         @Override
         public void obtainLocationReport(proto.HA.ObtainLocationReportRequest request, StreamObserver<proto.HA.ObtainLocationReportReply> responseObserver) {
+            try {
+                byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getSessionKey().toByteArray();
+                byte[] signature = request.getSignature().toByteArray();
+                byte[] iv = request.getIv().toByteArray();
 
+                //Decrypt session key
+                byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
+                SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+
+
+                //Decrypt data
+                byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
+                String jsonString = new String(decryptedData);
+                JSONObject jsonObject = new JSONObject(jsonString);
+                JSONObject message = jsonObject.getJSONObject("message");
+                String username = message.getString("username");
+                int epoch = message.getInt("epoch");
+
+
+                //Verify signature
+                //TODO invalid signature response
+                if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username)))
+                    System.out.println("Invalid signature!");
+                else
+                    System.out.println("Valid signature!");
+
+                //process request
+                Coords coords = serverLogic.obtainLocationReport(username, epoch);
+                coords = new Coords(1, 2);
+                JSONObject jsonResponse = new JSONObject();
+                JSONObject jsonResponseMessage = new JSONObject();
+
+                jsonResponseMessage.put("x", coords.getX());
+                jsonResponseMessage.put("y", coords.getY());
+
+                jsonResponse.put("message", jsonResponseMessage);
+
+
+                //encrypt response
+                byte[] responseIv = EncryptionLogic.generateIV();
+                byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
+
+
+                //generate signature
+                System.out.println(jsonResponse);
+                byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server"));
+
+                //Create reply
+                proto.HA.ObtainLocationReportReply reply = proto.HA.ObtainLocationReportReply.newBuilder()
+                        .setMessage(ByteString.copyFrom(encryptedResponse))
+                        .setSignature(ByteString.copyFrom(responseSignature))
+                        .setIv(ByteString.copyFrom(responseIv))
+                        .build();
+
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            } catch (NoSuchCoordsException e){
+                Status status = Status.NOT_FOUND.withDescription("No report found for the given location");
+                responseObserver.onError(status.asRuntimeException());
+                responseObserver.onCompleted();
+            }
         }
 
         @Override

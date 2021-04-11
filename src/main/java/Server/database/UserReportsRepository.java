@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class UserReportsRepository {
     private final Connection connection;
@@ -44,8 +45,8 @@ public class UserReportsRepository {
         return null;
     }
 
-    public List<UserReport> getAllUserReports(){
-        List<UserReport> result = new ArrayList<>();
+    public CopyOnWriteArrayList<UserReport> getAllUserReports(){
+        CopyOnWriteArrayList<UserReport> result = new CopyOnWriteArrayList<>();
         try{
             String sql = "SELECT username,epoch,x,y FROM UserReports";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
