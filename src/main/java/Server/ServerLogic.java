@@ -124,6 +124,7 @@ public class ServerLogic {
         if(verifyMessage(decipheredMessage, digitalSignature)) {
             UserReport userReport = new UserReport(reportJSON);
 
+            System.out.println("Report from " + userReport.getUsername() + " from epoch " + userReport.getEpoch() + " report verified");
             this.reportList.add(userReport);
             //Add to database
             reportsRepository.submitUserReport(userReport);
@@ -163,7 +164,7 @@ public class ServerLogic {
 
     }
 
-    public void submitProof(byte[] witnessEncryptedSessionKey, byte[] witnessIv, byte[] encryptedSessionKey, byte[] encryptedProof, byte[] signature, byte[] iv) throws InvalidProofException, NoReportFoundException {
+    public void submitProof(byte[] witnessEncryptedSessionKey, byte[] witnessIv, byte[] encryptedSessionKey, byte[] encryptedProof, byte[] signature, byte[] iv) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
 
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
@@ -176,6 +177,7 @@ public class ServerLogic {
         Proof newProof = verifyProof(witnessEncryptedSessionKey,decryptedProof, signature,witnessIv);
 
         UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
+        System.out.println("Proof from " + newProof.getWitnessUsername() + " to " + newProof.getProverUsername() + " report verified");
         report.addProof(newProof);
         reportsRepository.submitProof(newProof);
         if (report.getProofsList().size() == responseQuorum) {
@@ -194,19 +196,20 @@ public class ServerLogic {
     }
 
 
-    public Proof verifyProof(byte[] witnessEncryptedSessionKey,byte[] proof, byte[] signature, byte[] witnessIv) throws InvalidProofException, NoReportFoundException {
+    public Proof verifyProof(byte[] witnessEncryptedSessionKey,byte[] proof, byte[] signature, byte[] witnessIv) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
         JSONObject proofJSON = new JSONObject(new String(proof));
         String proverUser = proofJSON.getString("proverUsername");
         String witnessUser = proofJSON.getString("witnessUsername");
 
         //get server public key
-        PublicKey witnessPubKey = EncryptionLogic.getPublicKey(witnessUser);
+        PublicKey proverPubKey = EncryptionLogic.getPublicKey(proverUser);
 
-        boolean validSignature = EncryptionLogic.verifyDigitalSignature(proof, signature, witnessPubKey);
+        boolean validSignature = EncryptionLogic.verifyDigitalSignature(proof, signature, proverPubKey);
 
         if(!validSignature)
             throw new InvalidProofException();
         int epoch = proofJSON.getInt("epoch");
+        System.out.println("Proof signature valid from witness " + witnessUser + "to prover " + proverUser);
 
         //byzantine user set wrong epoch
         if (! validEpoch(proverUser, epoch))
@@ -221,20 +224,16 @@ public class ServerLogic {
         byte[] witnessLocation = EncryptionLogic.decryptWithAES(witnessSessionKey, witnessLocationBytes, witnessIv);
 
         JSONObject locationJSON = new JSONObject(new String(Objects.requireNonNull(witnessLocation)));
-        /*UserReport report = obtainLocationReport(proverUser, epoch);
+
+        UserReport report = obtainLocationReport(proverUser, epoch);
+        String username = report.getUsername();
+
         if (report.isClosed())
             throw new AlreadyConfirmedReportException(username, report.getEpoch());
 
         //byzantine user is not close to prover
-        if (!isClose(witnessCoords, report.getCoords())) {
-            //todo: throw custom exception
-            throw new InvalidProofException();
-        }*/
-
         Coords witnessCoords = new Coords(locationJSON.getInt("x"), locationJSON.getInt("y"));
-
-        //byzantine user is not close to prover
-        if (!isClose(witnessCoords, obtainLocationReport(proverUser, epoch).getCoords())) {
+        if (!isClose(witnessCoords, report.getCoords())) {
             throw new InvalidProofException();
         }
 
