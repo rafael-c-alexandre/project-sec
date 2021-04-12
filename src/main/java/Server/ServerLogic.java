@@ -20,18 +20,18 @@ import java.util.stream.Collectors;
 
 public class ServerLogic {
 
-    final int f_line = 0;
     private CopyOnWriteArrayList<UserReport> reportList;
     private  UserReportsRepository reportsRepository;
-    private final int responseQuorum = 2;
+    private final int responseQuorum;
 
-    public ServerLogic(Connection Connection) {
+    public ServerLogic(Connection Connection, String f) {
         reportsRepository = new UserReportsRepository(Connection);
         this.reportList = reportsRepository.getAllUserReports();
         this.reportList.add(new UserReport(1,"user1",new Coords(1,1)));
         this.reportList.add(new UserReport(1,"user2",new Coords(1,1)));
         this.reportList.add(new UserReport(1,"user3",new Coords(1,1)));
-        this.reportList.add(new UserReport(2,"user4",new Coords(1,2)));
+
+        this.responseQuorum = Integer.parseInt(f) + 1;
     }
 
     public UserReport obtainLocationReport(String username, int epoch) throws NoReportFoundException {
