@@ -192,7 +192,6 @@ public class ServerLogic {
 
                 //verify digital signature validity
                 boolean valid = EncryptionLogic.verifyDigitalSignature(message, digitalSignature, userPubKey);
-                System.out.println(proverUsername + "  " + proofProverUsername + "  " + proverEpoch + "  " + epoch);
 
                 //Verify if this proof is really for this prover and epoch
                 if (valid && proverUsername.equals(proofProverUsername) && proverEpoch == epoch) {

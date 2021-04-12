@@ -67,7 +67,15 @@ public class ClientToClientFrontend {
                 public void onNext(RequestLocationProofReply requestLocationProofReply) {
                     System.out.println("Received proof reply");
 
+                    /* Check if witness is a close peer */
                     byte[] proof = requestLocationProofReply.getProof().toByteArray();
+                    JSONObject proofJSON = new JSONObject(new String(proof));
+                    System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername"));
+                    if(!closePeers.contains(proofJSON.getString("witnessUsername"))){
+                        System.out.println("Witness " + proofJSON.getString("witnessUsername") +" was not asked for a proof, is not a close peer");
+                        return;
+                    }
+
                     byte[] digitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
                     JSONObject proofObject = new JSONObject();
                     //create a proof json object
@@ -75,12 +83,6 @@ public class ClientToClientFrontend {
                     proofObject.put("digital_signature", Base64.getEncoder().encodeToString(digitalSignature));
 
                     proofs.add(proofObject);
-
-
-                    /****** test digital signature validity | REMOVE  ******/
-                    JSONObject proofJSON = new JSONObject(new String(proof));
-                    System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername"));
-                    /************/
 
                     if (proofs.size() == responseQuorum) {
                         gotQuorum = true;
