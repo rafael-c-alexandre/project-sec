@@ -27,8 +27,6 @@ import java.util.stream.Collectors;
 public class ServerLogic {
 
     private HashMap<String, Pair<SecretKey, byte[]>> sessionKeys = new HashMap<>();
-    private List<UserReport> reportList;
-    private UserReportsRepository reportsRepository;
     final int f_line = 0;
     private final CopyOnWriteArrayList<UserReport> reportList;
     private final UserReportsRepository reportsRepository;
