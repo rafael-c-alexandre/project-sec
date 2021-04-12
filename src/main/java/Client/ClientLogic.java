@@ -53,22 +53,60 @@ public class ClientLogic {
         return grid.get(username).get(epoch);
     }
 
-    public byte[] generateLocationProof(Coords userCoords, String username, int epoch) {
+    public byte[][] generateLocationReport() {
+        Coords coords = getCoords(epoch);
+
+        JSONObject message = new JSONObject();
+        message.put("username", username);
+        message.put("epoch", epoch);
+        message.put("x", coords.getX());
+        message.put("y", coords.getY());
+
+        byte[][] result = new byte[2][];
+
+        //generate session key and encrypt message
+        SecretKey sessionKey = EncryptionLogic.generateAESKey();
+
+
+        byte[] encryptedMessage = EncryptionLogic.encryptWithAES(sessionKey, message.toString().getBytes(), iv);
+        result[0] = encryptedMessage;
+
+        //sign message
+        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
+                EncryptionLogic.getPrivateKey(this.username));
+        result[1] = digitalSignature;
+
+        return result;
+    }
+
+    public byte[][] generateLocationProof(String username, int epoch) {
 
         Coords currentUserCoords = grid.get(this.username).get(epoch);
         JSONObject jsonProof = new JSONObject();
+        byte[][] result = new byte[2][];
 
-        if (isClose(currentUserCoords, userCoords)) {
+        // Create response message
+        jsonProof.put("witnessUsername", this.username);
+        jsonProof.put("proverUsername", username);
+        jsonProof.put("epoch", epoch);
 
-            // Create response message
-            jsonProof.put("witnessUsername", this.username);
-            jsonProof.put("proverUsername", username);
-            jsonProof.put("x", currentUserCoords.getX());
-            jsonProof.put("y", currentUserCoords.getY());
-            jsonProof.put("epoch", epoch);
-            return jsonProof.toString().getBytes();
-        } else
-            return null;
+        JSONObject jsonCoords = new JSONObject();
+        jsonCoords.put("x", currentUserCoords.getX());
+        jsonCoords.put("y", currentUserCoords.getY());
+
+        //generate session key and encrypt message
+        SecretKey sessionKey = EncryptionLogic.generateAESKey();
+
+
+        byte[] encryptedLocation = EncryptionLogic.encryptWithAES(sessionKey, jsonCoords.toString().getBytes(), iv);
+        jsonProof.put("encrypted_location", encryptedLocation);
+        result[0] = jsonProof.toString().getBytes();
+
+        //generate proof digital signature
+        result[1] = EncryptionLogic.createDigitalSignature(jsonProof.toString().getBytes(), EncryptionLogic.getPrivateKey(username));
+
+        return result;
+
     }
 
 
@@ -93,45 +131,6 @@ public class ClientLogic {
 
     public String getUsername() {
         return username;
-    }
-
-    public byte[][] createLocationReport(List<JSONObject> proofs) {
-        Coords coords = getCoords(epoch);
-
-        JSONObject message = new JSONObject();
-        message.put("username", username);
-        message.put("epoch", epoch);
-        message.put("x", coords.getX());
-        message.put("y", coords.getY());
-        JSONArray ja = new JSONArray(proofs);
-        message.put("proofs", ja);
-
-        byte[][] result = new byte[4][];
-
-        //generate session key and encrypt message
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-
-        //Generate new IV
-        byte[] iv = EncryptionLogic.generateIV();
-
-        byte[] encryptedMessage = EncryptionLogic.encryptWithAES(sessionKey, message.toString().getBytes(), iv);
-        result[0] = encryptedMessage;
-
-        //get server public key
-        Key serverPubKey = EncryptionLogic.getPublicKey("server");
-
-        //encrypt session key with server public key
-        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(serverPubKey, sessionKey.getEncoded());
-        result[1] = encryptedSessionKey;
-
-        //sign message
-        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
-                EncryptionLogic.getPrivateKey(this.username));
-        result[2] = digitalSignature;
-
-        result[3] = iv;
-
-        return result;
     }
 
     public int getEpoch() {

@@ -53,14 +53,17 @@ public class ClientToClientFrontend {
         List<String> closePeers = clientLogic.closePeers(epoch);
 
 
+        /*send location report directly to server*/
+        byte[][] message = clientLogic.generateLocationReport();
+        serverFrontend.submitReport(message[0], message[1], message[2]);
+        System.out.println("Report sent");
+
         /* Request proof of location to other close clients */
         for (String user : closePeers) {
             /* Create location proof request */
             stubMap.get(user).requestLocationProof(RequestLocationProofRequest.newBuilder().
-                    setUsername(username).
-                    setX(coords.getX()).
-                    setY(coords.getY()).
-                    setEpoch(epoch)
+                    setUsername(username)
+                    .setEpoch(epoch)
                     .build(), new StreamObserver<RequestLocationProofReply>() {
 
                 @Override
@@ -101,10 +104,7 @@ public class ClientToClientFrontend {
         System.out.println("Waiting for proofs quorum...");
         while (!gotQuorum) Thread.onSpinWait();
 
-        System.out.println("Got response quorum. Producing report...");
-        byte[][] message = clientLogic.createLocationReport(proofs);
-        System.out.println("Report sent");
-        serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
+        System.out.println("Got response quorum");
 
     }
 

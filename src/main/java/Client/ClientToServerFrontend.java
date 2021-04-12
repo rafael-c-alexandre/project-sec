@@ -21,12 +21,27 @@ public class ClientToServerFrontend {
         this.clientLogic = clientLogic;
     }
 
-    public void submitReport(byte[] encryptedMessage, byte[] encryptedSessionKey, byte[] digitalSignature, byte[] iv) {
+    public void submitReport(byte[] encryptedMessage,byte[] digitalSignature, byte[] iv) {
         try {
             SubmitLocationReportReply reply = this.blockingStub.submitLocationReport(
                     SubmitLocationReportRequest.newBuilder()
                             .setEncryptedMessage(ByteString.copyFrom(encryptedMessage))
-                            .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                            .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setIv(ByteString.copyFrom(iv))
+                            .build()
+            );
+        } catch (Exception e) {
+            io.grpc.Status status = io.grpc.Status.fromThrowable(e);
+            System.out.println("Exception received from server:" + status.getDescription());
+        }
+
+    }
+
+    public void submitProof(byte[] encryptedProof, byte[] digitalSignature, byte[] iv) {
+        try {
+            SubmitLocationProofReply reply = this.blockingStub.submitLocationProof(
+                    SubmitLocationProofRequest.newBuilder()
+                            .setEncryptedProof(ByteString.copyFrom(encryptedProof))
                             .setSignature(ByteString.copyFrom(digitalSignature))
                             .setIv(ByteString.copyFrom(iv))
                             .build()

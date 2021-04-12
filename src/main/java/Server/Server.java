@@ -108,6 +108,11 @@ public class Server {
         }
 
         @Override
+        public void submitLocationProof(SubmitLocationProofRequest request, StreamObserver<SubmitLocationProofReply> responseObserver) {
+            //TODO
+        }
+
+        @Override
         public void obtainLocationReport(ObtainLocationReportRequest request, StreamObserver<ObtainLocationReportReply> responseObserver) {
             try {
                 byte[] encryptedData = request.getMessage().toByteArray();
@@ -176,8 +181,7 @@ public class Server {
 
         @Override
         public void obtainUsersAtLocation(ObtainUsersAtLocationRequest request, StreamObserver<ObtainUsersAtLocationReply> responseObserver) {
-
-
+            //TODO
         }
     }
 }

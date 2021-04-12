@@ -19,6 +19,6 @@ message RequestLocationProofRequest {
 
 message RequestLocationProofReply {
   bytes proof = 1;
-  bytes encryptedLocationKey = 2;
+  bytes iv = 2;
   bytes digitalSignature = 3;
 }

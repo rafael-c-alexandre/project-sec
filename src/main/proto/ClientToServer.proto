@@ -9,6 +9,7 @@ package proto;
 
 service ClientToServer {
     rpc SubmitLocationReport (SubmitLocationReportRequest) returns (SubmitLocationReportReply){}
+    rpc SubmitLocationProof (SubmitLocationProofRequest) returns (SubmitLocationProofReply){}
     rpc ObtainLocationReport (ObtainLocationReportRequest) returns (ObtainLocationReportReply){}
 }
 
@@ -16,18 +17,27 @@ service ClientToServer {
 message SubmitLocationReportRequest {
     bytes encryptedMessage = 1;
     bytes signature = 2;
-    bytes encryptedSessionKey = 3;
-    bytes iv = 4;
+    bytes iv = 3;
 }
 
 message SubmitLocationReportReply {
+
 }
+
+message SubmitLocationProofRequest {
+    bytes encryptedProof = 1;
+    bytes signature = 2;
+}
+
+message SubmitLocationProofReply {
+
+}
+
 
 message ObtainLocationReportRequest {
     bytes message = 1;
     bytes signature = 2;
     bytes session_key = 3;
-    bytes iv = 4;
 }
 
 message ObtainLocationReportReply {
