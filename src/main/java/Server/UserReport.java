@@ -6,14 +6,13 @@ import org.json.JSONObject;
 import util.Coords;
 
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Objects;
 
 public class UserReport {
     private int epoch;
     private String username;
     private Coords coords;
-    private ArrayList<Proof> proofsList = new ArrayList<Proof>() ;
+    private final ArrayList<Proof> proofsList = new ArrayList<Proof>();
     //TODO MAYBE PROOFS
 
 
@@ -26,7 +25,7 @@ public class UserReport {
         this.coords = coords;
     }
 
-    public UserReport(JSONObject reportJSON){
+    public UserReport(JSONObject reportJSON) {
 
         try {
             this.epoch = reportJSON.getInt("epoch");
@@ -47,7 +46,6 @@ public class UserReport {
             e.printStackTrace();
         }
     }
-
 
 
     public int getEpoch() {

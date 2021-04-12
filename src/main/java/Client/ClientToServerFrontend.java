@@ -3,110 +3,65 @@ package Client;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.stub.StreamObserver;
-import org.json.JSONObject;
-import proto.ClientToServerGrpc;
-import proto.ObtainLocationReportReply;
-import proto.ObtainLocationReportRequest;
-import proto.SubmitLocationReportReply;
-import proto.SubmitLocationReportRequest;
+import proto.*;
 import util.Coords;
-import util.EncryptionLogic;
 
-import javax.crypto.SecretKey;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 public class ClientToServerFrontend {
-    private String username;
-    private ManagedChannel channel ;
-    private ClientToServerGrpc.ClientToServerBlockingStub blockingStub;
+    private final String username;
+    private final ManagedChannel channel;
+    private final ClientToServerGrpc.ClientToServerBlockingStub blockingStub;
+    private final ClientLogic clientLogic;
 
-    public ClientToServerFrontend( String username, String host, int port) {
+    public ClientToServerFrontend(String username, String host, int port, ClientLogic clientLogic) {
         this.username = username;
-        this.channel = ManagedChannelBuilder.forAddress(host,port).usePlaintext().build();
+        this.channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
         this.blockingStub = ClientToServerGrpc.newBlockingStub(channel);
+        this.clientLogic = clientLogic;
     }
 
-    public void submitReport(byte[] encryptedMessage, byte[] encryptedSessionKey, byte[] digitalSignature, byte[] iv){
-        try{
-        SubmitLocationReportReply reply = this.blockingStub.submitLocationReport(
-                SubmitLocationReportRequest.newBuilder()
-                        .setEncryptedMessage(ByteString.copyFrom(encryptedMessage))
-                        .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
-                        .setSignature(ByteString.copyFrom(digitalSignature))
-                        .setIv(ByteString.copyFrom(iv))
-                        .build()
-        );
-        } catch (Exception e){
+    public void submitReport(byte[] encryptedMessage, byte[] encryptedSessionKey, byte[] digitalSignature, byte[] iv) {
+        try {
+            SubmitLocationReportReply reply = this.blockingStub.submitLocationReport(
+                    SubmitLocationReportRequest.newBuilder()
+                            .setEncryptedMessage(ByteString.copyFrom(encryptedMessage))
+                            .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                            .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setIv(ByteString.copyFrom(iv))
+                            .build()
+            );
+        } catch (Exception e) {
             io.grpc.Status status = io.grpc.Status.fromThrowable(e);
             System.out.println("Exception received from server:" + status.getDescription());
         }
 
     }
 
-    public Coords obtainLocationReport(String username, int epoch){
+    public Coords obtainLocationReport(String username, int epoch) {
 
-        JSONObject object = new JSONObject();
-        JSONObject message = new JSONObject();
+        byte[][] params = this.clientLogic.generateObtainLocationRequestParameters(username, epoch);
 
-        //Generate a session Key
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-        byte[] sessionKeyBytes = sessionKey.getEncoded();
-
-        //Encrypt session jey with server public key
-        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"),sessionKeyBytes);
-
-        //Pass data to json
-        message.put("username",username);
-        message.put("epoch",epoch);
-
-        object.put("message",message);
-
-        //Encrypt data with session key
-        byte[] iv = EncryptionLogic.generateIV();
-        byte[] encryptedData = EncryptionLogic.encryptWithAES(
-                sessionKey,
-                object.toString().getBytes(),
-                iv
-        );
-
-        //Generate digital signature
-        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
-                object.toString().getBytes(),
-                EncryptionLogic.getPrivateKey(username)
-        );
-
+        byte[] encryptedData = params[0];
+        byte[] digitalSignature = params[1];
+        byte[] encryptedSessionKey = params[2];
+        byte[] iv = params[3];
+        byte[] sessionKeyBytes = params[4];
 
         ObtainLocationReportReply reply = this.blockingStub.obtainLocationReport(
-            ObtainLocationReportRequest.newBuilder()
-                    .setMessage(ByteString.copyFrom(encryptedData))
-                    .setSignature(ByteString.copyFrom(digitalSignature))
-                    .setSessionKey(ByteString.copyFrom(encryptedSessionKey))
-                    .setIv(ByteString.copyFrom(iv))
-                    .build()
+                ObtainLocationReportRequest.newBuilder()
+                        .setMessage(ByteString.copyFrom(encryptedData))
+                        .setSignature(ByteString.copyFrom(digitalSignature))
+                        .setSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                        .setIv(ByteString.copyFrom(iv))
+                        .build()
         );
 
         byte[] encryptedResponse = reply.getMessage().toByteArray();
         byte[] responseSignature = reply.getSignature().toByteArray();
         byte[] responseIv = reply.getIv().toByteArray();
 
-        //Decrypt response
-        byte[] response = EncryptionLogic.decryptWithAES(sessionKey,encryptedResponse,responseIv);
-
-        //Verify response signature
-        if(!EncryptionLogic.verifyDigitalSignature(response,responseSignature,EncryptionLogic.getPublicKey("server")))
-            System.out.println("Invalid signature");
-        else
-            System.out.println("Valid signature");
-
-        //process response and return coords
-        String jsonString = new String(response);
-        System.out.println("json -> " + jsonString);
-        JSONObject jsonObject = new JSONObject(jsonString);
-        JSONObject msg = jsonObject.getJSONObject("message");
-
-        return new Coords(msg.getInt("x"),msg.getInt("y"));
+        return this.clientLogic.getCoordsFromReply(sessionKeyBytes, encryptedResponse, responseSignature, responseIv);
 
     }
 

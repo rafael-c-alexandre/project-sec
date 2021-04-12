@@ -19,18 +19,18 @@ public class UserReportsRepository {
         this.connection = connection;
     }
 
-    public UserReport getUserReportOnEpoch(String username, int epoch){
+    public UserReport getUserReportOnEpoch(String username, int epoch) {
 
-        try{
+        try {
             String sql = "SELECT x,y FROM UserReports WHERE username = ? AND epoch = ?";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            preparedStatement.setString(1,username);
-            preparedStatement.setInt(2,epoch);
+            preparedStatement.setString(1, username);
+            preparedStatement.setInt(2, epoch);
 
             ResultSet rs = preparedStatement.executeQuery();
 
-            while (rs.next()){
+            while (rs.next()) {
                 UserReport userReport = new UserReport();
                 userReport.setUsername(username);
                 userReport.setEpoch(epoch);
@@ -46,14 +46,14 @@ public class UserReportsRepository {
         return null;
     }
 
-    public CopyOnWriteArrayList<UserReport> getAllUserReports(){
+    public CopyOnWriteArrayList<UserReport> getAllUserReports() {
         CopyOnWriteArrayList<UserReport> result = new CopyOnWriteArrayList<>();
-        try{
+        try {
             String sql = "SELECT username,epoch,x,y FROM UserReports";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             ResultSet rs = preparedStatement.executeQuery();
 
-            while (rs.next()){
+            while (rs.next()) {
                 UserReport userReport = new UserReport();
                 userReport.setUsername(rs.getString("username"));
                 userReport.setEpoch(rs.getInt("epoch"));
@@ -70,19 +70,19 @@ public class UserReportsRepository {
         return result;
     }
 
-    public List<String> getUsersAtPos(int epoch, int x, int y){
-        try{
+    public List<String> getUsersAtPos(int epoch, int x, int y) {
+        try {
             String sql = "SELECT username FROM UserReports WHERE epoch = ? AND x = ? AND y = ?";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            preparedStatement.setInt(1,epoch);
-            preparedStatement.setInt(2,x);
-            preparedStatement.setInt(3,y);
+            preparedStatement.setInt(1, epoch);
+            preparedStatement.setInt(2, x);
+            preparedStatement.setInt(3, y);
 
             ResultSet rs = preparedStatement.executeQuery();
 
             List<String> users = new ArrayList<>();
-            while (rs.next()){
+            while (rs.next()) {
                 users.add(rs.getString("username"));
             }
             return users;
@@ -93,18 +93,18 @@ public class UserReportsRepository {
         return new ArrayList<>();
     }
 
-    public void submitUserReport(UserReport userReport){
-        try{
+    public void submitUserReport(UserReport userReport) {
+        try {
             String sql = "INSERT INTO UserReports(username, epoch,x,y) VALUES (?,?,?,?)";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            preparedStatement.setString(1,userReport.getUsername());
-            preparedStatement.setInt(2,userReport.getEpoch());
-            preparedStatement.setInt(3,userReport.getCoords().getX());
-            preparedStatement.setInt(4,userReport.getCoords().getY());
+            preparedStatement.setString(1, userReport.getUsername());
+            preparedStatement.setInt(2, userReport.getEpoch());
+            preparedStatement.setInt(3, userReport.getCoords().getX());
+            preparedStatement.setInt(4, userReport.getCoords().getY());
 
             preparedStatement.executeUpdate();
-            for(int i = 0; i < userReport.getProofsList().size(); i++)
+            for (int i = 0; i < userReport.getProofsList().size(); i++)
                 submitProof(userReport.getProofsList().get(i));
             connection.commit();
         } catch (SQLException e) {
@@ -112,16 +112,16 @@ public class UserReportsRepository {
         }
     }
 
-    public void submitProof(Proof proof){
-        try{
+    public void submitProof(Proof proof) {
+        try {
             String sql = "INSERT INTO Proofs(prover_username, witness_username,epoch,x,y) VALUES (?,?,?,?,?)";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
-            preparedStatement.setString(1,proof.getProverUsername());
-            preparedStatement.setString(2,proof.getWitnessUsername());
-            preparedStatement.setInt(3,proof.getEpoch());
-            preparedStatement.setInt(4,proof.getCoords().getX());
-            preparedStatement.setInt(5,proof.getCoords().getY());
+            preparedStatement.setString(1, proof.getProverUsername());
+            preparedStatement.setString(2, proof.getWitnessUsername());
+            preparedStatement.setInt(3, proof.getEpoch());
+            preparedStatement.setInt(4, proof.getCoords().getX());
+            preparedStatement.setInt(5, proof.getCoords().getY());
 
             preparedStatement.executeUpdate();
             connection.commit();

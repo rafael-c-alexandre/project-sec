@@ -78,7 +78,7 @@ public class EncryptionLogic {
             e.printStackTrace();
         }
 
-       return null;
+        return null;
     }
 
     public static boolean verifyDigitalSignature(byte[] message, byte[] signature, PublicKey publicKey) {
@@ -178,7 +178,7 @@ public class EncryptionLogic {
         return null;
     }
 
-    public static byte[] generateIV(){
+    public static byte[] generateIV() {
         //Generate new IV
         Cipher cipher = null;
         try {
@@ -232,8 +232,7 @@ public class EncryptionLogic {
     }
 
 
-
-    public static PublicKey getPublicKey(String username ){
+    public static PublicKey getPublicKey(String username) {
         try {
             CertificateFactory fact = CertificateFactory.getInstance("X.509");
             FileInputStream is = new FileInputStream(CRYPTO_FOLDER_PATH + username + "/" + username + ".pem");
@@ -247,7 +246,7 @@ public class EncryptionLogic {
         return null;
     }
 
-    public static PrivateKey getPrivateKey(String username){
+    public static PrivateKey getPrivateKey(String username) {
         try {
             byte[] keyBytes = Files.readAllBytes(Paths.get(CRYPTO_FOLDER_PATH + username + "/" + username + ".key"));
 

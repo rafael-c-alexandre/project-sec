@@ -1,8 +1,8 @@
 package Exceptions;
 
-public class NoSuchCoordsException extends Exception{
+public class NoSuchCoordsException extends Exception {
 
-    public NoSuchCoordsException(){
-        super("No such coords");
+    public NoSuchCoordsException() {
+        super("No report found for the given location");
     }
 }
