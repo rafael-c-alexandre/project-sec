@@ -10,6 +10,7 @@ package proto;
 service ClientToServer {
     rpc SubmitLocationReport (SubmitLocationReportRequest) returns (SubmitLocationReportReply){}
     rpc ObtainLocationReport (ObtainLocationReportRequest) returns (ObtainLocationReportReply){}
+    rpc Handshake (HandshakeRequest) returns (HandshakeReply){}
 }
 
 
@@ -35,4 +36,15 @@ message ObtainLocationReportReply {
     bytes signature = 2;
     bytes iv = 3;
 }
+
+message HandshakeRequest{
+    bytes encryptedUsernameSessionKey = 1;
+    bytes signature = 2;
+    bytes iv = 3;
+}
+
+message HandshakeReply{
+
+}
+
 

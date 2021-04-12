@@ -20,6 +20,7 @@ import javax.crypto.SecretKey;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Base64;
 
 
 public class Server {
@@ -97,6 +98,23 @@ public class Server {
         }
 
         @Override
+        public void handshake(HandshakeRequest request, StreamObserver<HandshakeReply> responseObserver){
+            byte[] encryptedUsernameSessionKeyJSON = request.getEncryptedUsernameSessionKey().toByteArray();
+            byte[] signature = request.getSignature().toByteArray();
+            byte[] iv = request.getIv().toByteArray();
+
+            if(serverLogic.handshake(encryptedUsernameSessionKeyJSON, signature, iv)){
+                HandshakeReply reply = HandshakeReply.newBuilder().build();
+                responseObserver.onNext(reply);
+            } else {
+                Status status = Status.FAILED_PRECONDITION.withDescription("Failed handshake");
+                responseObserver.onError(status.asRuntimeException());
+            }
+
+            responseObserver.onCompleted();
+        }
+
+        @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
             System.out.println("Received submit location report request from ");
             try {
@@ -136,7 +154,7 @@ public class Server {
 
 
                 //Verify signature
-                //TODO invalid signature response
+                //TODO invalid signature response, throw error
                 if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username)))
                     System.out.println("Invalid signature!");
                 else

@@ -3,6 +3,7 @@ package Server;
 import Exceptions.InvalidNumberOfProofsException;
 import Server.database.UserReportsRepository;
 import com.google.protobuf.ByteString;
+import javafx.util.Pair;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -15,12 +16,14 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.sql.Connection;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
 
 public class ServerLogic {
 
+    private HashMap<String, Pair<SecretKey, byte[]>> sessionKeys = new HashMap<>();
     private List<UserReport> reportList;
     private UserReportsRepository reportsRepository;
     final int f_line = 0;
@@ -139,4 +142,33 @@ public class ServerLogic {
         }
 
     }
+
+    public boolean handshake( byte[] encryptedUsernameSessionKeyJSON, byte[] signature,  byte[] iv) {
+        String jsonString = new String(encryptedUsernameSessionKeyJSON);
+        JSONObject message = new JSONObject(jsonString);
+        byte[] encryptedUsername = Base64.getDecoder().decode(message.getString("encryptedUsername"));
+        byte[] encryptedSessionKey = Base64.getDecoder().decode(message.getString("encryptedSessionKey"));
+
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
+        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+
+        //Decrypt username
+        byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedUsername, iv);
+        assert decryptedData != null;
+        String username = new String(decryptedData);
+
+        //Verify signature
+        //TODO invalid signature response, throw error
+        if (!EncryptionLogic.verifyDigitalSignature(jsonString.getBytes(), signature, EncryptionLogic.getPublicKey(username))){
+            System.out.println("Invalid signature!");
+            return false;
+        } else {
+            System.out.println("Valid signature!");
+            sessionKeys.put(username, new Pair<>(sessionKey, iv));
+            return true;
+        }
+
+    }
+
 }

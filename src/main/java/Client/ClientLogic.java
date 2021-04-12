@@ -5,14 +5,10 @@ import org.json.JSONObject;
 import util.Coords;
 import util.EncryptionLogic;
 
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.*;
 
 public class ClientLogic {
@@ -20,6 +16,8 @@ public class ClientLogic {
     private String username;
     private Map<String, Map<Integer, Coords>> grid = new HashMap<>();
     private int epoch = 0;
+    private SecretKey sessionKey;
+    private byte[] iv;
 
     public ClientLogic(String username,String gridFilePath) {
         this.username = username;
@@ -135,6 +133,41 @@ public class ClientLogic {
         result[2] = digitalSignature;
 
         result[3] = iv;
+
+        return result;
+    }
+
+    public byte[][] generateHandshakeMessage(){
+        byte[][] result = new byte[3][];
+
+        //Generate session key
+        this.sessionKey = EncryptionLogic.generateAESKey();
+
+        //get server public key
+        Key serverPubKey = EncryptionLogic.getPublicKey("server");
+
+        //Generate new IV
+        byte[] iv = EncryptionLogic.generateIV();
+        this.iv = iv;
+
+        byte[] encryptedUsername = EncryptionLogic.encryptWithAES(sessionKey, username.getBytes(), iv);
+        //result[0] = encryptedUsername;
+
+        //encrypt session key with server public key
+        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(serverPubKey, sessionKey.getEncoded());
+        //result[1] = encryptedSessionKey;
+
+        JSONObject message = new JSONObject();
+        message.put("encryptedUsername", Base64.getEncoder().encodeToString(encryptedUsername));
+        message.put("encryptedSessionKey", Base64.getEncoder().encodeToString(encryptedSessionKey));
+        result[0] = message.toString().getBytes();
+
+        //sign encrypted username and encrypted session key
+        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
+                EncryptionLogic.getPrivateKey(this.username));
+        result[1] = digitalSignature;
+
+        result[2] = iv;
 
         return result;
     }

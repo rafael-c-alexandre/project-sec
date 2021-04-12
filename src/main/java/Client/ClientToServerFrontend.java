@@ -5,11 +5,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.json.JSONObject;
-import proto.ClientToServerGrpc;
-import proto.ObtainLocationReportReply;
-import proto.ObtainLocationReportRequest;
-import proto.SubmitLocationReportReply;
-import proto.SubmitLocationReportRequest;
+import proto.*;
 import util.Coords;
 import util.EncryptionLogic;
 
@@ -45,6 +41,22 @@ public class ClientToServerFrontend {
 
     }
 
+
+    public void handshake(byte[] encryptedUsernameSessionKey, byte[] digitalSignature, byte[] iv){
+        try{
+            HandshakeReply reply = this.blockingStub.handshake(
+                    HandshakeRequest.newBuilder()
+                            .setEncryptedUsernameSessionKey(ByteString.copyFrom(encryptedUsernameSessionKey))
+                            .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setIv(ByteString.copyFrom(iv))
+                            .build()
+            );
+        } catch (Exception e){
+            io.grpc.Status status = io.grpc.Status.fromThrowable(e);
+            System.out.println("Exception received from server:" + status.getDescription());
+        }
+
+    }
     public Coords obtainLocationReport(String username, int epoch){
 
         JSONObject object = new JSONObject();
