@@ -1,10 +1,8 @@
 package Server;
 
-import Client.ClientLogic;
 import Server.database.Connector;
 import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
-
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.json.JSONObject;
@@ -14,17 +12,9 @@ import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
 import util.Coords;
 import util.EncryptionLogic;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SignatureException;
 import java.sql.SQLException;
-import java.util.Objects;
-
 
 
 public class Server {
