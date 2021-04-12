@@ -13,21 +13,29 @@ service HAToServer {
 }
 
 message ObtainLocationReportRequest {
-  string user_id = 1;
-  int32 ep = 2;
+  bytes message = 1;
+  bytes signature = 2;
+  bytes session_key = 3;
+  bytes iv = 4;
 }
 
 message ObtainLocationReportReply {
-
+  bytes message = 1;
+  bytes signature = 2;
+  bytes iv = 3;
 }
 
 message ObtainUsersAtLocationRequest {
-  string user_id = 1;
-  int32 ep = 2;
+  bytes message = 1;
+  bytes signature = 2;
+  bytes session_key = 3;
+  bytes iv = 4;
 }
 
 message ObtainUsersAtLocationReply {
-
+  bytes message = 1;
+  bytes signature = 2;
+  bytes iv = 3;
 }
 
 

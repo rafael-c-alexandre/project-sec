@@ -9,20 +9,22 @@ import proto.ClientToServerGrpc;
 import proto.RequestLocationProofReply;
 import proto.RequestLocationProofRequest;
 import util.Coords;
-import util.EncryptionLogic;
 
-import java.util.*;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 public class ClientToClientFrontend {
-    private String username;
-    private Map<String, ManagedChannel> channelMap = new HashMap<>();
-    private Map<String, ClientToClientGrpc.ClientToClientStub> stubMap = new HashMap<>();
+    private final String username;
+    private final Map<String, ManagedChannel> channelMap = new HashMap<>();
+    private final Map<String, ClientToClientGrpc.ClientToClientStub> stubMap = new HashMap<>();
     private ClientToServerGrpc.ClientToServerBlockingStub serverStub;
-    private ClientToServerFrontend serverFrontend;
-    private ClientLogic clientLogic;
-    private int responseQuorum = 2; //TODO: hardcoded value
+    private final ClientToServerFrontend serverFrontend;
+    private final ClientLogic clientLogic;
+    private final int responseQuorum = 2; //TODO: hardcoded value
     private volatile boolean gotQuorum = false;
 
     public ClientToClientFrontend(String username, ClientToServerFrontend serverFrontend, ClientLogic clientLogic) {
@@ -55,11 +57,11 @@ public class ClientToClientFrontend {
         for (String user : closePeers) {
             /* Create location proof request */
             stubMap.get(user).requestLocationProof(RequestLocationProofRequest.newBuilder().
-                            setUsername(username).
-                            setX(coords.getX()).
-                            setY(coords.getY()).
-                            setEpoch(epoch)
-                            .build(), new StreamObserver<RequestLocationProofReply>() {
+                    setUsername(username).
+                    setX(coords.getX()).
+                    setY(coords.getY()).
+                    setEpoch(epoch)
+                    .build(), new StreamObserver<RequestLocationProofReply>() {
 
                 @Override
                 public void onNext(RequestLocationProofReply requestLocationProofReply) {
@@ -104,10 +106,6 @@ public class ClientToClientFrontend {
         System.out.println("Report sent");
         serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
 
-    }
-
-    public void obtainLocationReport(int epoch) {
-        //TODO
     }
 
     public void shutdown() {

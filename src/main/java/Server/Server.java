@@ -1,23 +1,18 @@
 package Server;
 
 import Exceptions.InvalidNumberOfProofsException;
+import Exceptions.InvalidSignatureException;
 import Exceptions.NoSuchCoordsException;
 import Server.database.Connector;
 import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
-
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import org.json.JSONObject;
 import proto.*;
 import proto.HA.HAToServerGrpc;
 import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
 
-import util.Coords;
-import util.EncryptionLogic;
-import javax.crypto.SecretKey;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Base64;
@@ -25,22 +20,22 @@ import java.util.Base64;
 
 public class Server {
 
-    private Connector connector;
-    private ServerLogic serverLogic;
+    private final Connector connector;
+    private final ServerLogic serverLogic;
 
 
     private io.grpc.Server server;
 
     public Server(String user, String pass) throws SQLException {
-        this.connector = new Connector(user,pass);
+        this.connector = new Connector(user, pass);
         this.serverLogic = new ServerLogic(this.connector.getConnection());
     }
 
     public static void main(String[] args) throws Exception {
 
-        if(args.length != 2){
+        if (args.length != 2) {
             System.err.println("Invalid args. Try -> dbuser dbpassword");
-           System.exit(0);
+            System.exit(0);
         }
 
         final Server server = new Server(
@@ -80,7 +75,6 @@ public class Server {
     }
 
 
-
     private void stop() {
         if (server != null) {
             server.shutdown();
@@ -90,7 +84,7 @@ public class Server {
 
     static class ServerImp extends ClientToServerGrpc.ClientToServerImplBase {
 
-        private ServerLogic serverLogic;
+        private final ServerLogic serverLogic;
 
         public ServerImp(ServerLogic serverLogic) {
             this.serverLogic = serverLogic;
@@ -139,82 +133,89 @@ public class Server {
                 byte[] signature = request.getSignature().toByteArray();
                 byte[] iv = request.getIv().toByteArray();
 
-                //Decrypt session key
-                byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
-                SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
-
-
-                //Decrypt data
-                byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
-                String jsonString = new String(decryptedData);
-                JSONObject jsonObject = new JSONObject(jsonString);
-                JSONObject message = jsonObject.getJSONObject("message");
-                String username = message.getString("username");
-                int epoch = message.getInt("epoch");
-
-
-                //Verify signature
-                //TODO invalid signature response, throw error
-                if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username)))
-                    System.out.println("Invalid signature!");
-                else
-                    System.out.println("Valid signature!");
-
-                //process request
-                Coords coords = serverLogic.obtainLocationReport(username, epoch);
-                coords = new Coords(1, 2);
-                JSONObject jsonResponse = new JSONObject();
-                JSONObject jsonResponseMessage = new JSONObject();
-
-                jsonResponseMessage.put("x", coords.getX());
-                jsonResponseMessage.put("y", coords.getY());
-
-                jsonResponse.put("message", jsonResponseMessage);
-
-
-                //encrypt response
-                byte[] responseIv = EncryptionLogic.generateIV();
-                byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
-
-
-                //generate signature
-                System.out.println(jsonResponse);
-                byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server"));
+                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, false);
 
                 //Create reply
                 ObtainLocationReportReply reply = ObtainLocationReportReply.newBuilder()
-                        .setMessage(ByteString.copyFrom(encryptedResponse))
-                        .setSignature(ByteString.copyFrom(responseSignature))
-                        .setIv(ByteString.copyFrom(responseIv))
+                        .setMessage(ByteString.copyFrom(response[0]))
+                        .setSignature(ByteString.copyFrom(response[1]))
+                        .setIv(ByteString.copyFrom(response[2]))
                         .build();
 
-                //TODO
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
-            } catch (Exception e){
+
+            } catch (NoSuchCoordsException e) {
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
-                responseObserver.onCompleted();
+            } catch (InvalidSignatureException e) {
+                Status status = Status.ABORTED.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
             }
 
         }
     }
 
-    static class HAToServerImp extends HAToServerGrpc.HAToServerImplBase{
-        private ServerLogic serverLogic;
+    static class HAToServerImp extends HAToServerGrpc.HAToServerImplBase {
+        private final ServerLogic serverLogic;
 
-        public HAToServerImp(ServerLogic serverLogic){
+        public HAToServerImp(ServerLogic serverLogic) {
             this.serverLogic = serverLogic;
         }
 
         @Override
         public void obtainLocationReport(proto.HA.ObtainLocationReportRequest request, StreamObserver<proto.HA.ObtainLocationReportReply> responseObserver) {
+            try {
+                byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getSessionKey().toByteArray();
+                byte[] signature = request.getSignature().toByteArray();
+                byte[] iv = request.getIv().toByteArray();
 
+                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, true);
+
+                //Create reply
+                proto.HA.ObtainLocationReportReply reply = proto.HA.ObtainLocationReportReply.newBuilder()
+                        .setMessage(ByteString.copyFrom(response[0]))
+                        .setSignature(ByteString.copyFrom(response[1]))
+                        .setIv(ByteString.copyFrom(response[2]))
+                        .build();
+
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+
+            } catch (NoSuchCoordsException e) {
+                Status status = Status.NOT_FOUND.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (InvalidSignatureException e) {
+                Status status = Status.ABORTED.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            }
         }
 
         @Override
         public void obtainUsersAtLocation(ObtainUsersAtLocationRequest request, StreamObserver<ObtainUsersAtLocationReply> responseObserver) {
+            try {
+                byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getSessionKey().toByteArray();
+                byte[] signature = request.getSignature().toByteArray();
+                byte[] iv = request.getIv().toByteArray();
 
+                byte[][] response = serverLogic.generateObtainUsersAtLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv);
+
+                //Create reply
+                ObtainUsersAtLocationReply reply = ObtainUsersAtLocationReply.newBuilder()
+                        .setMessage(ByteString.copyFrom(response[0]))
+                        .setSignature(ByteString.copyFrom(response[1]))
+                        .setIv(ByteString.copyFrom(response[2]))
+                        .build();
+
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+
+            } catch (InvalidSignatureException e) {
+                Status status = Status.ABORTED.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            }
 
         }
     }

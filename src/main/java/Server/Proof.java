@@ -6,9 +6,10 @@ import util.Coords;
 import java.util.Base64;
 
 public class Proof {
-    private int epoch;
-    private String witnessUsername, proverUsername;
-    private Coords coords;
+    private final int epoch;
+    private final String witnessUsername;
+    private final String proverUsername;
+    private final Coords coords;
 
     public Proof(JSONObject proofJSON) {
         byte[] proofMessageBase64 = Base64.getDecoder().decode(proofJSON.getString("message"));
