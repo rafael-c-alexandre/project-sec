@@ -176,7 +176,28 @@ public class Server {
 
         @Override
         public void obtainUsersAtLocation(ObtainUsersAtLocationRequest request, StreamObserver<ObtainUsersAtLocationReply> responseObserver) {
+            try {
+                byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getSessionKey().toByteArray();
+                byte[] signature = request.getSignature().toByteArray();
+                byte[] iv = request.getIv().toByteArray();
 
+                byte[][] response = serverLogic.generateObtainUsersAtLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv);
+
+                //Create reply
+                ObtainUsersAtLocationReply reply = ObtainUsersAtLocationReply.newBuilder()
+                        .setMessage(ByteString.copyFrom(response[0]))
+                        .setSignature(ByteString.copyFrom(response[1]))
+                        .setIv(ByteString.copyFrom(response[2]))
+                        .build();
+
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+
+            } catch (InvalidSignatureException e) {
+                Status status = Status.ABORTED.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            }
 
         }
     }

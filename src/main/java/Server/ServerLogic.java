@@ -31,6 +31,10 @@ public class ServerLogic {
     public ServerLogic(Connection Connection) {
         reportsRepository = new UserReportsRepository(Connection);
         this.reportList = reportsRepository.getAllUserReports();
+        this.reportList.add(new UserReport(1,"user1",new Coords(1,1)));
+        this.reportList.add(new UserReport(1,"user2",new Coords(1,1)));
+        this.reportList.add(new UserReport(1,"user3",new Coords(1,1)));
+        this.reportList.add(new UserReport(2,"user4",new Coords(1,2)));
     }
 
     public Coords obtainLocationReport(String username, int epoch) throws NoSuchCoordsException {
@@ -201,5 +205,59 @@ public class ServerLogic {
             return false;
         }
 
+    }
+
+    public byte[][] generateObtainUsersAtLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv) throws InvalidSignatureException {
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
+        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+
+
+        //Decrypt data
+        byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
+        String jsonString = new String(decryptedData);
+        JSONObject jsonObject = new JSONObject(jsonString);
+        JSONObject message = jsonObject.getJSONObject("message");
+        int epoch = message.getInt("epoch");
+        int x = message.getInt("x");
+        int y = message.getInt("y");
+
+
+        //Verify signature
+
+        if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey("ha"))) {
+            System.out.println("Invalid signature!");
+            throw new InvalidSignatureException();
+        } else
+            System.out.println("Valid signature!");
+
+
+
+        //process request
+        List<String> users = obtainUsersAtLocation(x,y, epoch);
+
+        JSONObject jsonResponse = new JSONObject();
+        JSONObject jsonResponseMessage = new JSONObject();
+
+        jsonResponseMessage.put("users", users);
+
+        jsonResponse.put("message", jsonResponseMessage);
+
+
+        //encrypt response
+        byte[] responseIv = EncryptionLogic.generateIV();
+        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
+
+
+        //generate signature
+        System.out.println(jsonResponse);
+        byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server"));
+
+        byte[][] ret = new byte[3][];
+        ret[0] = encryptedResponse;
+        ret[1] = responseSignature;
+        ret[2] = responseIv;
+
+        return ret;
     }
 }

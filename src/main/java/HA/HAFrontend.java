@@ -3,9 +3,7 @@ package HA;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import proto.HA.HAToServerGrpc;
-import proto.HA.ObtainLocationReportReply;
-import proto.HA.ObtainLocationReportRequest;
+import proto.HA.*;
 import util.Coords;
 
 import java.util.List;
@@ -23,7 +21,29 @@ public class HAFrontend {
     }
 
     public List<String> obtainUsersAtLocation(int x, int y, int epoch) {
-        return null;
+        byte[][] params = this.haLogic.generateObtainUsersAtLocationRequestParameters(x, y, epoch);
+
+        byte[] encryptedData = params[0];
+        byte[] digitalSignature = params[1];
+        byte[] encryptedSessionKey = params[2];
+        byte[] iv = params[3];
+        byte[] sessionKeyBytes = params[4];
+
+        ObtainUsersAtLocationReply reply = this.blockingStub.obtainUsersAtLocation(
+                ObtainUsersAtLocationRequest.newBuilder()
+                        .setMessage(ByteString.copyFrom(encryptedData))
+                        .setSignature(ByteString.copyFrom(digitalSignature))
+                        .setSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                        .setIv(ByteString.copyFrom(iv))
+                        .build()
+        );
+
+        byte[] encryptedResponse = reply.getMessage().toByteArray();
+        byte[] responseSignature = reply.getSignature().toByteArray();
+        byte[] responseIv = reply.getIv().toByteArray();
+
+        return this.haLogic.getUsersFromReply(sessionKeyBytes, encryptedResponse, responseSignature, responseIv);
+
     }
 
     public Coords obtainLocationReport(String username, int epoch) {
