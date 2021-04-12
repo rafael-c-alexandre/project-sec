@@ -1,5 +1,7 @@
 package Server;
 
+import Exceptions.InvalidNumberOfProofsException;
+import Exceptions.NoSuchCoordsException;
 import Server.database.Connector;
 import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
@@ -10,9 +12,11 @@ import proto.*;
 import proto.HA.HAToServerGrpc;
 import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
+
 import util.Coords;
 import util.EncryptionLogic;
 import javax.crypto.SecretKey;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -94,13 +98,18 @@ public class Server {
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
             System.out.println("Received submit location report request from ");
+            try {
+                serverLogic.submitReport(request.getEncryptedMessage(), request.getEncryptedSessionKey(), request.getSignature(), request.getIv());
 
-            serverLogic.submitReport(request.getEncryptedMessage(), request.getEncryptedSessionKey(), request.getSignature(), request.getIv());
+                SubmitLocationReportReply reply = SubmitLocationReportReply.newBuilder().build();
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
 
-            SubmitLocationReportReply reply = SubmitLocationReportReply.newBuilder().build();
-
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+            } catch (InvalidNumberOfProofsException e) {
+                System.out.println("InvalidNumberOfProofsException: " + e.getMessage());
+                Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            }
         }
 
         @Override
@@ -160,10 +169,16 @@ public class Server {
                         .setIv(ByteString.copyFrom(responseIv))
                         .build();
 
+                //TODO
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
+<<<<<<< HEAD
             } catch (NoSuchCoordsException e){
                 Status status = Status.NOT_FOUND.withDescription("No report found for the given location");
+=======
+            } catch (Exception e){
+                Status status = Status.NOT_FOUND.withDescription(e.getMessage());
+>>>>>>> 9912b716d70496927b75be1a145a6f4cd2e5b28b
                 responseObserver.onError(status.asRuntimeException());
                 responseObserver.onCompleted();
             }

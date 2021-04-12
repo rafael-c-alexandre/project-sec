@@ -1,5 +1,6 @@
 package Server.database;
 
+import Server.Proof;
 import Server.UserReport;
 import util.Coords;
 
@@ -94,7 +95,7 @@ public class UserReportsRepository {
 
     public void submitUserReport(UserReport userReport){
         try{
-            String sql = "INSERT INTO UserReports VALUES (?,?,?,?)";
+            String sql = "INSERT INTO UserReports(username, epoch,x,y) VALUES (?,?,?,?)";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             preparedStatement.setString(1,userReport.getUsername());
@@ -103,11 +104,30 @@ public class UserReportsRepository {
             preparedStatement.setInt(4,userReport.getCoords().getY());
 
             preparedStatement.executeUpdate();
-
+            for(int i = 0; i < userReport.getProofsList().size(); i++)
+                submitProof(userReport.getProofsList().get(i));
+            connection.commit();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
+    public void submitProof(Proof proof){
+        try{
+            String sql = "INSERT INTO Proofs(prover_username, witness_username,epoch,x,y) VALUES (?,?,?,?,?)";
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setString(1,proof.getProverUsername());
+            preparedStatement.setString(2,proof.getWitnessUsername());
+            preparedStatement.setInt(3,proof.getEpoch());
+            preparedStatement.setInt(4,proof.getCoords().getX());
+            preparedStatement.setInt(5,proof.getCoords().getY());
+
+            preparedStatement.executeUpdate();
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
 }

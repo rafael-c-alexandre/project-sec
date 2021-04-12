@@ -5,12 +5,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import util.Coords;
 
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Objects;
 
 public class UserReport {
     private int epoch;
     private String username;
     private Coords coords;
+    private ArrayList<Proof> proofsList = new ArrayList<Proof>() ;
     //TODO MAYBE PROOFS
 
 
@@ -23,21 +26,21 @@ public class UserReport {
         this.coords = coords;
     }
 
-    public UserReport(String JsonUserReport){
+    public UserReport(JSONObject reportJSON){
 
         try {
-            JSONObject obj = new JSONObject(JsonUserReport);
-            this.epoch = obj.getInt("epoch");
-            this.username = obj.getString("username");
+            this.epoch = reportJSON.getInt("epoch");
+            this.username = reportJSON.getString("username");
             this.coords = new Coords(
-                    obj.getInt("x"),
-                    obj.getInt("y")
+                    reportJSON.getInt("x"),
+                    reportJSON.getInt("y")
             );
 
-            JSONArray proofs = (JSONArray) obj.get("reports");
+            JSONArray proofs = (JSONArray) reportJSON.get("proofs");
             for (int i = 0; i < proofs.length(); i++) {
-                JSONObject proof = proofs.getJSONObject(i);
-                //TODO
+                JSONObject proofJSON = proofs.getJSONObject(i);
+                Proof proof = new Proof(proofJSON);
+                proofsList.add(proof);
             }
 
         } catch (JSONException e) {
@@ -69,6 +72,10 @@ public class UserReport {
 
     public void setCoords(Coords coords) {
         this.coords = coords;
+    }
+
+    public ArrayList<Proof> getProofsList() {
+        return proofsList;
     }
 
     @Override

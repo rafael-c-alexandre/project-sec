@@ -57,7 +57,7 @@ public class ClientLogic {
         return grid.get(username).get(epoch);
     }
 
-    public byte[] generateLocationProof(Coords userCoords, String user, int epoch) {
+    public byte[] generateLocationProof(Coords userCoords, String username, int epoch) {
 
         Coords currentUserCoords = grid.get(this.username).get(epoch);
         JSONObject jsonProof = new JSONObject();
@@ -65,17 +65,15 @@ public class ClientLogic {
         if (isClose(currentUserCoords,userCoords )) {
 
             // Create response message
-            jsonProof.put("username", this.username);
+            jsonProof.put("witnessUsername", this.username);
+            jsonProof.put("proverUsername", username);
             jsonProof.put("x", currentUserCoords.getX());
             jsonProof.put("y", currentUserCoords.getY());
             jsonProof.put("epoch", epoch);
-            jsonProof.put("isNear", true);
+            return jsonProof.toString().getBytes();
         }
         else
-            jsonProof.put("isNear", false);
-
-        return jsonProof.toString().getBytes();
-
+            return null;
     }
 
 
