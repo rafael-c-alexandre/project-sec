@@ -17,6 +17,7 @@ import proto.HA.ObtainUsersAtLocationRequest;
 import util.Coords;
 import util.EncryptionLogic;
 import javax.crypto.SecretKey;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -100,15 +101,16 @@ public class Server {
             System.out.println("Received submit location report request from ");
             try {
                 serverLogic.submitReport(request.getEncryptedMessage(), request.getEncryptedSessionKey(), request.getSignature(), request.getIv());
+
+                SubmitLocationReportReply reply = SubmitLocationReportReply.newBuilder().build();
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+
             } catch (InvalidNumberOfProofsException e) {
                 System.out.println("InvalidNumberOfProofsException: " + e.getMessage());
                 Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
-            SubmitLocationReportReply reply = SubmitLocationReportReply.newBuilder().build();
-
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
         }
 
         @Override

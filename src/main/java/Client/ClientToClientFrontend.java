@@ -65,23 +65,19 @@ public class ClientToClientFrontend {
                 public void onNext(RequestLocationProofReply requestLocationProofReply) {
                     System.out.println("Received proof reply");
 
-                    byte[] mes = requestLocationProofReply.getProof().toByteArray();
+                    byte[] proof = requestLocationProofReply.getProof().toByteArray();
                     byte[] digitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
                     JSONObject proofObject = new JSONObject();
                     //create a proof json object
-                    proofObject.put("message", Base64.getEncoder().encodeToString(mes));
+                    proofObject.put("message", Base64.getEncoder().encodeToString(proof));
                     proofObject.put("digital_signature", Base64.getEncoder().encodeToString(digitalSignature));
 
                     proofs.add(proofObject);
 
 
                     /****** test digital signature validity | REMOVE  ******/
-                    JSONObject proof = new JSONObject(new String(requestLocationProofReply.getProof().toByteArray()));
-                    System.out.println("Received proof reply from " + proof.getString("username"));
-
-                    boolean result = EncryptionLogic.verifyDigitalSignature(mes, digitalSignature, EncryptionLogic.getPublicKey(proof.getString("username")));
-                    System.out.println("CERTIFIED VALID ?" + result);
-
+                    JSONObject proofJSON = new JSONObject(new String(proof));
+                    System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername"));
                     /************/
 
                     if (proofs.size() == responseQuorum) {

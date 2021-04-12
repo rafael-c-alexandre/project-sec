@@ -190,12 +190,14 @@ public class Client {
                 }
             } catch(Exception e){}
 
-            /* Create response message */
+            /* Create response message is user requesting is nearby*/
             byte[] responseJSON = clientLogic.generateLocationProof(new Coords(request.getX(),
                                                                             request.getY()),
                                                                             request.getUsername(),
                                                                             request.getEpoch());
 
+            /* If the user is not close enough don't reply with a proof */
+            if(responseJSON == null) return;
             /* Create digital signature and reply*/
             byte[] digitalSignature = EncryptionLogic.createDigitalSignature(responseJSON, EncryptionLogic.getPrivateKey(username));
 
