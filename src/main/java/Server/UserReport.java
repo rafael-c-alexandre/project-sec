@@ -12,8 +12,8 @@ public class UserReport {
     private int epoch;
     private String username;
     private Coords coords;
-    private final ArrayList<Proof> proofsList = new ArrayList<Proof>();
-    //TODO MAYBE PROOFS
+    private boolean closed = false;
+    private ArrayList<Proof> proofsList = new ArrayList<Proof>();
 
 
     public UserReport() {
@@ -35,12 +35,6 @@ public class UserReport {
                     reportJSON.getInt("y")
             );
 
-            JSONArray proofs = (JSONArray) reportJSON.get("proofs");
-            for (int i = 0; i < proofs.length(); i++) {
-                JSONObject proofJSON = proofs.getJSONObject(i);
-                Proof proof = new Proof(proofJSON);
-                proofsList.add(proof);
-            }
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -75,6 +69,20 @@ public class UserReport {
     public ArrayList<Proof> getProofsList() {
         return proofsList;
     }
+
+    public void addProof(Proof proof) {
+        this.proofsList.add(proof);
+    }
+
+    public boolean isClosed() {
+        return closed;
+    }
+
+    public void setClosed(boolean closed) {
+        this.closed = closed;
+    }
+
+
 
     @Override
     public boolean equals(Object o) {

@@ -53,6 +53,10 @@ public class Client {
             Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
+                //Handshake with server to agree on session key
+                byte[][] result = client.clientLogic.generateHandshakeMessage();
+                client.clientToServerFrontend.handshake(result[0], result[1], result[2]);
+
                 System.out.print("Enter command ( Type 'help' for help menu ): ");
                 String cmd = in.nextLine();
                 if (manualMode == 1) {
@@ -177,18 +181,7 @@ public class Client {
         @Override
         public void requestLocationProof(RequestLocationProofRequest request, StreamObserver<RequestLocationProofReply> responseObserver) {
 
-            System.out.println("Received location report request " + request.getUsername());
-            String username = clientLogic.getUsername();
-            try {
-                if (username.equals("user2")) {
-                    Thread.sleep(2000);
-                    System.out.println("user2 reply");
-                } else {
-                    Thread.sleep(5000);
-                    System.out.println("user3 reply");
-                }
-            } catch (Exception e) {
-            }
+            System.out.println("Received location report request from " + request.getUsername());
 
             /* Create response message is user requesting is nearby*/
             byte[][] response = clientLogic.generateLocationProof(
@@ -200,7 +193,6 @@ public class Client {
             /* Create digital signature and reply*/
             byte[] responseJSON = response[0];
             byte[] digitalSignature = response[1];
-            byte[] iv = response[2];
 
             RequestLocationProofReply reply = null;
             if (digitalSignature != null) {

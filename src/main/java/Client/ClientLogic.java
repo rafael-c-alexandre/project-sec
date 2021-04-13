@@ -16,6 +16,8 @@ public class ClientLogic {
     private final String username;
     private final Map<String, Map<Integer, Coords>> grid = new HashMap<>();
     private final int epoch = 0;
+    private SecretKey sessionKey;
+    private byte[] iv;
 
     public ClientLogic(String username, String gridFilePath) {
         this.username = username;
@@ -64,9 +66,6 @@ public class ClientLogic {
 
         byte[][] result = new byte[2][];
 
-        //generate session key and encrypt message
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-
 
         byte[] encryptedMessage = EncryptionLogic.encryptWithAES(sessionKey, message.toString().getBytes(), iv);
         result[0] = encryptedMessage;
@@ -94,12 +93,9 @@ public class ClientLogic {
         jsonCoords.put("x", currentUserCoords.getX());
         jsonCoords.put("y", currentUserCoords.getY());
 
-        //generate session key and encrypt message
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-
 
         byte[] encryptedLocation = EncryptionLogic.encryptWithAES(sessionKey, jsonCoords.toString().getBytes(), iv);
-        jsonProof.put("encrypted_location", encryptedLocation);
+        jsonProof.put("encrypted_location", Base64.getEncoder().encodeToString(encryptedLocation));
         result[0] = jsonProof.toString().getBytes();
 
         //generate proof digital signature
@@ -133,21 +129,55 @@ public class ClientLogic {
         return username;
     }
 
+
+    public byte[][] generateHandshakeMessage(){
+        byte[][] result = new byte[3][];
+
+        //Generate session key
+        this.sessionKey = EncryptionLogic.generateAESKey();
+
+        //get server public key
+        Key serverPubKey = EncryptionLogic.getPublicKey("server");
+
+        //Generate new IV
+        byte[] iv = EncryptionLogic.generateIV();
+        this.iv = iv;
+
+        byte[] encryptedUsername = EncryptionLogic.encryptWithAES(sessionKey, username.getBytes(), iv);
+        //result[0] = encryptedUsername;
+
+        //encrypt session key with server public key
+        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(serverPubKey, sessionKey.getEncoded());
+        //result[1] = encryptedSessionKey;
+
+        JSONObject message = new JSONObject();
+        message.put("encryptedUsername", Base64.getEncoder().encodeToString(encryptedUsername));
+        message.put("encryptedSessionKey", Base64.getEncoder().encodeToString(encryptedSessionKey));
+        result[0] = message.toString().getBytes();
+
+        //sign encrypted username and encrypted session key
+        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
+                EncryptionLogic.getPrivateKey(this.username));
+        result[1] = digitalSignature;
+
+        result[2] = iv;
+
+        return result;
+    }
+
+
     public int getEpoch() {
         return epoch;
     }
 
     public byte[][] generateObtainLocationRequestParameters(String username, int epoch) {
-        byte[][] ret = new byte[5][];
+        byte[][] ret = new byte[2][];
         JSONObject object = new JSONObject();
         JSONObject message = new JSONObject();
 
-        //Generate a session Key
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-        byte[] sessionKeyBytes = sessionKey.getEncoded();
 
         //Encrypt session jey with server public key
-        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"), sessionKeyBytes);
+        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"), this.sessionKey.getEncoded());
 
         //Pass data to json
         message.put("username", username);
@@ -155,8 +185,6 @@ public class ClientLogic {
 
         object.put("message", message);
 
-        //Encrypt data with session key
-        byte[] iv = EncryptionLogic.generateIV();
         byte[] encryptedData = EncryptionLogic.encryptWithAES(
                 sessionKey,
                 object.toString().getBytes(),
@@ -171,18 +199,14 @@ public class ClientLogic {
 
         ret[0] = encryptedData;
         ret[1] = digitalSignature;
-        ret[2] = encryptedSessionKey;
-        ret[3] = iv;
-        ret[4] = sessionKeyBytes;
 
         return ret;
     }
 
-    public Coords getCoordsFromReply(byte[] sessionKeyBytes, byte[] encryptedResponse, byte[] responseSignature, byte[] responseIv) {
+    public Coords getCoordsFromReply( byte[] encryptedResponse, byte[] responseSignature) {
 
-        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
         //Decrypt response
-        byte[] response = EncryptionLogic.decryptWithAES(sessionKey, encryptedResponse, responseIv);
+        byte[] response = EncryptionLogic.decryptWithAES(sessionKey, encryptedResponse, iv);
 
         //Verify response signature
         if (!EncryptionLogic.verifyDigitalSignature(response, responseSignature, EncryptionLogic.getPublicKey("server")))
@@ -197,5 +221,10 @@ public class ClientLogic {
         JSONObject msg = jsonObject.getJSONObject("message");
 
         return new Coords(msg.getInt("x"), msg.getInt("y"));
+    }
+
+    public byte[] encryptProof(byte[] proof) {
+
+        return EncryptionLogic.encryptWithAES(sessionKey, proof, iv);
     }
 }

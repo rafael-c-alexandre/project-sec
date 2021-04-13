@@ -55,7 +55,7 @@ public class ClientToClientFrontend {
 
         /*send location report directly to server*/
         byte[][] message = clientLogic.generateLocationReport();
-        serverFrontend.submitReport(message[0], message[1], message[2]);
+        serverFrontend.submitReport(message[0], message[1]);
         System.out.println("Report sent");
 
         /* Request proof of location to other close clients */
@@ -72,6 +72,10 @@ public class ClientToClientFrontend {
 
                     byte[] proof = requestLocationProofReply.getProof().toByteArray();
                     byte[] digitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
+
+                    //encrypt proof
+                    byte[] encryptedProof = clientLogic.encryptProof(proof);
+
                     JSONObject proofObject = new JSONObject();
                     //create a proof json object
                     proofObject.put("message", Base64.getEncoder().encodeToString(proof));
@@ -79,11 +83,14 @@ public class ClientToClientFrontend {
 
                     proofs.add(proofObject);
 
-
-                    /****** test digital signature validity | REMOVE  ******/
                     JSONObject proofJSON = new JSONObject(new String(proof));
                     System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername"));
                     /************/
+
+                    //send proof as soon as it arrives
+                    //TODO
+                    serverFrontend.submitProof(encryptedProof, digitalSignature);
+
 
                     if (proofs.size() == responseQuorum) {
                         gotQuorum = true;

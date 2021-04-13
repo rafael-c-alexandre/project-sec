@@ -3,9 +3,7 @@ package HA;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import proto.HA.HAToServerGrpc;
-import proto.HA.ObtainLocationReportReply;
-import proto.HA.ObtainLocationReportRequest;
+import proto.HA.*;
 import util.Coords;
 
 import java.util.List;
@@ -23,7 +21,24 @@ public class HAFrontend {
     }
 
     public List<String> obtainUsersAtLocation(int x, int y, int epoch) {
-        return null;
+        byte[][] params = this.haLogic.generateObtainUsersAtLocationRequestParameters(x, y, epoch);
+
+        byte[] encryptedData = params[0];
+        byte[] digitalSignature = params[1];
+
+        ObtainUsersAtLocationReply reply = this.blockingStub.obtainUsersAtLocation(
+                ObtainUsersAtLocationRequest.newBuilder()
+                        .setUsername("ha")
+                        .setMessage(ByteString.copyFrom(encryptedData))
+                        .setSignature(ByteString.copyFrom(digitalSignature))
+                        .build()
+        );
+
+        byte[] encryptedResponse = reply.getMessage().toByteArray();
+        byte[] responseSignature = reply.getSignature().toByteArray();
+
+        return this.haLogic.getUsersFromReply(encryptedResponse, responseSignature);
+
     }
 
     public Coords obtainLocationReport(String username, int epoch) {
@@ -32,25 +47,34 @@ public class HAFrontend {
 
         byte[] encryptedData = params[0];
         byte[] digitalSignature = params[1];
-        byte[] encryptedSessionKey = params[2];
-        byte[] iv = params[3];
-        byte[] sessionKeyBytes = params[4];
 
         ObtainLocationReportReply reply = this.blockingStub.obtainLocationReport(
                 ObtainLocationReportRequest.newBuilder()
+                        .setUsername("ha")
                         .setMessage(ByteString.copyFrom(encryptedData))
                         .setSignature(ByteString.copyFrom(digitalSignature))
-                        .setSessionKey(ByteString.copyFrom(encryptedSessionKey))
-                        .setIv(ByteString.copyFrom(iv))
                         .build()
         );
 
         byte[] encryptedResponse = reply.getMessage().toByteArray();
         byte[] responseSignature = reply.getSignature().toByteArray();
-        byte[] responseIv = reply.getIv().toByteArray();
 
-        return this.haLogic.getCoordsFromReply(sessionKeyBytes, encryptedResponse, responseSignature, responseIv);
+        return this.haLogic.getCoordsFromReply( encryptedResponse, responseSignature);
 
+    }
+
+
+    public void handshake(byte[] digitalSignature){
+        try{
+            HandshakeReply reply = this.blockingStub.handshake(
+                    HandshakeRequest.newBuilder()
+                            .setSignature(ByteString.copyFrom(digitalSignature))
+                            .build()
+            );
+        } catch (Exception e){
+            io.grpc.Status status = io.grpc.Status.fromThrowable(e);
+            System.out.println("Exception received from server:" + status.getDescription());
+        }
 
     }
 

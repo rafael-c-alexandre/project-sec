@@ -11,15 +11,14 @@ public class Proof {
     private final String proverUsername;
     private final Coords coords;
 
-    public Proof(JSONObject proofJSON) {
-        byte[] proofMessageBase64 = Base64.getDecoder().decode(proofJSON.getString("message"));
-        JSONObject proofMessageJSON = new JSONObject(new String(proofMessageBase64));
-        this.epoch = proofMessageJSON.getInt("epoch");
-        this.witnessUsername = proofMessageJSON.getString("witnessUsername");
-        this.proverUsername = proofMessageJSON.getString("proverUsername");
+    public Proof(JSONObject proofJSON, JSONObject locationJSON) {
+
+        this.epoch = proofJSON.getInt("epoch");
+        this.witnessUsername = proofJSON.getString("witnessUsername");
+        this.proverUsername = proofJSON.getString("proverUsername");
         this.coords = new Coords(
-                proofMessageJSON.getInt("x"),
-                proofMessageJSON.getInt("y")
+                locationJSON.getInt("x"),
+                locationJSON.getInt("y")
         );
     }
 

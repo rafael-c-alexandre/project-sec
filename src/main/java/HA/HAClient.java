@@ -1,9 +1,11 @@
 package HA;
 
 import io.grpc.StatusRuntimeException;
+import util.Coords;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.List;
 import java.util.Scanner;
 
 public class HAClient {
@@ -32,6 +34,7 @@ public class HAClient {
                 String cmd = in.nextLine();
                 switch (cmd) {
                     case "obtain_report" -> client.obtainReport();
+                    case "users_at_location" -> client.obtainUsersAtLocation();
                     case "exit" -> running = false;
                     case "help" -> client.displayHelp();
                     default -> System.err.println("Error: Command not recognized");
@@ -43,6 +46,25 @@ public class HAClient {
 
     }
 
+    private void obtainUsersAtLocation() {
+        try {
+            Scanner in = new Scanner(System.in);
+            System.out.print("State the x coordinate");
+            int x = Integer.parseInt(in.nextLine());
+            System.out.print("State the y coordinate");
+            int y = Integer.parseInt(in.nextLine());
+            System.out.print("State the epoch");
+            int epoch = Integer.parseInt(in.nextLine());
+            List<String> result = haFrontend.obtainUsersAtLocation(x, y, epoch);
+            System.out.println("These are the users at location (" + x + "," + y + ") at epoch "  + epoch + " :");
+            for(String user : result){
+                System.out.println(user);
+            }
+        } catch (StatusRuntimeException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
     public void obtainReport() {
         try {
             Scanner in = new Scanner(System.in);
@@ -50,7 +72,8 @@ public class HAClient {
             String username = in.nextLine();
             System.out.print("From which epoch do you wish to get your location report? ");
             int epoch = Integer.parseInt(in.nextLine());
-            haFrontend.obtainLocationReport(username, epoch);
+            Coords result = haFrontend.obtainLocationReport(username, epoch);
+            System.out.println("User " + username + " was at position (" + result.getX() + "," + result.getY() + ") at epoch " + epoch);
         } catch (StatusRuntimeException e) {
             System.out.println(e.getMessage());
         }

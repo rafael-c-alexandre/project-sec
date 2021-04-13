@@ -13,12 +13,12 @@ service ClientToClient {
 
 
 message RequestLocationProofRequest {
-  string username = 3;
-  int32 epoch = 4;
+  string username = 1;
+  int32 epoch = 2;
 }
 
 message RequestLocationProofReply {
   bytes proof = 1;
-  bytes iv = 2;
-  bytes digitalSignature = 3;
+  bytes digitalSignature = 2;
+
 }
