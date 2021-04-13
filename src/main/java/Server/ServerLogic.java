@@ -181,7 +181,7 @@ public class ServerLogic {
         if (report.getProofsList().size() == responseQuorum) {
             System.out.println("Reached quorum of proofs");
             report.setClosed(true);
-            //TODO do smth
+            reportsRepository.closeUserReport(report);
         }
     }
 
@@ -238,7 +238,7 @@ public class ServerLogic {
             throw new InvalidProofException();
         }
 
-        return new Proof(proofJSON, locationJSON);
+        return new Proof(proofJSON, locationJSON,signature);
 
     }
 

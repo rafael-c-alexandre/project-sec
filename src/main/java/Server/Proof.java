@@ -10,11 +10,12 @@ public class Proof {
     private String witnessUsername;
     private String proverUsername;
     private Coords coords;
+    private byte[] signature;
 
     public Proof() {
     }
 
-    public Proof(JSONObject proofJSON, JSONObject locationJSON) {
+    public Proof(JSONObject proofJSON, JSONObject locationJSON, byte[] signature) {
 
         this.epoch = proofJSON.getInt("epoch");
         this.witnessUsername = proofJSON.getString("witnessUsername");
@@ -23,6 +24,15 @@ public class Proof {
                 locationJSON.getInt("x"),
                 locationJSON.getInt("y")
         );
+        this.signature = signature;
+    }
+
+    public byte[] getSignature() {
+        return signature;
+    }
+
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
     }
 
     public int getEpoch() {

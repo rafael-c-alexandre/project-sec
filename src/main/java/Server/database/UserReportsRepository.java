@@ -128,9 +128,26 @@ public class UserReportsRepository {
         }
     }
 
+    public void closeUserReport(UserReport userReport){
+        try {
+            String sql = "UPDATE UserReports SET isClosed = true WHERE username = ? AND epoch = ? AND x = ? AND y = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setString(1, userReport.getUsername());
+            preparedStatement.setInt(2, userReport.getEpoch());
+            preparedStatement.setInt(3, userReport.getCoords().getX());
+            preparedStatement.setInt(4, userReport.getCoords().getY());
+
+            preparedStatement.executeUpdate();
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void submitProof(Proof proof) {
         try {
-            String sql = "INSERT INTO Proofs(prover_username, witness_username,epoch,x,y) VALUES (?,?,?,?,?)";
+            String sql = "INSERT INTO Proofs(prover_username, witness_username,epoch,x,y,signature) VALUES (?,?,?,?,?,?)";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             preparedStatement.setString(1, proof.getProverUsername());
@@ -138,6 +155,7 @@ public class UserReportsRepository {
             preparedStatement.setInt(3, proof.getEpoch());
             preparedStatement.setInt(4, proof.getCoords().getX());
             preparedStatement.setInt(5, proof.getCoords().getY());
+            preparedStatement.setBytes(6,proof.getSignature());
 
             preparedStatement.executeUpdate();
             connection.commit();
