@@ -61,6 +61,22 @@ public class UserReportsRepository {
                         rs.getInt("x"),
                         rs.getInt("y")
                 ));
+                String sql1 = "SELECT prover_username,witness_username,epoch,x,y FROM Proofs WHERE prover_username = ? AND epoch = ?";
+                PreparedStatement preparedStatement1 = connection.prepareStatement(sql1);
+                preparedStatement1.setString(1, rs.getString("username"));
+                preparedStatement1.setInt(2, rs.getInt("epoch"));
+                ResultSet rs1 = preparedStatement1.executeQuery();
+                while (rs1.next()) {
+                    Proof proof = new Proof();
+                    proof.setProverUsername(rs1.getString("prover_username"));
+                    proof.setWitnessUsername(rs1.getString("witness_username"));
+                    proof.setEpoch(rs.getInt("epoch"));
+                    proof.setCoords(new Coords(
+                            rs.getInt("x"),
+                            rs.getInt("y")
+                    ));
+                    userReport.addProof(proof);
+                }
                 result.add(userReport);
             }
 

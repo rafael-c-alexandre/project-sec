@@ -44,11 +44,16 @@ public class ClientToClientFrontend {
         stubMap.put(username, ClientToClientGrpc.newStub(channel));
     }
 
-    public void broadcastProofRequest() {
+    public void broadcastAllInGrid(){
+        for(Integer ep : clientLogic.getGrid().get(username).keySet()){
+            broadcastProofRequest(ep);
+        }
+    }
+
+    public void broadcastProofRequest(int epoch) {
 
         List<JSONObject> proofs = new CopyOnWriteArrayList<>();
 
-        int epoch = clientLogic.getEpoch();
         Coords coords = clientLogic.getCoords(epoch);
         List<String> closePeers = clientLogic.closePeers(epoch);
 

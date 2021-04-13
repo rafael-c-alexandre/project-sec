@@ -15,7 +15,7 @@ public class ClientLogic {
 
     private final String username;
     private final Map<String, Map<Integer, Coords>> grid = new HashMap<>();
-    private final int epoch = 0;
+    private int epoch = 0;
     private SecretKey sessionKey;
     private byte[] iv;
 
@@ -226,5 +226,9 @@ public class ClientLogic {
     public byte[] encryptProof(byte[] proof) {
 
         return EncryptionLogic.encryptWithAES(sessionKey, proof, iv);
+    }
+
+    public Map<String, Map<Integer, Coords>> getGrid() {
+        return grid;
     }
 }

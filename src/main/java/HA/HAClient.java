@@ -27,6 +27,9 @@ public class HAClient {
     public static void main(String[] args) {
         HAClient client = new HAClient();
         try {
+            byte[][] result = client.haLogic.generateHandshakeMessage();
+            client.haFrontend.handshake(result[0], result[1], result[2]);
+
             Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {

@@ -64,11 +64,13 @@ public class HAFrontend {
     }
 
 
-    public void handshake(byte[] digitalSignature){
+    public void handshake(byte[] encryptedUsernameSessionKey, byte[] digitalSignature, byte[] iv){
         try{
             HandshakeReply reply = this.blockingStub.handshake(
                     HandshakeRequest.newBuilder()
+                            .setEncryptedUsernameSessionKey(ByteString.copyFrom(encryptedUsernameSessionKey))
                             .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setIv(ByteString.copyFrom(iv))
                             .build()
             );
         } catch (Exception e){
