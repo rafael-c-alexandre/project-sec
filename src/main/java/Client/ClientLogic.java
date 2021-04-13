@@ -203,9 +203,9 @@ public class ClientLogic {
 
         //Verify response signature
         if (!EncryptionLogic.verifyDigitalSignature(response, responseSignature, EncryptionLogic.getPublicKey("server")))
-            System.out.println("Invalid signature");
+            System.out.println("Invalid signature from response");
         else
-            System.out.println("Valid signature");
+            System.out.println("Valid signature from response");
 
         //process response and return coords
         String jsonString = new String(response);
