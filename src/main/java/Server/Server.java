@@ -89,28 +89,12 @@ public class Server {
 
         }
 
-        @Override
-        public void handshake(HandshakeRequest request, StreamObserver<HandshakeReply> responseObserver){
-            byte[] encryptedUsernameSessionKeyJSON = request.getEncryptedUsernameSessionKey().toByteArray();
-            byte[] signature = request.getSignature().toByteArray();
-            byte[] iv = request.getIv().toByteArray();
 
-            if(serverLogic.handshake(encryptedUsernameSessionKeyJSON, signature, iv)){
-                HandshakeReply reply = HandshakeReply.newBuilder().build();
-                responseObserver.onNext(reply);
-            } else {
-                Status status = Status.FAILED_PRECONDITION.withDescription("Failed handshake");
-                responseObserver.onError(status.asRuntimeException());
-            }
-
-            responseObserver.onCompleted();
-        }
 
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
-            System.out.println("Received submit location report request from " + request.getUsername());
             try {
-                serverLogic.submitReport(request.getUsername(),request.getEncryptedMessage(), request.getSignature());
+                serverLogic.submitReport(request.getEncryptedSessionKey().toByteArray(),request.getEncryptedMessage().toByteArray(), request.getSignature().toByteArray(),request.getIv().toByteArray());
 
                 SubmitLocationReportReply reply = SubmitLocationReportReply.newBuilder().build();
                 responseObserver.onNext(reply);
@@ -125,9 +109,14 @@ public class Server {
 
         @Override
         public void submitLocationProof(SubmitLocationProofRequest request, StreamObserver<SubmitLocationProofReply> responseObserver) {
-            System.out.println("Received submit location proof request from " + request.getUsername());
             try {
-                serverLogic.submitProof(request.getUsername(),request.getEncryptedProof(), request.getSignature());
+                serverLogic.submitProof(request.getWitnessSessionKey().toByteArray(),
+                        request.getWitnessIv().toByteArray()
+                        , request.getEncryptedSessionKey().toByteArray()
+                        ,request.getEncryptedProof().toByteArray()
+                        ,request.getSignature().toByteArray()
+                        ,request.getIv().toByteArray()
+                        );
 
                 SubmitLocationProofReply reply = SubmitLocationProofReply.newBuilder().build();
                 responseObserver.onNext(reply);
@@ -148,21 +137,23 @@ public class Server {
         public void obtainLocationReport(ObtainLocationReportRequest request, StreamObserver<ObtainLocationReportReply> responseObserver) {
             try {
                 byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
                 byte[] signature = request.getSignature().toByteArray();
-                String username = request.getUsername();
+                byte[] iv = request.getIv().toByteArray();
 
-                byte[][] response = serverLogic.generateObtainLocationReportResponse(username, encryptedData, signature, false);
+                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, false);
 
                 //Create reply
                 ObtainLocationReportReply reply = ObtainLocationReportReply.newBuilder()
                         .setMessage(ByteString.copyFrom(response[0]))
                         .setSignature(ByteString.copyFrom(response[1]))
+                        .setIv(ByteString.copyFrom(response[2]))
                         .build();
 
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
 
-            } catch (NoSuchCoordsException e) {
+            } catch (NoSuchCoordsException | NoReportFoundException e) {
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidSignatureException e) {
@@ -184,21 +175,23 @@ public class Server {
         public void obtainLocationReport(proto.HA.ObtainLocationReportRequest request, StreamObserver<proto.HA.ObtainLocationReportReply> responseObserver) {
             try {
                 byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
                 byte[] signature = request.getSignature().toByteArray();
-                String username = request.getUsername();
+                byte[] iv = request.getIv().toByteArray();
 
-                byte[][] response = serverLogic.generateObtainLocationReportResponse(username, encryptedData, signature, true);
+                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, true);
 
                 //Create reply
                 proto.HA.ObtainLocationReportReply reply = proto.HA.ObtainLocationReportReply.newBuilder()
                         .setMessage(ByteString.copyFrom(response[0]))
                         .setSignature(ByteString.copyFrom(response[1]))
+                        .setIv(ByteString.copyFrom(response[2]))
                         .build();
 
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
 
-            } catch (NoSuchCoordsException e) {
+            } catch (NoSuchCoordsException | NoReportFoundException e) {
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidSignatureException e) {
@@ -211,15 +204,17 @@ public class Server {
         public void obtainUsersAtLocation(ObtainUsersAtLocationRequest request, StreamObserver<ObtainUsersAtLocationReply> responseObserver) {
             try {
                 byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
                 byte[] signature = request.getSignature().toByteArray();
-                String username = request.getUsername();
+                byte[] iv = request.getIv().toByteArray();
 
-                byte[][] response = serverLogic.generateObtainUsersAtLocationReportResponse(username, encryptedData, signature);
+                byte[][] response = serverLogic.generateObtainUsersAtLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv);
 
                 //Create reply
                 ObtainUsersAtLocationReply reply = ObtainUsersAtLocationReply.newBuilder()
                         .setMessage(ByteString.copyFrom(response[0]))
                         .setSignature(ByteString.copyFrom(response[1]))
+                        .setIv(ByteString.copyFrom(response[2]))
                         .build();
 
                 responseObserver.onNext(reply);
@@ -229,24 +224,9 @@ public class Server {
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
+
         }
 
-        @Override
-        public void handshake(proto.HA.HandshakeRequest request, StreamObserver<proto.HA.HandshakeReply> responseObserver){
-            byte[] encryptedUsernameSessionKeyJSON = request.getEncryptedUsernameSessionKey().toByteArray();
-            byte[] signature = request.getSignature().toByteArray();
-            byte[] iv = request.getIv().toByteArray();
-
-            if(serverLogic.handshake(encryptedUsernameSessionKeyJSON, signature, iv)){
-                proto.HA.HandshakeReply reply = proto.HA.HandshakeReply.newBuilder().build();
-                responseObserver.onNext(reply);
-            } else {
-                Status status = Status.FAILED_PRECONDITION.withDescription("Failed handshake");
-                responseObserver.onError(status.asRuntimeException());
-            }
-
-            responseObserver.onCompleted();
-        }
     }
 }
 

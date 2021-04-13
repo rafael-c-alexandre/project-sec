@@ -10,41 +10,35 @@ package proto.HA;
 service HAToServer {
   rpc ObtainLocationReport (ObtainLocationReportRequest) returns (ObtainLocationReportReply){}
   rpc ObtainUsersAtLocation (ObtainUsersAtLocationRequest) returns (ObtainUsersAtLocationReply){}
-  rpc Handshake (HandshakeRequest) returns (HandshakeReply){}
 }
 
 message ObtainLocationReportRequest {
-  string username = 1;
-  bytes message = 2;
-  bytes signature = 3;
-
+  bytes message = 1;
+  bytes signature = 2;
+  bytes encryptedSessionKey = 3;
+  bytes iv = 4;
 }
 
 message ObtainLocationReportReply {
-  bytes message = 1;
-  bytes signature = 2;
+  bytes encryptedSessionKey = 1;
+  bytes message = 2;
+  bytes signature = 3;
+  bytes iv = 4;
 }
 
 message ObtainUsersAtLocationRequest {
-  string username = 1;
+  bytes encryptedSessionKey = 1;
   bytes message = 2;
   bytes signature = 3;
+  bytes iv = 4;
 
 }
 
 message ObtainUsersAtLocationReply {
-  bytes message = 1;
-  bytes signature = 2;
-}
-
-message HandshakeRequest{
-  bytes encryptedUsernameSessionKey = 1;
-  bytes signature = 2;
-  bytes iv = 3;
-}
-
-message HandshakeReply{
-
+  bytes encryptedSessionKey = 1;
+  bytes message = 2;
+  bytes signature = 3;
+  bytes iv = 4;
 }
 
 

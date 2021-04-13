@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 
 public class ServerLogic {
 
-    private HashMap<String, Pair<SecretKey, byte[]>> sessionKeys = new HashMap<>();
     final int f_line = 0;
     private CopyOnWriteArrayList<UserReport> reportList;
     private  UserReportsRepository reportsRepository;
@@ -44,33 +43,39 @@ public class ServerLogic {
     }
 
 
-    public byte[][] generateObtainLocationReportResponse(String username, byte[] encryptedData, byte[] signature, boolean isHA) throws NoSuchCoordsException, InvalidSignatureException {
+    public byte[][] generateObtainLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, boolean isHA) throws NoSuchCoordsException, InvalidSignatureException, NoReportFoundException {
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
+        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+
 
         //Decrypt data
-        System.out.println(username);
-        byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKeys.get(username).getKey(), encryptedData, sessionKeys.get(username).getValue());
+        byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
         String jsonString = new String(decryptedData);
         JSONObject jsonObject = new JSONObject(jsonString);
         JSONObject message = jsonObject.getJSONObject("message");
-        String reportUsername = message.getString("username");
+        String username = message.getString("username");
         int epoch = message.getInt("epoch");
 
 
         //Verify signature
-
+        if (isHA) {
+            if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey("ha"))) {
+                System.out.println("Invalid signature!");
+                throw new InvalidSignatureException();
+            } else
+                System.out.println("Valid signature!");
+        } else {
             if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username))) {
                 System.out.println("Invalid signature!");
                 throw new InvalidSignatureException();
             } else
                 System.out.println("Valid signature!");
+        }
+
 
         //process request
-        Coords coords = null;
-        try {
-            coords = obtainLocationReport(reportUsername, epoch).getCoords();
-        } catch(NoReportFoundException e ) {
-            throw new NoSuchCoordsException();
-        }
+        Coords coords = obtainLocationReport(username, epoch).getCoords();
 
         JSONObject jsonResponse = new JSONObject();
         JSONObject jsonResponseMessage = new JSONObject();
@@ -82,17 +87,18 @@ public class ServerLogic {
 
 
         //encrypt response
-        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKeys.get(username).getKey(), jsonResponse.toString().getBytes(), sessionKeys.get(username).getValue());
+        byte[] responseIv = EncryptionLogic.generateIV();
+        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
 
 
         //generate signature
         System.out.println(jsonResponse);
         byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server"));
 
-        byte[][] ret = new byte[2][];
+        byte[][] ret = new byte[3][];
         ret[0] = encryptedResponse;
         ret[1] = responseSignature;
-
+        ret[2] = responseIv;
 
         return ret;
     }
@@ -104,13 +110,16 @@ public class ServerLogic {
                 .collect(Collectors.toList());
     }
 
-    public void submitReport(String username, ByteString encryptedMessage, ByteString digitalSignature) throws InvalidReportException  {
+    public void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv) throws InvalidReportException  {
+
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
+        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
 
 
-        SecretKey sessionKey = this.sessionKeys.get(username).getKey();
 
         //decipher message to get report as JSON
-        byte[] decipheredMessage = EncryptionLogic.decryptWithAES(sessionKey, encryptedMessage.toByteArray(), this.sessionKeys.get(username).getValue());
+        byte[] decipheredMessage = EncryptionLogic.decryptWithAES(sessionKey, encryptedMessage, iv);
         JSONObject reportJSON = new JSONObject(new String(decipheredMessage));
 
         //verify message integrity
@@ -127,7 +136,7 @@ public class ServerLogic {
 
     }
 
-    public boolean verifyMessage(byte[] decipheredMessage, ByteString digitalSignature) {
+    public boolean verifyMessage(byte[] decipheredMessage, byte[] digitalSignature) {
 
         //get username and respective public key
         JSONObject obj = new JSONObject(new String(decipheredMessage));
@@ -136,7 +145,7 @@ public class ServerLogic {
         PublicKey userPubKey = EncryptionLogic.getPublicKey(username);
 
         //verify digital signature
-        boolean isValid = EncryptionLogic.verifyDigitalSignature(decipheredMessage, digitalSignature.toByteArray(), userPubKey);
+        boolean isValid = EncryptionLogic.verifyDigitalSignature(decipheredMessage, digitalSignature, userPubKey);
 
         System.out.println("Message digital signature valid? " + isValid);
 
@@ -144,21 +153,17 @@ public class ServerLogic {
 
     }
 
-    public void submitProof(String username, ByteString encryptedProof, ByteString signature) throws InvalidProofException, NoReportFoundException {
+    public void submitProof(byte[] witnessEncryptedSessionKey, byte[] witnessIv, byte[] encryptedSessionKey, byte[] encryptedProof, byte[] signature, byte[] iv) throws InvalidProofException, NoReportFoundException {
 
-        //get user session key and iv
-        SecretKey sessionKey = sessionKeys.get(username).getKey();
-        byte[] iv = sessionKeys.get(username).getValue();
-
-        //convert byte string proof and signature to byte[]
-        byte[] encryptedProofBytes = encryptedProof.toByteArray();
-        byte[] signatureBytes = signature.toByteArray();
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
+        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
 
         //decrypt proof
-        byte[] decryptedProof = EncryptionLogic.decryptWithAES(sessionKey,encryptedProofBytes,iv);
+        byte[] decryptedProof = EncryptionLogic.decryptWithAES(sessionKey,encryptedProof,iv);
 
         //verify proofs integrity
-        Proof newProof = verifyProof(decryptedProof, signatureBytes, username);
+        Proof newProof = verifyProof(witnessEncryptedSessionKey,decryptedProof, signature,witnessIv);
 
         UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
         report.addProof(newProof);
@@ -177,62 +182,53 @@ public class ServerLogic {
     }
 
 
-    public Proof verifyProof(byte[] proof, byte[] signature, String username) throws InvalidProofException, NoReportFoundException {
+    public Proof verifyProof(byte[] witnessEncryptedSessionKey,byte[] proof, byte[] signature, byte[] witnessIv) throws InvalidProofException, NoReportFoundException {
+
+        JSONObject proofJSON = new JSONObject(new String(proof));
+        String proverUser = proofJSON.getString("proverUsername");
+        String witnessUser = proofJSON.getString("witnessUsername");
 
         //get server public key
-        PublicKey serverPubKey = EncryptionLogic.getPublicKey(username);
+        PublicKey witnessPubKey = EncryptionLogic.getPublicKey(witnessUser);
 
-        boolean validSignature = EncryptionLogic.verifyDigitalSignature(proof, signature, serverPubKey);
+        boolean validSignature = EncryptionLogic.verifyDigitalSignature(proof, signature, witnessPubKey);
 
-        if (validSignature) {
-
-            JSONObject proofJSON = new JSONObject(new String(proof));
-            String proverUser = proofJSON.getString("proverUsername");
-            String witnessUser = proofJSON.getString("witnessUsername");
-
-            //byzantine user set the prover username wrongly
-            if (!proverUser.equals(username))
-                //todo: throw exception
-                throw new InvalidProofException();
-
-            int epoch = proofJSON.getInt("epoch");
-
-            //byzantine user set wrong epoch
-            if (! validEpoch(proverUser, epoch))
-                //todo: throw exception
-                throw new InvalidProofException();
-
-            //decrypt witness location
-            byte[] witnessLocationBytes = Base64.getDecoder().decode(proofJSON.getString("encrypted_location"));
-            SecretKey sessionKey = sessionKeys.get(witnessUser).getKey();
-            byte[] iv = sessionKeys.get(witnessUser).getValue();
-            byte[] witnessLocation = EncryptionLogic.decryptWithAES(sessionKey, witnessLocationBytes, iv);
-
-            JSONObject locationJSON = new JSONObject(new String(Objects.requireNonNull(witnessLocation)));
-
-            Coords witnessCoords = new Coords(locationJSON.getInt("x"), locationJSON.getInt("y"));
-
-            //byzantine user is not close to prover
-            if (!isClose(witnessCoords, obtainLocationReport(proverUser, epoch).getCoords())) {
-                //todo: throw custom exception
-                throw new InvalidProofException();
-            }
-
-            return new Proof(proofJSON, locationJSON);
-
-        } else {
+        if(!validSignature)
             throw new InvalidProofException();
-            //Todo: throw exception
+        int epoch = proofJSON.getInt("epoch");
+
+        //byzantine user set wrong epoch
+        if (! validEpoch(proverUser, epoch))
+            throw new InvalidProofException();
+
+        //decrypt witness location
+        byte[] witnessLocationBytes = Base64.getDecoder().decode(proofJSON.getString("encrypted_location"));
+
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), witnessEncryptedSessionKey);
+        SecretKey witnessSessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+        byte[] witnessLocation = EncryptionLogic.decryptWithAES(witnessSessionKey, witnessLocationBytes, witnessIv);
+
+        JSONObject locationJSON = new JSONObject(new String(Objects.requireNonNull(witnessLocation)));
+
+        Coords witnessCoords = new Coords(locationJSON.getInt("x"), locationJSON.getInt("y"));
+
+        //byzantine user is not close to prover
+        if (!isClose(witnessCoords, obtainLocationReport(proverUser, epoch).getCoords())) {
+            throw new InvalidProofException();
         }
+
+        return new Proof(proofJSON, locationJSON);
 
     }
 
 
 
-    public byte[][] generateObtainUsersAtLocationReportResponse(String username, byte[] encryptedData, byte[] signature) throws InvalidSignatureException {
+    public byte[][] generateObtainUsersAtLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv) throws InvalidSignatureException {
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
+        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
 
-        SecretKey sessionKey = sessionKeys.get(username).getKey();
-        byte[] iv = sessionKeys.get(username).getValue();
 
         //Decrypt data
         byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
@@ -247,10 +243,10 @@ public class ServerLogic {
         //Verify signature
 
         if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey("ha"))) {
-            System.out.println("Invalid signature from user ha key");
+            System.out.println("Invalid signature!");
             throw new InvalidSignatureException();
         } else
-            System.out.println("Valid signature from user ha key");
+            System.out.println("Valid signature!");
 
 
 
@@ -266,47 +262,23 @@ public class ServerLogic {
 
 
         //encrypt response
-        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), iv);
+        byte[] responseIv = EncryptionLogic.generateIV();
+        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
 
 
         //generate signature
         System.out.println(jsonResponse);
         byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server"));
 
-        byte[][] ret = new byte[2][];
+        byte[][] ret = new byte[3][];
         ret[0] = encryptedResponse;
         ret[1] = responseSignature;
+        ret[2] = responseIv;
 
         return ret;
     }
 
-    public boolean handshake( byte[] encryptedUsernameSessionKeyJSON, byte[] signature,  byte[] iv) {
-        String jsonString = new String(encryptedUsernameSessionKeyJSON);
-        JSONObject message = new JSONObject(jsonString);
-        byte[] encryptedUsername = Base64.getDecoder().decode(message.getString("encryptedUsername"));
-        byte[] encryptedSessionKey = Base64.getDecoder().decode(message.getString("encryptedSessionKey"));
 
-        //Decrypt session key
-        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server"), encryptedSessionKey);
-        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
-
-        //Decrypt username
-        byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedUsername, iv);
-        assert decryptedData != null;
-        String username = new String(decryptedData);
-
-        //Verify signature
-        //TODO invalid signature response, throw error
-        if (!EncryptionLogic.verifyDigitalSignature(jsonString.getBytes(), signature, EncryptionLogic.getPublicKey(username))){
-            System.out.println("Invalid signature from user " + username + " key");
-            return false;
-        } else {
-            System.out.println("Valid signature from user " + username + " key");
-            sessionKeys.put(username, new Pair<>(sessionKey, iv));
-            return true;
-        }
-
-    }
 
 
     public boolean isClose(Coords c1, Coords c2) {

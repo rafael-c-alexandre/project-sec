@@ -48,8 +48,6 @@ public class Client {
 
         try {
             //Handshake with server to agree on session key
-            byte[][] result = client.clientLogic.generateHandshakeMessage();
-            client.clientToServerFrontend.handshake(result[0], result[1], result[2]);
             client.clientToClientFrontend.broadcastAllInGrid();
 
 
@@ -180,11 +178,16 @@ public class Client {
             /* Create digital signature and reply*/
             byte[] responseJSON = response[0];
             byte[] digitalSignature = response[1];
+            byte[] witnessSessionKey = response[2];
+            byte[] witnessIv = response[3];
 
             RequestLocationProofReply reply = null;
             if (digitalSignature != null) {
                 reply = RequestLocationProofReply.newBuilder().setProof(ByteString.copyFrom(responseJSON))
-                        .setDigitalSignature(ByteString.copyFrom(digitalSignature)).build();
+                        .setDigitalSignature(ByteString.copyFrom(digitalSignature))
+                        .setWitnessIv(ByteString.copyFrom(witnessIv))
+                        .setWitnessSessionKey(ByteString.copyFrom(witnessSessionKey))
+                        .build();
             }
 
             responseObserver.onNext(reply);

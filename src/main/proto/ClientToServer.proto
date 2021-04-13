@@ -11,14 +11,14 @@ service ClientToServer {
     rpc SubmitLocationReport (SubmitLocationReportRequest) returns (SubmitLocationReportReply){}
     rpc SubmitLocationProof (SubmitLocationProofRequest) returns (SubmitLocationProofReply){}
     rpc ObtainLocationReport (ObtainLocationReportRequest) returns (ObtainLocationReportReply){}
-    rpc Handshake (HandshakeRequest) returns (HandshakeReply){}
 }
 
 
 message SubmitLocationReportRequest {
-    string username = 1;
+    bytes encryptedSessionKey = 1;
     bytes encryptedMessage = 2;
     bytes signature = 3;
+    bytes iv = 4;
 }
 
 message SubmitLocationReportReply {
@@ -26,9 +26,12 @@ message SubmitLocationReportReply {
 }
 
 message SubmitLocationProofRequest {
-    string username = 1;
+    bytes encryptedSessionKey = 1;
     bytes encryptedProof = 2;
     bytes signature = 3;
+    bytes iv = 4;
+    bytes witnessSessionKey = 5;
+    bytes witnessIv = 6;
 }
 
 message SubmitLocationProofReply {
@@ -37,25 +40,15 @@ message SubmitLocationProofReply {
 
 
 message ObtainLocationReportRequest {
-    string username = 1;
-    bytes message = 2;
-    bytes signature = 3;
+    bytes message = 1;
+    bytes signature = 2;
+    bytes encryptedSessionKey = 3;
+    bytes iv = 4;
 }
 
 message ObtainLocationReportReply {
-    string username = 1;
+    bytes encryptedSessionKey = 1;
     bytes message = 2;
     bytes signature = 3;
+    bytes iv = 4;
 }
-
-message HandshakeRequest{
-    bytes encryptedUsernameSessionKey = 1;
-    bytes signature = 2;
-    bytes iv = 3;
-}
-
-message HandshakeReply{
-
-}
-
-

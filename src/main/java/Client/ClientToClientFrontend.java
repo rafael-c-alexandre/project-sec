@@ -9,7 +9,9 @@ import proto.ClientToServerGrpc;
 import proto.RequestLocationProofReply;
 import proto.RequestLocationProofRequest;
 import util.Coords;
+import util.EncryptionLogic;
 
+import javax.crypto.SecretKey;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +62,8 @@ public class ClientToClientFrontend {
 
         /*send location report directly to server*/
         byte[][] message = clientLogic.generateLocationReport();
-        serverFrontend.submitReport(message[0], message[1]);
+
+        serverFrontend.submitReport(message[0], message[1],message[2],message[3]);
         System.out.println("Report sent");
 
         /* Request proof of location to other close clients */
@@ -86,7 +89,12 @@ public class ClientToClientFrontend {
                     byte[] digitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
 
                     //encrypt proof
-                    byte[] encryptedProof = clientLogic.encryptProof(proof);
+                    byte[][] result = clientLogic.encryptProof(proof);
+                    byte[] encryptedProof = result[0];
+                    byte[] encryptedSessionKey = result[1];
+                    byte[] iv = result[2];
+                    byte[] witnessIv = requestLocationProofReply.getWitnessIv().toByteArray();
+                    byte[] witnessSessionKey = requestLocationProofReply.getWitnessSessionKey().toByteArray();
 
                     JSONObject proofObject = new JSONObject();
                     //create a proof json object
@@ -99,7 +107,7 @@ public class ClientToClientFrontend {
 
                     //send proof as soon as it arrives
                     //TODO
-                    serverFrontend.submitProof(encryptedProof, digitalSignature);
+                    serverFrontend.submitProof(encryptedProof, digitalSignature,encryptedSessionKey,iv,witnessSessionKey,witnessIv);
 
 
                     if (proofs.size() == responseQuorum) {
