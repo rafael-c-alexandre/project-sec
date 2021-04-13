@@ -147,8 +147,6 @@ public class HALogic {
     public byte[][] generateHandshakeMessage(){
         byte[][] result = new byte[3][];
 
-
-
         byte[] encryptedUsername = EncryptionLogic.encryptWithAES(sessionKey, "ha".getBytes(), iv);
         //result[0] = encryptedUsername;
 

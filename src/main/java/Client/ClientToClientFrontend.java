@@ -26,6 +26,7 @@ public class ClientToClientFrontend {
     private final ClientLogic clientLogic;
     private final int responseQuorum = 2; //TODO: hardcoded value
     private volatile boolean gotQuorum = false;
+    private volatile int proofsCount = 0;
 
     public ClientToClientFrontend(String username, ClientToServerFrontend serverFrontend, ClientLogic clientLogic) {
         this.username = username;
@@ -46,7 +47,6 @@ public class ClientToClientFrontend {
 
     public void broadcastProofRequest() {
 
-        List<JSONObject> proofs = new CopyOnWriteArrayList<>();
 
         int epoch = clientLogic.getEpoch();
         Coords coords = clientLogic.getCoords(epoch);
@@ -88,16 +88,12 @@ public class ClientToClientFrontend {
                     proofObject.put("message", Base64.getEncoder().encodeToString(proof));
                     proofObject.put("digital_signature", Base64.getEncoder().encodeToString(digitalSignature));
 
-                    proofs.add(proofObject);
+                    proofsCount++;
 
-                    /************/
-
-                    //send proof as soon as it arrives
-                    //TODO
                     serverFrontend.submitProof(encryptedProof, digitalSignature);
 
 
-                    if (proofs.size() == responseQuorum) {
+                    if (proofsCount == responseQuorum) {
                         gotQuorum = true;
                     }
                 }
@@ -117,7 +113,8 @@ public class ClientToClientFrontend {
         while (!gotQuorum) Thread.onSpinWait();
 
         System.out.println("Got response quorum");
-
+        proofsCount = 0;
+        gotQuorum = false;
     }
 
     public void shutdown() {

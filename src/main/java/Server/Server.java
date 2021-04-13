@@ -120,6 +120,14 @@ public class Server {
                 System.out.println("InvalidReportException: " + e.getMessage());
                 Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
+            } catch (InvalidSignatureException e) {
+                System.out.println("InvalidSignatureException: " + e.getMessage());
+                Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (ReportAlreadyExistsException e) {
+                System.out.println("ReportAlreadyExistsException: " + e.getMessage());
+                Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
             }
         }
 

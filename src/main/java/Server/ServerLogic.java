@@ -110,7 +110,7 @@ public class ServerLogic {
                 .collect(Collectors.toList());
     }
 
-    public void submitReport(String username, ByteString encryptedMessage, ByteString digitalSignature) throws InvalidReportException  {
+    public void submitReport(String username, ByteString encryptedMessage, ByteString digitalSignature) throws InvalidReportException, InvalidSignatureException, ReportAlreadyExistsException {
 
 
         SecretKey sessionKey = this.sessionKeys.get(username).getKey();
@@ -133,20 +133,30 @@ public class ServerLogic {
 
     }
 
-    public boolean verifyMessage(byte[] decipheredMessage, ByteString digitalSignature) {
+    public boolean verifyMessage(byte[] decipheredMessage, ByteString digitalSignature) throws InvalidSignatureException, ReportAlreadyExistsException {
 
         //get username and respective public key
         JSONObject obj = new JSONObject(new String(decipheredMessage));
         String username = obj.getString("username");
+        int epoch = obj.getInt("epoch");
 
         PublicKey userPubKey = EncryptionLogic.getPublicKey(username);
 
         //verify digital signature
         boolean isValid = EncryptionLogic.verifyDigitalSignature(decipheredMessage, digitalSignature.toByteArray(), userPubKey);
-
         System.out.println("Message digital signature valid? " + isValid);
+        if (isValid) {
 
-        return isValid;
+            try {
+                obtainLocationReport(username, epoch);
+                throw new ReportAlreadyExistsException();
+            } catch (NoReportFoundException e) {
+                //return true if there is no report for that epoch
+                return true;
+            }
+        } else
+            throw new InvalidSignatureException();
+
 
     }
 
