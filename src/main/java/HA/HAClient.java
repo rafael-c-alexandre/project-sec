@@ -31,7 +31,6 @@ public class HAClient {
             Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
-                System.out.print("Enter command ( Type 'help' for help menu ): ");
                 String cmd = in.nextLine();
                 switch (cmd) {
                     case "obtain_report" -> client.obtainReport();

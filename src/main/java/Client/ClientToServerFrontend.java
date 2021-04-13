@@ -34,7 +34,7 @@ public class ClientToServerFrontend {
             );
         } catch (Exception e) {
             io.grpc.Status status = io.grpc.Status.fromThrowable(e);
-            System.out.println("Exception received from server:" + status.getDescription());
+            System.out.println("Exception received from server: " + status.getDescription());
         }
 
     }
@@ -53,12 +53,10 @@ public class ClientToServerFrontend {
             );
         } catch (Exception e) {
             io.grpc.Status status = io.grpc.Status.fromThrowable(e);
-            System.out.println("Exception received from server:" + status.getDescription());
+            System.out.println("Exception received from server: " + status.getDescription());
         }
 
     }
-
-
 
     public Coords obtainLocationReport(String username, int epoch) {
 

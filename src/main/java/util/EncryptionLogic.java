@@ -6,6 +6,7 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -248,13 +249,13 @@ public class EncryptionLogic {
 
     public static PrivateKey getPrivateKey(String username) {
         try {
-            byte[] keyBytes = Files.readAllBytes(Paths.get(CRYPTO_FOLDER_PATH + username + "/" + username + ".key"));
+            PrivateKey privateKey;
+            KeyStore ks = KeyStore.getInstance("PKCS12");
 
-            PKCS8EncodedKeySpec spec =
-                    new PKCS8EncodedKeySpec(keyBytes);
-            KeyFactory kf = KeyFactory.getInstance("RSA");
-            return kf.generatePrivate(spec);
-        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            ks.load(new FileInputStream("/Users/rafael/Documents/IST/MEIC/2_semester/SEC/project/src/main/assets/keyStores/keyStore.p12"), "123456".toCharArray());
+            privateKey = (PrivateKey) ks.getKey(  username + "_privkey", "123456".toCharArray());
+            return privateKey;
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException | IOException | CertificateException e) {
             e.printStackTrace();
         }
         return null;
