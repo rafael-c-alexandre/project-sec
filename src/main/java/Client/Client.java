@@ -48,7 +48,7 @@ public class Client {
 
         try {
             //Handshake with server to agree on session key
-            client.clientToClientFrontend.broadcastAllInGrid();
+            //client.clientToClientFrontend.broadcastAllInGrid();
 
 
             Scanner in = new Scanner(System.in);
@@ -56,6 +56,7 @@ public class Client {
             while (running) {
                 String cmd = in.nextLine();
                 switch (cmd) {
+                    case "submit" -> client.clientToClientFrontend.broadcastProofRequest(0);
                     case "obtain_report" -> client.obtainReport();
                     case "exit" -> running = false;
                     case "help" -> client.displayHelp();
@@ -165,7 +166,7 @@ public class Client {
         @Override
         public void requestLocationProof(RequestLocationProofRequest request, StreamObserver<RequestLocationProofReply> responseObserver) {
 
-            System.out.println("\nReceived location report request from " + request.getUsername());
+            System.out.println("Received location report request from " + request.getUsername());
 
             /* Create response message is user requesting is nearby*/
             byte[][] response = clientLogic.generateLocationProof(

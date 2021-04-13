@@ -63,7 +63,7 @@ public class ClientToClientFrontend {
         byte[][] message = clientLogic.generateLocationReport();
 
         serverFrontend.submitReport(message[0], message[1],message[2],message[3]);
-        System.out.println("Report sent");
+        System.out.println("Report sent to server");
 
         /* Request proof of location to other close clients */
         for (String user : closePeers) {

@@ -31,23 +31,23 @@ public class Server {
 
     private io.grpc.Server server;
 
-    public Server(String user, String pass) throws SQLException {
+    public Server(String user, String pass, String f) throws SQLException {
         this.connector = new Connector(user, pass);
-        this.serverLogic = new ServerLogic(this.connector.getConnection());
+        this.serverLogic = new ServerLogic(this.connector.getConnection(), f);
     }
 
     public static void main(String[] args) throws Exception {
 
-        if (args.length != 2) {
-            System.err.println("Invalid args. Try -> dbuser dbpassword");
+        if (args.length != 3) {
+            System.err.println("Invalid args. Try -> dbuser dbpassword numberOfByzantines");
             System.exit(0);
         }
 
         final Server server = new Server(
                 args[0],
-                args[1]
+                args[1],
+                args[2]
         );
-
 
         server.start();
         System.out.println("Server Started");
