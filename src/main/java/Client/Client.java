@@ -24,12 +24,10 @@ public class Client {
     private ClientToServerFrontend clientToServerFrontend;
     private final ClientLogic clientLogic;
     private io.grpc.Server server;
-    private final int manualMode;
     private int port;
 
-    public Client(String username, int manualMode) throws IOException, InterruptedException {
+    public Client(String username) throws IOException, InterruptedException {
         this.username = username;
-        this.manualMode = manualMode;
 
         /* Initialize client logic */
         clientLogic = new ClientLogic(username, GRID_FILE_PATH);
@@ -38,13 +36,12 @@ public class Client {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length != 2) {
-            System.err.println("Invalid args. Try -> Client username manualMode");
+        if (args.length != 1) {
+            System.err.println("Invalid args. Try -> Client username ");
             return;
         }
         String username = args[0];
-        int manualMode = Integer.parseInt(args[1]);
-        Client client = new Client(username, manualMode);
+        Client client = new Client(username);
 
         client.start(client.port);
         System.out.println(username + " Started");
@@ -53,27 +50,18 @@ public class Client {
             //Handshake with server to agree on session key
             byte[][] result = client.clientLogic.generateHandshakeMessage();
             client.clientToServerFrontend.handshake(result[0], result[1], result[2]);
+            client.clientToClientFrontend.broadcastAllInGrid();
+
 
             Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
-                System.out.print("Enter command ( Type 'help' for help menu ): ");
                 String cmd = in.nextLine();
-                if (manualMode == 1) {
-                    switch (cmd) {
-                        case "submit" -> client.clientToClientFrontend.broadcastProofRequest();
-                        case "obtain_report" -> client.obtainReport();
-                        case "exit" -> running = false;
-                        case "help" -> client.displayHelp(manualMode);
-                        default -> System.err.println("Error: Command not recognized");
-                    }
-                } else {
-                    switch (cmd) {
-                        case "obtain_report" -> client.obtainReport();
-                        case "exit" -> running = false;
-                        case "help" -> client.displayHelp(manualMode);
-                        default -> System.err.println("Error: Command not recognized");
-                    }
+                switch (cmd) {
+                    case "obtain_report" -> client.obtainReport();
+                    case "exit" -> running = false;
+                    case "help" -> client.displayHelp();
+                    default -> System.err.println("Error: Command not recognized");
                 }
             }
         } finally {
@@ -89,16 +77,14 @@ public class Client {
             Scanner in = new Scanner(System.in);
             System.out.print("From which epoch do you wish to get your location report? ");
             int epoch = Integer.parseInt(in.nextLine());
-            clientToServerFrontend.obtainLocationReport(this.username, epoch);
+            Coords result = clientToServerFrontend.obtainLocationReport(this.username, epoch);
+            System.out.println("User " + username + " was at position (" + result.getX() + "," + result.getY() + ") at epoch " + epoch);
         } catch (StatusRuntimeException e) {
             System.out.println(e.getMessage());
         }
     }
 
-    public void displayHelp(int manualMode) {
-        if (manualMode == 1)
-            System.out.println("submit - submit location report");
-
+    public void displayHelp() {
         System.out.println("obtain_report - obtain my location report from a specific epoch");
         System.out.println("help - displays help message");
         System.out.println("exit - exits client");

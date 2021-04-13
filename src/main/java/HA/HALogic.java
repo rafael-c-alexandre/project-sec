@@ -17,16 +17,9 @@ public class HALogic {
 
 
     public byte[][] generateObtainLocationRequestParameters(String username, int epoch) {
-        byte[][] ret = new byte[5][];
+        byte[][] ret = new byte[2][];
         JSONObject object = new JSONObject();
         JSONObject message = new JSONObject();
-
-        //Generate a session Key
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-        byte[] sessionKeyBytes = sessionKey.getEncoded();
-
-        //Encrypt session jey with server public key
-        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"), sessionKeyBytes);
 
         //Pass data to json
         message.put("username", username);
@@ -35,7 +28,6 @@ public class HALogic {
         object.put("message", message);
 
         //Encrypt data with session key
-        byte[] iv = EncryptionLogic.generateIV();
         byte[] encryptedData = EncryptionLogic.encryptWithAES(
                 sessionKey,
                 object.toString().getBytes(),
@@ -50,9 +42,6 @@ public class HALogic {
 
         ret[0] = encryptedData;
         ret[1] = digitalSignature;
-        ret[2] = encryptedSessionKey;
-        ret[3] = iv;
-        ret[4] = sessionKeyBytes;
 
         return ret;
     }
@@ -78,16 +67,9 @@ public class HALogic {
     }
 
     public byte[][] generateObtainUsersAtLocationRequestParameters(int x, int y, int epoch) {
-        byte[][] ret = new byte[5][];
+        byte[][] ret = new byte[2][];
         JSONObject object = new JSONObject();
         JSONObject message = new JSONObject();
-
-        //Generate a session Key
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-        byte[] sessionKeyBytes = sessionKey.getEncoded();
-
-        //Encrypt session jey with server public key
-        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"), sessionKeyBytes);
 
         //Pass data to json
         message.put("x", x);
@@ -97,7 +79,6 @@ public class HALogic {
         object.put("message", message);
 
         //Encrypt data with session key
-        byte[] iv = EncryptionLogic.generateIV();
         byte[] encryptedData = EncryptionLogic.encryptWithAES(
                 sessionKey,
                 object.toString().getBytes(),
@@ -112,9 +93,6 @@ public class HALogic {
 
         ret[0] = encryptedData;
         ret[1] = digitalSignature;
-        ret[2] = encryptedSessionKey;
-        ret[3] = iv;
-        ret[4] = sessionKeyBytes;
 
         return ret;
     }
@@ -147,18 +125,34 @@ public class HALogic {
     public byte[][] generateHandshakeMessage(){
         byte[][] result = new byte[3][];
 
+        //Generate session key
+        this.sessionKey = EncryptionLogic.generateAESKey();
+
+        //get server public key
+        Key serverPubKey = EncryptionLogic.getPublicKey("server");
+
+        //Generate new IV
+        byte[] iv = EncryptionLogic.generateIV();
+        this.iv = iv;
+
         byte[] encryptedUsername = EncryptionLogic.encryptWithAES(sessionKey, "ha".getBytes(), iv);
         //result[0] = encryptedUsername;
 
+        //encrypt session key with server public key
+        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(serverPubKey, sessionKey.getEncoded());
+        //result[1] = encryptedSessionKey;
 
         JSONObject message = new JSONObject();
         message.put("encryptedUsername", Base64.getEncoder().encodeToString(encryptedUsername));
+        message.put("encryptedSessionKey", Base64.getEncoder().encodeToString(encryptedSessionKey));
         result[0] = message.toString().getBytes();
 
         //sign encrypted username and encrypted session key
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
                 EncryptionLogic.getPrivateKey("ha"));
         result[1] = digitalSignature;
+
+        result[2] = iv;
 
         return result;
     }

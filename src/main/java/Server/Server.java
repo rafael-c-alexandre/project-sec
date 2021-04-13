@@ -10,8 +10,15 @@ import proto.*;
 import proto.HA.HAToServerGrpc;
 import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
+import util.EncryptionLogic;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import java.util.Base64;
 
@@ -118,15 +125,16 @@ public class Server {
 
             } catch ( InvalidReportException e) {
                 System.out.println("InvalidReportException: " + e.getMessage());
-                Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
+                Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidSignatureException e) {
                 System.out.println("InvalidSignatureException: " + e.getMessage());
-                Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
+                Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (ReportAlreadyExistsException e) {
                 System.out.println("ReportAlreadyExistsException: " + e.getMessage());
-                Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
+                Status status = Status.ALREADY_EXISTS
+                        .withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
         }
@@ -143,11 +151,15 @@ public class Server {
 
             } catch (InvalidProofException e) {
                 System.out.println("InvalidProofException: " + e.getMessage());
-                Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
+                Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (NoReportFoundException e) {
                 System.out.println("NoReportFoundException: " + e.getMessage());
-                Status status = Status.FAILED_PRECONDITION.withDescription(e.getMessage());
+                Status status = Status.NOT_FOUND.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (AlreadyConfirmedReportException e) {
+                System.out.println("AlreadyConfirmedReportException: " + e.getMessage());
+                Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
         }

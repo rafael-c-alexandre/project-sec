@@ -21,7 +21,6 @@ public class ClientToClientFrontend {
     private final String username;
     private final Map<String, ManagedChannel> channelMap = new HashMap<>();
     private final Map<String, ClientToClientGrpc.ClientToClientStub> stubMap = new HashMap<>();
-    private ClientToServerGrpc.ClientToServerBlockingStub serverStub;
     private final ClientToServerFrontend serverFrontend;
     private final ClientLogic clientLogic;
     private final int responseQuorum = 2; //TODO: hardcoded value
@@ -45,10 +44,15 @@ public class ClientToClientFrontend {
         stubMap.put(username, ClientToClientGrpc.newStub(channel));
     }
 
-    public void broadcastProofRequest() {
+    public void broadcastAllInGrid(){
+        for(Integer ep : clientLogic.getGrid().get(username).keySet()){
+            broadcastProofRequest(ep);
+        }
+    }
+
+    public void broadcastProofRequest(int epoch) {
 
 
-        int epoch = clientLogic.getEpoch();
         Coords coords = clientLogic.getCoords(epoch);
         List<String> closePeers = clientLogic.closePeers(epoch);
 

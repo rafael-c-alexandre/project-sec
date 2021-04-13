@@ -47,33 +47,33 @@ public class ServerLogic {
     public byte[][] generateObtainLocationReportResponse(String username, byte[] encryptedData, byte[] signature, boolean isHA) throws NoSuchCoordsException, InvalidSignatureException {
 
         //Decrypt data
+        System.out.println(username);
         byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKeys.get(username).getKey(), encryptedData, sessionKeys.get(username).getValue());
         String jsonString = new String(decryptedData);
         JSONObject jsonObject = new JSONObject(jsonString);
         JSONObject message = jsonObject.getJSONObject("message");
-        username = message.getString("username");
+        String reportUsername = message.getString("username");
         int epoch = message.getInt("epoch");
 
 
         //Verify signature
-        if (isHA) {
-            if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey("ha"))) {
-                System.out.println("Invalid signature!");
-                throw new InvalidSignatureException();
-            } else
-                System.out.println("Valid signature!");
-        } else {
+
             if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username))) {
                 System.out.println("Invalid signature!");
                 throw new InvalidSignatureException();
             } else
                 System.out.println("Valid signature!");
-        }
 
         //process request
         Coords coords = null;
         try {
-            coords = obtainLocationReport(username, epoch).getCoords();
+            UserReport report = obtainLocationReport(reportUsername, epoch);
+
+            if (!report.isClosed())
+                throw new NoSuchCoordsException();
+
+            coords = report.getCoords();
+
         } catch(NoReportFoundException e ) {
             throw new NoSuchCoordsException();
         }
@@ -88,8 +88,7 @@ public class ServerLogic {
 
 
         //encrypt response
-        byte[] responseIv = EncryptionLogic.generateIV();
-        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKeys.get(username).getKey(), jsonResponse.toString().getBytes(), responseIv);
+        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKeys.get(username).getKey(), jsonResponse.toString().getBytes(), sessionKeys.get(username).getValue());
 
 
         //generate signature
@@ -99,6 +98,7 @@ public class ServerLogic {
         byte[][] ret = new byte[2][];
         ret[0] = encryptedResponse;
         ret[1] = responseSignature;
+
 
         return ret;
     }
@@ -160,7 +160,7 @@ public class ServerLogic {
 
     }
 
-    public void submitProof(String username, ByteString encryptedProof, ByteString signature) throws InvalidProofException, NoReportFoundException {
+    public void submitProof(String username, ByteString encryptedProof, ByteString signature) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
 
         //get user session key and iv
         SecretKey sessionKey = sessionKeys.get(username).getKey();
@@ -178,9 +178,12 @@ public class ServerLogic {
 
         UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
         report.addProof(newProof);
-        if (report.getProofsList().size() == responseQuorum)
+        reportsRepository.submitProof(newProof);
+        if (report.getProofsList().size() == responseQuorum) {
             System.out.println("Reached quorum of proofs");
+            report.setClosed(true);
             //TODO do smth
+        }
     }
 
     public boolean validEpoch(String username, int epoch) {
@@ -192,7 +195,7 @@ public class ServerLogic {
     }
 
 
-    public Proof verifyProof(byte[] proof, byte[] signature, String username) throws InvalidProofException, NoReportFoundException {
+    public Proof verifyProof(byte[] proof, byte[] signature, String username) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
 
         //get server public key
         PublicKey serverPubKey = EncryptionLogic.getPublicKey(username);
@@ -227,8 +230,12 @@ public class ServerLogic {
 
             Coords witnessCoords = new Coords(locationJSON.getInt("x"), locationJSON.getInt("y"));
 
+            UserReport report = obtainLocationReport(proverUser, epoch);
+            if (report.isClosed())
+                throw new AlreadyConfirmedReportException(username, report.getEpoch());
+
             //byzantine user is not close to prover
-            if (!isClose(witnessCoords, obtainLocationReport(proverUser, epoch).getCoords())) {
+            if (!isClose(witnessCoords, report.getCoords())) {
                 //todo: throw custom exception
                 throw new InvalidProofException();
             }
