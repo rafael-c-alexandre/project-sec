@@ -50,13 +50,13 @@ public class Client {
         System.out.println(username + " Started");
 
         try {
+            //Handshake with server to agree on session key
+            byte[][] result = client.clientLogic.generateHandshakeMessage();
+            client.clientToServerFrontend.handshake(result[0], result[1], result[2]);
+
             Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
-                //Handshake with server to agree on session key
-                byte[][] result = client.clientLogic.generateHandshakeMessage();
-                client.clientToServerFrontend.handshake(result[0], result[1], result[2]);
-
                 System.out.print("Enter command ( Type 'help' for help menu ): ");
                 String cmd = in.nextLine();
                 if (manualMode == 1) {
@@ -181,7 +181,7 @@ public class Client {
         @Override
         public void requestLocationProof(RequestLocationProofRequest request, StreamObserver<RequestLocationProofReply> responseObserver) {
 
-            System.out.println("Received location report request from " + request.getUsername());
+            System.out.println("\nReceived location report request from " + request.getUsername());
 
             /* Create response message is user requesting is nearby*/
             byte[][] response = clientLogic.generateLocationProof(

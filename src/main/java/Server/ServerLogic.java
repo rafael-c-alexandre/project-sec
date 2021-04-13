@@ -168,7 +168,6 @@ public class ServerLogic {
 
         UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
         report.addProof(newProof);
-
         if (report.getProofsList().size() == responseQuorum)
             System.out.println("Reached quorum of proofs");
             //TODO do smth
@@ -253,10 +252,10 @@ public class ServerLogic {
         //Verify signature
 
         if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey("ha"))) {
-            System.out.println("Invalid signature!");
+            System.out.println("Invalid signature from user ha key");
             throw new InvalidSignatureException();
         } else
-            System.out.println("Valid signature!");
+            System.out.println("Valid signature from user ha key");
 
 
 
@@ -304,10 +303,10 @@ public class ServerLogic {
         //Verify signature
         //TODO invalid signature response, throw error
         if (!EncryptionLogic.verifyDigitalSignature(jsonString.getBytes(), signature, EncryptionLogic.getPublicKey(username))){
-            System.out.println("Invalid signature!");
+            System.out.println("Invalid signature from user " + username + " key");
             return false;
         } else {
-            System.out.println("Valid signature!");
+            System.out.println("Valid signature from user " + username + " key");
             sessionKeys.put(username, new Pair<>(sessionKey, iv));
             return true;
         }

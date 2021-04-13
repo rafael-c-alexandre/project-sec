@@ -37,4 +37,14 @@ public class Proof {
     public Coords getCoords() {
         return coords;
     }
+
+    @Override
+    public String toString() {
+        return "Proof{" +
+                "epoch=" + epoch +
+                ", witnessUsername='" + witnessUsername + '\'' +
+                ", proverUsername='" + proverUsername + '\'' +
+                ", coords=" + coords +
+                '}';
+    }
 }

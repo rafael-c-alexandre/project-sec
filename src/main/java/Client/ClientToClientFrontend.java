@@ -68,9 +68,16 @@ public class ClientToClientFrontend {
 
                 @Override
                 public void onNext(RequestLocationProofReply requestLocationProofReply) {
-                    System.out.println("Received proof reply");
 
+                    /* Check if witness is a close peer */
                     byte[] proof = requestLocationProofReply.getProof().toByteArray();
+                    JSONObject proofJSON = new JSONObject(new String(proof));
+                    System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername"));
+                    if(!closePeers.contains(proofJSON.getString("witnessUsername"))){
+                        System.out.println("Witness " + proofJSON.getString("witnessUsername") +" was not asked for a proof, is not a close peer");
+                        return;
+                    }
+
                     byte[] digitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
 
                     //encrypt proof
@@ -83,8 +90,6 @@ public class ClientToClientFrontend {
 
                     proofs.add(proofObject);
 
-                    JSONObject proofJSON = new JSONObject(new String(proof));
-                    System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername"));
                     /************/
 
                     //send proof as soon as it arrives
