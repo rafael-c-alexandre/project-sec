@@ -131,22 +131,21 @@ public class ClientToClientFrontend {
         System.out.println("Waiting for proofs quorum...");
 
         // timeout of 5 seconds for reaching a quorum
-        new Thread(() -> {
-            try {
-                Thread.sleep(5000);
-                timeoutExpired = true;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
+        try {
+            Thread.sleep(5000);
+            timeoutExpired = true;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         while (!gotQuorum && !timeoutExpired ) Thread.onSpinWait();
-        if(timeoutExpired){
-            System.out.println("Timeout expired couldn't prove location, moving to next epoch\n");
-        } else {
-            System.out.println("Got response quorum\n");
-        }
+
+        if (gotQuorum)
+            System.out.println("Got response quorum");
+        else if (timeoutExpired)
+            System.err.println("Couldn't prove location within the time limit");
         gotQuorum = false;
+        timeoutExpired = false;
     }
 
     public void shutdown() {

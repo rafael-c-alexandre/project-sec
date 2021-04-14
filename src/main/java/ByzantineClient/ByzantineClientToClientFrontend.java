@@ -20,9 +20,8 @@ public class ByzantineClientToClientFrontend {
     private final Map<String, ClientToClientGrpc.ClientToClientStub> stubMap = new HashMap<>();
     private final ByzantineClientToServerFrontend serverFrontend;
     private final ByzantineClientLogic clientLogic;
-    private final int responseQuorum = 2; //TODO: hardcoded value
     private volatile boolean gotQuorum = false;
-    private volatile int proofsCount = 0;
+    private volatile boolean timeoutExpired = false;
 
     public ByzantineClientToClientFrontend(String username, ByzantineClientToServerFrontend serverFrontend, ByzantineClientLogic clientLogic) {
         this.username = username;
@@ -49,7 +48,6 @@ public class ByzantineClientToClientFrontend {
             for(Integer ep : clientLogic.getGrid().get(username).keySet()){
                 System.out.println("Broadcast request for epoch " + ep +"\n");
                 broadcastProofRequest(ep);
-                //TODO: melhorar
                 Thread.sleep(5000);
                 }
         } catch (InterruptedException e) {
@@ -67,7 +65,6 @@ public class ByzantineClientToClientFrontend {
         /*send location report directly to server*/
         byte[][] message = clientLogic.generateLocationReport(epoch);
 
-        //TODO: return
         serverFrontend.submitReport(message[0], message[1],message[2],message[3]);
         System.out.println("Report sent to server");
 
@@ -123,11 +120,25 @@ public class ByzantineClientToClientFrontend {
                 }
             });
         }
-        System.out.println("Waiting for proofs quorum...");
-        while (!gotQuorum) Thread.onSpinWait();
 
-        System.out.println("Got response quorum");
+        System.out.println("Waiting for proofs quorum...");
+
+        // timeout of 5 seconds for reaching a quorum
+        try {
+            Thread.sleep(5000);
+            timeoutExpired = true;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        while (!gotQuorum && !timeoutExpired ) Thread.onSpinWait();
+
+        if (gotQuorum)
+            System.out.println("Got response quorum");
+        else if (timeoutExpired)
+            System.err.println("Couldn't prove location within the time limit");
         gotQuorum = false;
+        timeoutExpired = false;
     }
 
     public void shutdown() {

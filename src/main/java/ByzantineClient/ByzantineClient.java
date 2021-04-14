@@ -27,22 +27,25 @@ public class ByzantineClient {
     private io.grpc.Server server;
     private int port;
 
-    public ByzantineClient(String username) throws IOException, InterruptedException {
+    public ByzantineClient(String username, String grid_file_path) throws IOException, InterruptedException {
         this.username = username;
 
         /* Initialize client logic */
-        clientLogic = new ByzantineClientLogic(username, GRID_FILE_PATH);
+        clientLogic = new ByzantineClientLogic(username, grid_file_path);
         /* Import users and server from mappings */
         importAddrMappings();
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length != 1) {
-            System.err.println("Invalid args. Try -> Client username ");
+        if (args.length > 3 || args.length == 0) {
+            System.err.println("Invalid args. Try -> username grid_file_path [commands_file_path] ");
             return;
         }
         String username = args[0];
-        ByzantineClient client = new ByzantineClient(username);
+        String grid_file_path = args[1];
+        ByzantineClient client = new ByzantineClient(username, grid_file_path);
+
+        String commandsFilePath = args.length == 3 ? args[2] : null;
 
         client.start(client.port);
         System.out.println(username + " Started");
@@ -51,14 +54,18 @@ public class ByzantineClient {
             //run grid broadcasts
             client.clientToClientFrontend.broadcastAllInGrid();
 
+            Scanner in;
+            if (commandsFilePath == null) {
+                in = new Scanner(System.in);
+            } else {
+                in = new Scanner(new File(commandsFilePath));
+            }
 
-            Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
-                String cmd = in.nextLine();
+            String cmd = in.nextLine();
                 switch (cmd) {
-                    //case "submit" -> client.clientToClientFrontend.broadcastProofRequest(0);
-                    case "obtain_report" -> client.obtainReport();
+                    case "obtain_report" -> client.obtainReport(in);
                     case "exit" -> running = false;
                     case "help" -> client.displayHelp();
                     default -> System.err.println("Error: Command not recognized");
@@ -72,15 +79,14 @@ public class ByzantineClient {
 
     }
 
-    public void obtainReport() {
+    public void obtainReport(Scanner in) {
         try {
-            Scanner in = new Scanner(System.in);
             System.out.print("From which epoch do you wish to get your location report? ");
             int epoch = Integer.parseInt(in.nextLine());
             Coords result = clientToServerFrontend.obtainLocationReport(this.username, epoch);
             System.out.println("User " + username + " was at position (" + result.getX() + "," + result.getY() + ") at epoch " + epoch);
         } catch (StatusRuntimeException e) {
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
     }
 

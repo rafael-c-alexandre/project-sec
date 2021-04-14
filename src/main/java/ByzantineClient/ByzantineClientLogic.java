@@ -59,8 +59,10 @@ public class ByzantineClientLogic {
         JSONObject message = new JSONObject();
         message.put("username", username);
         message.put("epoch", epoch);
-        message.put("x", coords.getX());
-        message.put("y", coords.getY());
+
+        //byzantine user changes its coordinates to prove he is not inside the range
+        message.put("x", 200);
+        message.put("y", 300);
 
         byte[][] result = new byte[4][];
 

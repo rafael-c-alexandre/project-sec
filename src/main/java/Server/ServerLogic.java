@@ -28,11 +28,20 @@ public class ServerLogic {
         reportsRepository = new UserReportsRepository(Connection);
         this.reportList = reportsRepository.getAllUserReports();
         this.responseQuorum = Integer.parseInt(f);
+        this.reportList.add(new UserReport(0,"user1",new Coords(1,2)));
     }
 
     public UserReport obtainLocationReport(String username, int epoch) throws NoReportFoundException {
         for (UserReport report : this.reportList) {
             if (report.getUsername().equals(username) && report.getEpoch() == epoch)
+                return report;
+        }
+        throw new NoReportFoundException(username, epoch);
+    }
+
+    public UserReport obtainClosedLocationReport(String username, int epoch) throws NoReportFoundException {
+        for (UserReport report : this.reportList) {
+            if (report.getUsername().equals(username) && report.getEpoch() == epoch && report.isClosed())
                 return report;
         }
         throw new NoReportFoundException(username, epoch);
@@ -71,7 +80,7 @@ public class ServerLogic {
 
 
         //process request
-        Coords coords = obtainLocationReport(username, epoch).getCoords();
+        Coords coords = obtainClosedLocationReport(username, epoch).getCoords();
 
         JSONObject jsonResponse = new JSONObject();
         JSONObject jsonResponseMessage = new JSONObject();
@@ -121,11 +130,9 @@ public class ServerLogic {
             UserReport userReport = new UserReport(reportJSON);
 
             //try to replace report
-            //TODO: check if this is really necessary
-            replaceReport(userReport);
+            if(!replaceReport(userReport)) this.reportList.add(userReport);
 
             System.out.println("Report from " + userReport.getUsername() + " from epoch " + userReport.getEpoch() + " report verified");
-            this.reportList.add(userReport);
             //Add to database
             reportsRepository.submitUserReport(userReport, digitalSignature);
         } else {
@@ -134,15 +141,19 @@ public class ServerLogic {
     }
 
     // when a user submits a new report from a epoch that has not a confirmed report
-    public synchronized void replaceReport(UserReport newReport) {
+    public synchronized boolean replaceReport(UserReport newReport) {
 
         for (int i = 0; i < reportList.size(); i++) {
             if (reportList.get(i).getUsername().equals(newReport.getUsername())
                     && reportList.get(i).getEpoch() == newReport.getEpoch()
-                    && !reportList.get(i).isClosed())
+                    && !reportList.get(i).isClosed()) {
                 reportList.set(i, newReport);
+                System.out.println("Replaced in memory!");
+                reportsRepository.replaceReport(newReport.getUsername(),newReport.getEpoch());
+                return true;
+            }
         }
-        //TODO
+        return false;
     }
 
     public boolean verifyMessage(byte[] decipheredMessage, byte[] digitalSignature) throws ReportAlreadyExistsException, InvalidSignatureException {
@@ -160,9 +171,8 @@ public class ServerLogic {
 
         System.out.println("Prover: " + username + " epoch: " +  epoch + " + Message digital signature valid? " + isValid);
         if (isValid) {
-
             try {
-                obtainLocationReport(username, epoch);
+                obtainClosedLocationReport(username, epoch);
                 throw new ReportAlreadyExistsException(username, epoch);
             } catch (NoReportFoundException e) {
                 //return true if there is no report for that epoch
