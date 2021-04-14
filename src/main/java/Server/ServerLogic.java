@@ -134,7 +134,7 @@ public class ServerLogic {
 
             System.out.println("Report from " + userReport.getUsername() + " from epoch " + userReport.getEpoch() + " report verified");
             //Add to database
-            reportsRepository.submitUserReport(userReport);
+            reportsRepository.submitUserReport(userReport, digitalSignature);
         } else {
             throw new InvalidReportException();
         }
