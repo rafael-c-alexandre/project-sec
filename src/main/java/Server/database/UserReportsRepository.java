@@ -109,15 +109,16 @@ public class UserReportsRepository {
         return new ArrayList<>();
     }
 
-    public void submitUserReport(UserReport userReport) {
+    public void submitUserReport(UserReport userReport, byte[] signature) {
         try {
-            String sql = "INSERT INTO UserReports(username, epoch,x,y) VALUES (?,?,?,?)";
+            String sql = "INSERT INTO UserReports(username, epoch, x, y, signature) VALUES (?,?,?,?,?)";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             preparedStatement.setString(1, userReport.getUsername());
             preparedStatement.setInt(2, userReport.getEpoch());
             preparedStatement.setInt(3, userReport.getCoords().getX());
             preparedStatement.setInt(4, userReport.getCoords().getY());
+            preparedStatement.setBytes(5, signature);
 
             preparedStatement.executeUpdate();
             for (int i = 0; i < userReport.getProofsList().size(); i++)

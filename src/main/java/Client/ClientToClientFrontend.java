@@ -141,8 +141,11 @@ public class ClientToClientFrontend {
         });
 
         while (!gotQuorum && !timeoutExpired ) Thread.onSpinWait();
-
-        System.out.println("Got response quorum");
+        if(timeoutExpired){
+            System.out.println("Timeout expired couldn't prove location, moving to next epoch\n");
+        } else {
+            System.out.println("Got response quorum\n");
+        }
         gotQuorum = false;
     }
 
