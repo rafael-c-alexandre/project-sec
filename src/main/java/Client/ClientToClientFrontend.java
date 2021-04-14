@@ -130,16 +130,14 @@ public class ClientToClientFrontend {
 
         System.out.println("Waiting for proofs quorum...");
 
-        // timeout of 5 seconds for reaching a quorum
-        /*
-        try {
-            Thread.sleep(15000);
-            timeoutExpired = true;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }*/
-
-        while (!gotQuorum && !timeoutExpired ) Thread.onSpinWait();
+        long start = System.currentTimeMillis();
+        while (!gotQuorum && !timeoutExpired ) {
+            long delta = System.currentTimeMillis() - start;
+            if(delta > 5000){
+                timeoutExpired = true;
+                break;
+            }
+        }
 
         if (gotQuorum)
             System.out.println("Got response quorum");
