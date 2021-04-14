@@ -252,7 +252,7 @@ public class EncryptionLogic {
             PrivateKey privateKey;
             KeyStore ks = KeyStore.getInstance("PKCS12");
 
-            ks.load(new FileInputStream("/Users/rafael/Documents/IST/MEIC/2_semester/SEC/project/src/main/assets/keyStores/keyStore.p12"), "123456".toCharArray());
+            ks.load(new FileInputStream("./src/main/assets/keyStores/keyStore.p12"), "123456".toCharArray());
             privateKey = (PrivateKey) ks.getKey(  username + "_privkey", "123456".toCharArray());
             return privateKey;
         } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException | IOException | CertificateException e) {
