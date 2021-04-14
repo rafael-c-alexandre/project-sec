@@ -28,6 +28,7 @@ public class ServerLogic {
         reportsRepository = new UserReportsRepository(Connection);
         this.reportList = reportsRepository.getAllUserReports();
         this.responseQuorum = Integer.parseInt(f);
+        this.reportList.add(new UserReport(0,"user1",new Coords(1,2)));
     }
 
     public UserReport obtainLocationReport(String username, int epoch) throws NoReportFoundException {
@@ -147,6 +148,7 @@ public class ServerLogic {
                     && reportList.get(i).getEpoch() == newReport.getEpoch()
                     && !reportList.get(i).isClosed()) {
                 reportList.set(i, newReport);
+                System.out.println("Replaced in memory!");
                 reportsRepository.replaceReport(newReport.getUsername(),newReport.getEpoch());
                 return true;
             }
@@ -171,7 +173,7 @@ public class ServerLogic {
         if (isValid) {
 
             try {
-                obtainLocationReport(username, epoch);
+                obtainClosedLocationReport(username, epoch);
                 throw new ReportAlreadyExistsException(username, epoch);
             } catch (NoReportFoundException e) {
                 //return true if there is no report for that epoch

@@ -165,7 +165,7 @@ public class UserReportsRepository {
             preparedStatement.executeUpdate();
             connection.commit();
 
-
+            System.out.println("Replaced in DB!");
         } catch (SQLException e) {
             e.printStackTrace();
         }
