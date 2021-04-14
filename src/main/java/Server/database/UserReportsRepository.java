@@ -49,7 +49,7 @@ public class UserReportsRepository {
     public CopyOnWriteArrayList<UserReport> getAllUserReports() {
         CopyOnWriteArrayList<UserReport> result = new CopyOnWriteArrayList<>();
         try {
-            String sql = "SELECT username,epoch,x,y FROM UserReports";
+            String sql = "SELECT username,epoch,x,y,isClosed,signature FROM UserReports";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             ResultSet rs = preparedStatement.executeQuery();
 
@@ -61,7 +61,8 @@ public class UserReportsRepository {
                         rs.getInt("x"),
                         rs.getInt("y")
                 ));
-                String sql1 = "SELECT prover_username,witness_username,epoch,x,y FROM Proofs WHERE prover_username = ? AND epoch = ?";
+                userReport.setClosed(rs.getBoolean("isClosed"));
+                String sql1 = "SELECT prover_username,witness_username,epoch,x,y,signature FROM Proofs WHERE prover_username = ? AND epoch = ?";
                 PreparedStatement preparedStatement1 = connection.prepareStatement(sql1);
                 preparedStatement1.setString(1, rs.getString("username"));
                 preparedStatement1.setInt(2, rs.getInt("epoch"));
@@ -75,6 +76,7 @@ public class UserReportsRepository {
                             rs.getInt("x"),
                             rs.getInt("y")
                     ));
+                    proof.setSignature(rs.getBytes("signature"));
                     userReport.addProof(proof);
                 }
                 result.add(userReport);
