@@ -71,7 +71,6 @@ public class HALogic {
 
         //process response and return coords
         String jsonString = new String(response);
-        System.out.println("json -> " + jsonString);
         JSONObject jsonObject = new JSONObject(jsonString);
         JSONObject msg = jsonObject.getJSONObject("message");
 
@@ -133,7 +132,6 @@ public class HALogic {
 
         //process response and return coords
         String jsonString = new String(response);
-        System.out.println("json -> " + jsonString);
         JSONObject jsonObject = new JSONObject(jsonString);
         JSONObject msg = jsonObject.getJSONObject("message");
 

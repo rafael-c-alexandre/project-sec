@@ -1,35 +1,30 @@
-package Client;
+package ByzantineClient;
 
-import Exceptions.ProverNotCloseEnoughException;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.json.JSONObject;
 import proto.ClientToClientGrpc;
-import proto.ClientToServerGrpc;
 import proto.RequestLocationProofReply;
 import proto.RequestLocationProofRequest;
-import util.Coords;
-import util.EncryptionLogic;
 
-import javax.crypto.SecretKey;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
-public class ClientToClientFrontend {
+public class ByzantineClientToClientFrontend {
     private final String username;
     private final Map<String, ManagedChannel> channelMap = new HashMap<>();
     private final Map<String, ClientToClientGrpc.ClientToClientStub> stubMap = new HashMap<>();
-    private final ClientToServerFrontend serverFrontend;
-    private final ClientLogic clientLogic;
+    private final ByzantineClientToServerFrontend serverFrontend;
+    private final ByzantineClientLogic clientLogic;
+    private final int responseQuorum = 2; //TODO: hardcoded value
     private volatile boolean gotQuorum = false;
-    private volatile boolean timeoutExpired = false;
+    private volatile int proofsCount = 0;
 
-    public ClientToClientFrontend(String username, ClientToServerFrontend serverFrontend, ClientLogic clientLogic) {
+    public ByzantineClientToClientFrontend(String username, ByzantineClientToServerFrontend serverFrontend, ByzantineClientLogic clientLogic) {
         this.username = username;
         this.clientLogic = clientLogic;
         this.serverFrontend = serverFrontend;
@@ -128,20 +123,8 @@ public class ClientToClientFrontend {
                 }
             });
         }
-
         System.out.println("Waiting for proofs quorum...");
-
-        // timeout of 5 seconds for reaching a quorum
-        new Thread(() -> {
-            try {
-                Thread.sleep(5000);
-                timeoutExpired = true;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-
-        while (!gotQuorum && !timeoutExpired ) Thread.onSpinWait();
+        while (!gotQuorum) Thread.onSpinWait();
 
         System.out.println("Got response quorum");
         gotQuorum = false;

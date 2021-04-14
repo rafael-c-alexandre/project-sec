@@ -1,21 +1,20 @@
-package Client;
+package ByzantineClient;
 
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import proto.*;
-import org.json.JSONObject;
 import util.Coords;
 
 import java.util.concurrent.TimeUnit;
 
-public class ClientToServerFrontend {
+public class ByzantineClientToServerFrontend {
     private final String username;
     private final ManagedChannel channel;
     private final ClientToServerGrpc.ClientToServerBlockingStub blockingStub;
-    private final ClientLogic clientLogic;
+    private final ByzantineClientLogic clientLogic;
 
-    public ClientToServerFrontend(String username, String host, int port, ClientLogic clientLogic) {
+    public ByzantineClientToServerFrontend(String username, String host, int port, ByzantineClientLogic clientLogic) {
         this.username = username;
         this.channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
         this.blockingStub = ClientToServerGrpc.newBlockingStub(channel);

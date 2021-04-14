@@ -1,4 +1,4 @@
-package Client;
+package ByzantineClient;
 
 import Exceptions.ProverNotCloseEnoughException;
 import org.json.JSONArray;
@@ -12,12 +12,12 @@ import java.io.FileNotFoundException;
 import java.security.Key;
 import java.util.*;
 
-public class ClientLogic {
+public class ByzantineClientLogic {
 
     private final String username;
     private final Map<String, Map<Integer, Coords>> grid = new HashMap<>();
 
-    public ClientLogic(String username, String gridFilePath) {
+    public ByzantineClientLogic(String username, String gridFilePath) {
         this.username = username;
         populateGrid(gridFilePath);
     }

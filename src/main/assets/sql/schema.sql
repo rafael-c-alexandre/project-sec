@@ -10,7 +10,7 @@ CREATE TABLE UserReports (
      epoch INT,
      x INT NOT NULL,
      y INT NOT NULL,
-     isClosed BOOLEAN,
+     isClosed BOOLEAN DEFAULT false,
      PRIMARY KEY (username,epoch)
 );
 
@@ -20,7 +20,7 @@ CREATE TABLE Proofs (
     x INT,
     y INT,
     epoch INT,
-    signature BINARY DEFAULT false,
+    signature VARBINARY(4096),
     FOREIGN KEY (prover_username,epoch) REFERENCES UserReports(username,epoch),
     PRIMARY KEY (witness_username, prover_username, epoch)
 );

@@ -1,4 +1,4 @@
-package Client;
+package ByzantineClient;
 
 import Exceptions.ProverNotCloseEnoughException;
 import com.google.protobuf.ByteString;
@@ -10,29 +10,28 @@ import proto.ClientToClientGrpc;
 import proto.RequestLocationProofReply;
 import proto.RequestLocationProofRequest;
 import util.Coords;
-import util.EncryptionLogic;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Scanner;
 
-public class Client {
+public class ByzantineClient {
 
     final String GRID_FILE_PATH = "src/main/assets/grid_examples/grid1.txt";
     final String CLIENT_ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings.txt";
     protected String username;
-    private ClientToClientFrontend clientToClientFrontend;
-    private ClientToServerFrontend clientToServerFrontend;
-    private final ClientLogic clientLogic;
+    private ByzantineClientToClientFrontend clientToClientFrontend;
+    private ByzantineClientToServerFrontend clientToServerFrontend;
+    private final ByzantineClientLogic clientLogic;
     private io.grpc.Server server;
     private int port;
 
-    public Client(String username) throws IOException, InterruptedException {
+    public ByzantineClient(String username) throws IOException, InterruptedException {
         this.username = username;
 
         /* Initialize client logic */
-        clientLogic = new ClientLogic(username, GRID_FILE_PATH);
+        clientLogic = new ByzantineClientLogic(username, GRID_FILE_PATH);
         /* Import users and server from mappings */
         importAddrMappings();
     }
@@ -43,7 +42,7 @@ public class Client {
             return;
         }
         String username = args[0];
-        Client client = new Client(username);
+        ByzantineClient client = new ByzantineClient(username);
 
         client.start(client.port);
         System.out.println(username + " Started");
@@ -114,8 +113,8 @@ public class Client {
             }
             //SERVER
             if (mappingsUser.equals("server")) {
-                clientToServerFrontend = new ClientToServerFrontend(username, mappingsHost, mappingsPort, clientLogic);
-                clientToClientFrontend = new ClientToClientFrontend(username, clientToServerFrontend, clientLogic);
+                clientToServerFrontend = new ByzantineClientToServerFrontend(username, mappingsHost, mappingsPort, clientLogic);
+                clientToClientFrontend = new ByzantineClientToClientFrontend(username, clientToServerFrontend, clientLogic);
                 continue;
             }
 
@@ -141,7 +140,7 @@ public class Client {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.
             System.err.println("*** shutting down gRPC server since JVM is shutting down");
-            Client.this.stop();
+            ByzantineClient.this.stop();
             clientToClientFrontend.shutdown();
             clientToServerFrontend.shutdown();
             System.err.println("*** server shut down");
@@ -158,9 +157,9 @@ public class Client {
 
     static class ClientToClientImp extends ClientToClientGrpc.ClientToClientImplBase {
 
-        ClientLogic clientLogic;
+        ByzantineClientLogic clientLogic;
 
-        public ClientToClientImp(ClientLogic clientLogic) {
+        public ClientToClientImp(ByzantineClientLogic clientLogic) {
             this.clientLogic = clientLogic;
         }
 

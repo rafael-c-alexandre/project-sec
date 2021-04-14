@@ -126,7 +126,7 @@ public class Server {
         @Override
         public void submitLocationProof(SubmitLocationProofRequest request, StreamObserver<SubmitLocationProofReply> responseObserver) {
             try {
-                serverLogic.submitProof(request.getWitnessSessionKey().toByteArray(),
+                boolean reachedQuorum = serverLogic.submitProof(request.getWitnessSessionKey().toByteArray(),
                         request.getWitnessIv().toByteArray()
                         , request.getEncryptedSessionKey().toByteArray()
                         ,request.getEncryptedProof().toByteArray()
@@ -134,7 +134,7 @@ public class Server {
                         ,request.getIv().toByteArray()
                         );
 
-                SubmitLocationProofReply reply = SubmitLocationProofReply.newBuilder().build();
+                SubmitLocationProofReply reply = SubmitLocationProofReply.newBuilder().setReachedQuorum(reachedQuorum).build();
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
 

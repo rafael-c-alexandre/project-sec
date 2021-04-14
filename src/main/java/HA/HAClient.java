@@ -26,6 +26,8 @@ public class HAClient {
 
     public static void main(String[] args) {
         HAClient client = new HAClient();
+
+        System.out.println("Healthcare Authority started");
         try {
 
             Scanner in = new Scanner(System.in);
@@ -49,14 +51,19 @@ public class HAClient {
     private void obtainUsersAtLocation() {
         try {
             Scanner in = new Scanner(System.in);
-            System.out.print("State the x coordinate");
+            System.out.print("State the x coordinate: ");
             int x = Integer.parseInt(in.nextLine());
-            System.out.print("State the y coordinate");
+            System.out.print("State the y coordinate: ");
             int y = Integer.parseInt(in.nextLine());
-            System.out.print("State the epoch");
+            System.out.print("State the epoch: ");
             int epoch = Integer.parseInt(in.nextLine());
             List<String> result = haFrontend.obtainUsersAtLocation(x, y, epoch);
-            System.out.println("These are the users at location (" + x + "," + y + ") at epoch "  + epoch + " :");
+
+            if (result.size() == 0)
+                System.out.println("No users at this location in the given epoch.");
+            else
+                System.out.println("These are the users at location (" + x + "," + y + ") at epoch "  + epoch + " :");
+
             for(String user : result){
                 System.out.println(user);
             }
@@ -81,8 +88,8 @@ public class HAClient {
 
     public void displayHelp() {
 
-
-        System.out.println("obtain_report - obtain my location report from a specific epoch");
+        System.out.println("obtain_report - obtain location report from a specific epoch for a specific user");
+        System.out.println("users_at_location - obtain users at a specific location at a specific epoch");
         System.out.println("help - displays help message");
         System.out.println("exit - exits client");
 

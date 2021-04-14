@@ -2,7 +2,7 @@ package Exceptions;
 
 public class ReportAlreadyExistsException extends Exception {
 
-    public ReportAlreadyExistsException() {
-        super("Report for this username in this epoch already exists");
+    public ReportAlreadyExistsException(String username, int epoch) {
+        super("Report for " + username + " in epoch " +  epoch + " already exists");
     }
 }
