@@ -211,7 +211,7 @@ public class ServerLogic {
 
     public boolean validEpoch(String username, int epoch) {
         for (UserReport report : this.reportList) {
-            if (report.getUsername().equals(username) && report.getEpoch() == epoch && !report.isClosed())
+            if (report.getUsername().equals(username) && report.getEpoch() == epoch)
                 return true;
         }
         return false;
@@ -248,7 +248,7 @@ public class ServerLogic {
         boolean validSignatureProof = EncryptionLogic.verifyDigitalSignature(proofJSON.toString().getBytes(), witnessSignature, witnessPubKey);
 
         if(!validSignatureMessage || !validSignatureProof)
-            throw new InvalidProofException();
+            throw new InvalidProofException("Invalid Signature");
 
         int epoch = proofJSON.getInt("epoch");
 
@@ -257,15 +257,15 @@ public class ServerLogic {
 
         //prover cannot be a witness
         if (report.getUsername().equals(witnessUser))
-            throw new InvalidProofException();
+            throw new InvalidProofException("Prover cannot be a witness");
 
         //byzantine user set wrong epoch
         if (! validEpoch(proverUser, epoch))
-            throw new InvalidProofException();
+            throw new InvalidProofException("Wrong epoch in proof");
 
         //check if witness has already submitted a proof for this report
         if (isDuplicateProof(report, witnessUser))
-            throw new InvalidProofException();
+            throw new InvalidProofException("Witness already submitted a valid proof for this location report");
 
         //decrypt witness location
         byte[] witnessLocationBytes = Base64.getDecoder().decode(proofJSON.getString("encrypted_location"));
@@ -280,13 +280,13 @@ public class ServerLogic {
         String username = report.getUsername();
 
         //check if report is not closed yet
-        if (report.isClosed())
-            throw new AlreadyConfirmedReportException(username, report.getEpoch());
+        //if (report.isClosed())
+            //throw new AlreadyConfirmedReportException(username, report.getEpoch());
 
         // users are not close to
         Coords witnessCoords = new Coords(locationJSON.getInt("x"), locationJSON.getInt("y"));
         if (!isClose(witnessCoords, report.getCoords())) {
-            throw new InvalidProofException();
+            throw new InvalidProofException("Prover and witness are not close enough");
         }
 
         return new Proof(proofJSON, locationJSON,signature);

@@ -131,12 +131,13 @@ public class ClientToClientFrontend {
         System.out.println("Waiting for proofs quorum...");
 
         // timeout of 5 seconds for reaching a quorum
+        /*
         try {
-            Thread.sleep(5000);
+            Thread.sleep(15000);
             timeoutExpired = true;
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }
+        }*/
 
         while (!gotQuorum && !timeoutExpired ) Thread.onSpinWait();
 
