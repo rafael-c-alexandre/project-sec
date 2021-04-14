@@ -3,6 +3,7 @@ package ByzantineClient;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.StatusRuntimeException;
 import proto.*;
 import util.Coords;
 
@@ -31,9 +32,9 @@ public class ByzantineClientToServerFrontend {
                             .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
                             .build()
             );
-        } catch (Exception e) {
+        } catch (StatusRuntimeException e) {
             io.grpc.Status status = io.grpc.Status.fromThrowable(e);
-            System.out.println("Exception received from server: " + status.getDescription());
+            System.err.println("Exception received from server: " + status.getDescription());
         }
 
     }
@@ -51,9 +52,9 @@ public class ByzantineClientToServerFrontend {
                             .build()
             );
             return reply.getReachedQuorum();
-        } catch (Exception e) {
+        } catch (StatusRuntimeException e) {
             io.grpc.Status status = io.grpc.Status.fromThrowable(e);
-            System.out.println("Exception received from server: " + status.getDescription());
+            System.err.println("Exception received from server: " + status.getDescription());
         }
         return false;
     }

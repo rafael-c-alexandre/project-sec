@@ -171,7 +171,6 @@ public class ServerLogic {
 
         System.out.println("Prover: " + username + " epoch: " +  epoch + " + Message digital signature valid? " + isValid);
         if (isValid) {
-
             try {
                 obtainClosedLocationReport(username, epoch);
                 throw new ReportAlreadyExistsException(username, epoch);

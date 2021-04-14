@@ -13,12 +13,18 @@ import proto.HA.ObtainUsersAtLocationRequest;
 import util.EncryptionLogic;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
 import java.util.Base64;
 
@@ -37,6 +43,31 @@ public class Server {
     }
 
     public static void main(String[] args) throws Exception {
+
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        ks.load(new FileInputStream("/Users/rafael/Documents/IST/MEIC/2_semester/SEC/project/src/main/assets/keyStores/keyStore.p12"), "123456".toCharArray());
+
+        CertificateFactory fact = CertificateFactory.getInstance("X.509");
+        FileInputStream ca = new FileInputStream ("/Users/rafael/Documents/IST/MEIC/2_semester/SEC/project/src/main/assets/crypto/ca/ca.pem");
+        X509Certificate ca1 = (X509Certificate) fact.generateCertificate(ca);
+
+
+        FileInputStream is4 =  new FileInputStream ("/Users/rafael/Documents/IST/MEIC/2_semester/SEC/project/src/main/assets/crypto/byzantine_user1/byzantine_user1.pem");
+        X509Certificate cer4 = (X509Certificate) fact.generateCertificate(is4);
+
+        byte[] keyBytes = Files.readAllBytes(Paths.get("/Users/rafael/Documents/IST/MEIC/2_semester/SEC/project/src/main/assets/crypto/byzantine_user1/byzantine_user1.key"));
+
+        PKCS8EncodedKeySpec spec =
+                new PKCS8EncodedKeySpec(keyBytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+
+        PrivateKey privateKey =   kf.generatePrivate(spec);
+        X509Certificate[] certificateChain = new X509Certificate[2];
+        certificateChain[0] = cer4;
+        certificateChain[1] = ca1;
+        ks.setKeyEntry("byzantine_user1_privkey", privateKey, "123456".toCharArray(), certificateChain);
+        ks.store(new FileOutputStream("/Users/rafael/Documents/IST/MEIC/2_semester/SEC/project/src/main/assets/keyStores/keyStore.p12"), "123456".toCharArray());
+
 
         if (args.length != 3) {
             System.err.println("Invalid args. Try -> dbuser dbpassword numberOfByzantines");
