@@ -160,7 +160,6 @@ public class ServerLogic {
 
         System.out.println("Prover: " + username + " epoch: " +  epoch + " + Message digital signature valid? " + isValid);
         if (isValid) {
-
             try {
                 obtainLocationReport(username, epoch);
                 throw new ReportAlreadyExistsException(username, epoch);
