@@ -38,6 +38,14 @@ public class ServerLogic {
         throw new NoReportFoundException(username, epoch);
     }
 
+    public UserReport obtainClosedLocationReport(String username, int epoch) throws NoReportFoundException {
+        for (UserReport report : this.reportList) {
+            if (report.getUsername().equals(username) && report.getEpoch() == epoch && report.isClosed())
+                return report;
+        }
+        throw new NoReportFoundException(username, epoch);
+    }
+
 
     public  byte[][] generateObtainLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, boolean isHA) throws NoSuchCoordsException, InvalidSignatureException, NoReportFoundException {
         //Decrypt session key
@@ -71,7 +79,7 @@ public class ServerLogic {
 
 
         //process request
-        Coords coords = obtainLocationReport(username, epoch).getCoords();
+        Coords coords = obtainClosedLocationReport(username, epoch).getCoords();
 
         JSONObject jsonResponse = new JSONObject();
         JSONObject jsonResponseMessage = new JSONObject();
@@ -121,11 +129,9 @@ public class ServerLogic {
             UserReport userReport = new UserReport(reportJSON);
 
             //try to replace report
-            //TODO: check if this is really necessary
-            replaceReport(userReport);
+            if(!replaceReport(userReport)) this.reportList.add(userReport);
 
             System.out.println("Report from " + userReport.getUsername() + " from epoch " + userReport.getEpoch() + " report verified");
-            this.reportList.add(userReport);
             //Add to database
             reportsRepository.submitUserReport(userReport);
         } else {
@@ -134,15 +140,18 @@ public class ServerLogic {
     }
 
     // when a user submits a new report from a epoch that has not a confirmed report
-    public synchronized void replaceReport(UserReport newReport) {
+    public synchronized boolean replaceReport(UserReport newReport) {
 
         for (int i = 0; i < reportList.size(); i++) {
             if (reportList.get(i).getUsername().equals(newReport.getUsername())
                     && reportList.get(i).getEpoch() == newReport.getEpoch()
-                    && !reportList.get(i).isClosed())
+                    && !reportList.get(i).isClosed()) {
                 reportList.set(i, newReport);
+                reportsRepository.replaceReport(newReport.getUsername(),newReport.getEpoch());
+                return true;
+            }
         }
-        //TODO
+        return false;
     }
 
     public boolean verifyMessage(byte[] decipheredMessage, byte[] digitalSignature) throws ReportAlreadyExistsException, InvalidSignatureException {

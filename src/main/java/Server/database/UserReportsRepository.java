@@ -145,6 +145,32 @@ public class UserReportsRepository {
         }
     }
 
+    public void replaceReport(String username, int epoch){
+        try {
+            String sql = "DELETE FROM Proofs WHERE prover_username = ? AND epoch = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setString(1, username);
+            preparedStatement.setInt(2, epoch);
+
+            preparedStatement.executeUpdate();
+            connection.commit();
+
+            sql = "DELETE FROM UserReports WHERE username = ? AND epoch = ?";
+            preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setString(1, username);
+            preparedStatement.setInt(2, epoch);
+
+            preparedStatement.executeUpdate();
+            connection.commit();
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void submitProof(Proof proof) {
         try {
             String sql = "INSERT INTO Proofs(prover_username, witness_username,epoch,x,y,signature) VALUES (?,?,?,?,?,?)";
