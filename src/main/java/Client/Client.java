@@ -38,12 +38,14 @@ public class Client {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length != 1) {
-            System.err.println("Invalid args. Try -> Client username ");
+        if (args.length > 2 || args.length == 0) {
+            System.err.println("Invalid args. Try -> username [commands_file_path] ");
             return;
         }
         String username = args[0];
         Client client = new Client(username);
+
+        String commandsFilePath = args.length == 2 ? args[1] : null;
 
         client.start(client.port);
         System.out.println(username + " Started");
@@ -52,14 +54,18 @@ public class Client {
             //run grid broadcasts
             client.clientToClientFrontend.broadcastAllInGrid();
 
+            Scanner in;
+            if (commandsFilePath == null) {
+                in = new Scanner(System.in);
+            } else {
+                in = new Scanner(new File(commandsFilePath));
+            }
 
-            Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
-                String cmd = in.nextLine();
+            String cmd = in.nextLine();
                 switch (cmd) {
-                    //case "submit" -> client.clientToClientFrontend.broadcastProofRequest(0);
-                    case "obtain_report" -> client.obtainReport();
+                    case "obtain_report" -> client.obtainReport(in);
                     case "exit" -> running = false;
                     case "help" -> client.displayHelp();
                     default -> System.err.println("Error: Command not recognized");
@@ -73,15 +79,14 @@ public class Client {
 
     }
 
-    public void obtainReport() {
+    public void obtainReport(Scanner in) {
         try {
-            Scanner in = new Scanner(System.in);
             System.out.print("From which epoch do you wish to get your location report? ");
             int epoch = Integer.parseInt(in.nextLine());
             Coords result = clientToServerFrontend.obtainLocationReport(this.username, epoch);
             System.out.println("User " + username + " was at position (" + result.getX() + "," + result.getY() + ") at epoch " + epoch);
         } catch (StatusRuntimeException e) {
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
     }
 

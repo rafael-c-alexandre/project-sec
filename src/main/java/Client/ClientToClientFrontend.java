@@ -54,7 +54,6 @@ public class ClientToClientFrontend {
             for(Integer ep : clientLogic.getGrid().get(username).keySet()){
                 System.out.println("Broadcast request for epoch " + ep +"\n");
                 broadcastProofRequest(ep);
-                //TODO: melhorar
                 Thread.sleep(5000);
                 }
         } catch (InterruptedException e) {

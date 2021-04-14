@@ -68,7 +68,7 @@ public class HAClient {
                 System.out.println(user);
             }
         } catch (StatusRuntimeException e) {
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
     }
 
@@ -82,7 +82,7 @@ public class HAClient {
             Coords result = haFrontend.obtainLocationReport(username, epoch);
             System.out.println("User " + username + " was at position (" + result.getX() + "," + result.getY() + ") at epoch " + epoch);
         } catch (StatusRuntimeException e) {
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
     }
 
