@@ -38,7 +38,7 @@ public class Client {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length > 3 || args.length == 0) {
+        if (args.length > 3 || args.length < 2) {
             System.err.println("Invalid args. Try -> username grid_file_path  [commands_file_path] ");
             return;
         }

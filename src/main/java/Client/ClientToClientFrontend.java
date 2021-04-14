@@ -113,6 +113,7 @@ public class ClientToClientFrontend {
                     byte[] witnessSessionKey = requestLocationProofReply.getWitnessSessionKey().toByteArray();
 
                     gotQuorum = serverFrontend.submitProof(encryptedProof, digitalSignature, encryptedSessionKey, iv, witnessSessionKey, witnessIv);
+
                 }
 
                 @Override
@@ -138,6 +139,11 @@ public class ClientToClientFrontend {
             e.printStackTrace();
         }
 
+        try {
+            wait(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         while (!gotQuorum && !timeoutExpired ) Thread.onSpinWait();
 
         if (gotQuorum)
