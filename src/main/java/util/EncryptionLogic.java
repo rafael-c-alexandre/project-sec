@@ -247,13 +247,13 @@ public class EncryptionLogic {
         return null;
     }
 
-    public static PrivateKey getPrivateKey(String username) {
+    public static PrivateKey getPrivateKey(String username, String keystorePasswd) {
         try {
             PrivateKey privateKey;
             KeyStore ks = KeyStore.getInstance("PKCS12");
 
-            ks.load(new FileInputStream("./src/main/assets/keyStores/keyStore.p12"), "123456".toCharArray());
-            privateKey = (PrivateKey) ks.getKey(  username + "_privkey", "123456".toCharArray());
+            ks.load(new FileInputStream("./src/main/assets/keyStores/keyStore.p12"), keystorePasswd.toCharArray());
+            privateKey = (PrivateKey) ks.getKey(  username + "_privkey", keystorePasswd.toCharArray());
             return privateKey;
         } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException | IOException | CertificateException e) {
             e.printStackTrace();

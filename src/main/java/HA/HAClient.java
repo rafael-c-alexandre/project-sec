@@ -17,20 +17,32 @@ public class HAClient {
     private final HALogic haLogic;
     private int port;
 
-    public HAClient() {
+    public HAClient(String keystorePasswd) {
         /* Initialize client logic */
-        haLogic = new HALogic();
+        haLogic = new HALogic(keystorePasswd);
         /* Import users and server from mappings */
         importAddrMappings();
     }
 
-    public static void main(String[] args) {
-        HAClient client = new HAClient();
+    public static void main(String[] args) throws FileNotFoundException {
+        if (args.length > 2 || args.length < 1) {
+            System.err.println("Invalid args. Try -> keystorePasswd [commands_file_path]");
+            System.exit(0);
+        }
+
+        HAClient client = new HAClient(args[0]);
+
+        String commandsFilePath = args.length == 2 ? args[1] : null;
 
         System.out.println("Healthcare Authority started");
         try {
+            Scanner in;
+            if (commandsFilePath == null) {
+                in = new Scanner(System.in);
+            } else {
+                in = new Scanner(new File(commandsFilePath));
+            }
 
-            Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
                 String cmd = in.nextLine();

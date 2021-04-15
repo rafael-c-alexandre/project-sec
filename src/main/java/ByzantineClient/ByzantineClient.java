@@ -27,11 +27,11 @@ public class ByzantineClient {
     private io.grpc.Server server;
     private int port;
 
-    public ByzantineClient(String username, String grid_file_path, int byzantineMode) throws IOException, InterruptedException {
+    public ByzantineClient(String username, String grid_file_path,  String keystorePasswd, int byzantineMode) throws IOException, InterruptedException {
         this.username = username;
 
         /* Initialize client logic */
-        clientLogic = new ByzantineClientLogic(username, grid_file_path, byzantineMode);
+        clientLogic = new ByzantineClientLogic(username, grid_file_path, keystorePasswd, byzantineMode);
         /* Import users and server from mappings */
         importAddrMappings();
     }
@@ -45,16 +45,16 @@ public class ByzantineClient {
          * byzantineMode 5 = witness returns replayed proof, proof with signature of user1 for user2
          * */
 
-        if (args.length > 4 || args.length < 3) {
-            System.err.println("Invalid args. Try -> username grid_file_path byzantineMode [commands_file_path] ");
+        if (args.length > 5 || args.length < 4) {
+            System.err.println("Invalid args. Try -> username grid_file_path keystorePasswd byzantineMode [commands_file_path] ");
             return;
         }
         String username = args[0];
         String grid_file_path = args[1];
-        int byzantineMode = Integer.parseInt(args[2]);
-        ByzantineClient client = new ByzantineClient(username, grid_file_path, byzantineMode);
+        int byzantineMode = Integer.parseInt(args[3]);
+        ByzantineClient client = new ByzantineClient(username, grid_file_path, args[2], byzantineMode);
 
-        String commandsFilePath = args.length == 4 ? args[3] : null;
+        String commandsFilePath = args.length == 5 ? args[4] : null;
 
         client.start(client.port);
         System.out.println(username + " Started");
