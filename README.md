@@ -101,6 +101,12 @@ For every one of those stores, the password is set by default to `123456`. Howev
 
 ## Demos and tests
 
+Before every test case, run 
+```bash 
+mysql -p < schema.sql
+``` 
+on `<root-project-directory>/src/main/assets/sql_scripts>` to create a clean database.
+
 ### Case 1. Correct Behaviour
 
 For this test case, start 1 server with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
