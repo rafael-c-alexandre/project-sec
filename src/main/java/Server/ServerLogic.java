@@ -199,7 +199,7 @@ public class ServerLogic {
         System.out.println("Proof from " + newProof.getWitnessUsername() + " to " + newProof.getProverUsername() + " report verified");
         report.addProof(newProof);
         reportsRepository.submitProof(newProof);
-        if (report.getProofsList().size() == responseQuorum) {
+        if (report.getProofsList().size() >= responseQuorum && !report.isClosed()) {
             System.out.println("Reached quorum of proofs for report of user " + report.getUsername() + " for epoch " + report.getEpoch());
             report.setClosed(true);
             reportsRepository.closeUserReport(report);
