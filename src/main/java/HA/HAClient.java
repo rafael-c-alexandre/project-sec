@@ -24,18 +24,25 @@ public class HAClient {
         importAddrMappings();
     }
 
-    public static void main(String[] args) {
-        if (args.length != 1) {
-            System.err.println("Invalid args. Try -> keystorePasswd");
+    public static void main(String[] args) throws FileNotFoundException {
+        if (args.length > 2 || args.length < 1) {
+            System.err.println("Invalid args. Try -> keystorePasswd [commands_file_path]");
             System.exit(0);
         }
 
-        HAClient client = new HAClient(args[1]);
+        HAClient client = new HAClient(args[0]);
+
+        String commandsFilePath = args.length == 2 ? args[1] : null;
 
         System.out.println("Healthcare Authority started");
         try {
+            Scanner in;
+            if (commandsFilePath == null) {
+                in = new Scanner(System.in);
+            } else {
+                in = new Scanner(new File(commandsFilePath));
+            }
 
-            Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
                 String cmd = in.nextLine();
