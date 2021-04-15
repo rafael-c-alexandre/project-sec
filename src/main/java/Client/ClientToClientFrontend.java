@@ -55,7 +55,7 @@ public class ClientToClientFrontend {
                 System.out.println("------\nBroadcast request for epoch " + ep);
                 broadcastProofRequest(ep);
             }
-            System.out.println("Finished execution, mo more location reports left");
+            System.out.println("Finished execution, no more location reports left");
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -140,7 +140,7 @@ public class ClientToClientFrontend {
             }
         }
         if (gotQuorum)
-            System.out.println("Got response quorum");
+            System.out.println("Got response quorum, location report confirmed for epoch " + epoch + " by the server");
         else if (timeoutExpired)
             System.err.println("Couldn't prove location within the time limit");
         gotQuorum = false;
