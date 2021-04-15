@@ -1,0 +1,17 @@
+obtain_report
+user1
+9
+obtain_report
+user2
+2
+obtain_report
+user3
+5
+users_at_location
+10
+100
+50
+users_at_location
+9
+90
+50
