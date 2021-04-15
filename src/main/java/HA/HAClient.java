@@ -47,8 +47,8 @@ public class HAClient {
             while (running) {
                 String cmd = in.nextLine();
                 switch (cmd) {
-                    case "obtain_report" -> client.obtainReport();
-                    case "users_at_location" -> client.obtainUsersAtLocation();
+                    case "obtain_report" -> client.obtainReport(in);
+                    case "users_at_location" -> client.obtainUsersAtLocation(in);
                     case "exit" -> running = false;
                     case "help" -> client.displayHelp();
                     default -> System.err.println("Error: Command not recognized");
@@ -60,9 +60,8 @@ public class HAClient {
 
     }
 
-    private void obtainUsersAtLocation() {
+    private void obtainUsersAtLocation(Scanner in) {
         try {
-            Scanner in = new Scanner(System.in);
             System.out.print("State the x coordinate: ");
             int x = Integer.parseInt(in.nextLine());
             System.out.print("State the y coordinate: ");
@@ -84,9 +83,8 @@ public class HAClient {
         }
     }
 
-    public void obtainReport() {
+    public void obtainReport(Scanner in) {
         try {
-            Scanner in = new Scanner(System.in);
             System.out.print("Which user do you wish to get your location report? ");
             String username = in.nextLine();
             System.out.print("From which epoch do you wish to get your location report? ");
