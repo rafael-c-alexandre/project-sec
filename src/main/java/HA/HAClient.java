@@ -24,13 +24,20 @@ public class HAClient {
         importAddrMappings();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException {
         HAClient client = new HAClient();
+
+        String commandsFilePath = args.length == 1 ? args[0] : null;
 
         System.out.println("Healthcare Authority started");
         try {
+            Scanner in;
+            if (commandsFilePath == null) {
+                in = new Scanner(System.in);
+            } else {
+                in = new Scanner(new File(commandsFilePath));
+            }
 
-            Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
                 String cmd = in.nextLine();
