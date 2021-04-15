@@ -72,7 +72,7 @@ public class ClientToClientFrontend {
         byte[][] message = clientLogic.generateLocationReport(epoch);
 
         //TODO: return
-        serverFrontend.submitReport(message[0], message[1],message[2],message[3]);
+        serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
         System.out.println("Report sent to server");
 
         /* Request proof of location to other close clients */
@@ -131,27 +131,15 @@ public class ClientToClientFrontend {
 
         System.out.println("Waiting for proofs quorum...");
 
-        // timeout of 5 seconds for reaching a quorum
-        try {
-            Thread.sleep(5000);
-            timeoutExpired = true;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        long start = System.currentTimeMillis();
+        while (!gotQuorum && !timeoutExpired) {
+            long delta = System.currentTimeMillis() - start;
+            if (delta > 5000) {
+                timeoutExpired = true;
+                break;
+            }
         }
 
-        try {
-            wait(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        while (!gotQuorum && !timeoutExpired ) Thread.onSpinWait();
-
-        if (gotQuorum)
-            System.out.println("Got response quorum");
-        else if (timeoutExpired)
-            System.err.println("Couldn't prove location within the time limit");
-        gotQuorum = false;
-        timeoutExpired = false;
     }
 
     public void shutdown() {

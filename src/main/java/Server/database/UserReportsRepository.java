@@ -49,7 +49,7 @@ public class UserReportsRepository {
     public CopyOnWriteArrayList<UserReport> getAllUserReports() {
         CopyOnWriteArrayList<UserReport> result = new CopyOnWriteArrayList<>();
         try {
-            String sql = "SELECT username,epoch,x,y FROM UserReports";
+            String sql = "SELECT username,epoch,x,y,isClosed,signature FROM UserReports";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             ResultSet rs = preparedStatement.executeQuery();
 
@@ -61,7 +61,9 @@ public class UserReportsRepository {
                         rs.getInt("x"),
                         rs.getInt("y")
                 ));
-                String sql1 = "SELECT prover_username,witness_username,epoch,x,y FROM Proofs WHERE prover_username = ? AND epoch = ?";
+                userReport.setSignature(rs.getBytes("signature"));
+                userReport.setClosed(rs.getBoolean("isClosed"));
+                String sql1 = "SELECT prover_username,witness_username,epoch,x,y,signature FROM Proofs WHERE prover_username = ? AND epoch = ?";
                 PreparedStatement preparedStatement1 = connection.prepareStatement(sql1);
                 preparedStatement1.setString(1, rs.getString("username"));
                 preparedStatement1.setInt(2, rs.getInt("epoch"));
@@ -75,6 +77,7 @@ public class UserReportsRepository {
                             rs.getInt("x"),
                             rs.getInt("y")
                     ));
+                    proof.setSignature(rs.getBytes("signature"));
                     userReport.addProof(proof);
                 }
                 result.add(userReport);
@@ -109,15 +112,16 @@ public class UserReportsRepository {
         return new ArrayList<>();
     }
 
-    public void submitUserReport(UserReport userReport) {
+    public void submitUserReport(UserReport userReport, byte[] signature) {
         try {
-            String sql = "INSERT INTO UserReports(username, epoch,x,y) VALUES (?,?,?,?)";
+            String sql = "INSERT INTO UserReports(username, epoch, x, y, signature) VALUES (?,?,?,?,?)";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             preparedStatement.setString(1, userReport.getUsername());
             preparedStatement.setInt(2, userReport.getEpoch());
             preparedStatement.setInt(3, userReport.getCoords().getX());
             preparedStatement.setInt(4, userReport.getCoords().getY());
+            preparedStatement.setBytes(5, signature);
 
             preparedStatement.executeUpdate();
             for (int i = 0; i < userReport.getProofsList().size(); i++)

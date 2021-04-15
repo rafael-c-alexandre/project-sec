@@ -28,7 +28,6 @@ public class ServerLogic {
         reportsRepository = new UserReportsRepository(Connection);
         this.reportList = reportsRepository.getAllUserReports();
         this.responseQuorum = Integer.parseInt(f);
-        this.reportList.add(new UserReport(0,"user1",new Coords(1,2)));
     }
 
     public UserReport obtainLocationReport(String username, int epoch) throws NoReportFoundException {
@@ -127,14 +126,14 @@ public class ServerLogic {
 
         //verify message integrity
         if(verifyMessage(decipheredMessage, digitalSignature)) {
-            UserReport userReport = new UserReport(reportJSON);
+            UserReport userReport = new UserReport(reportJSON, digitalSignature);
 
             //try to replace report
             if(!replaceReport(userReport)) this.reportList.add(userReport);
 
             System.out.println("Report from " + userReport.getUsername() + " from epoch " + userReport.getEpoch() + " report verified");
             //Add to database
-            reportsRepository.submitUserReport(userReport);
+            reportsRepository.submitUserReport(userReport, digitalSignature);
         } else {
             throw new InvalidReportException();
         }

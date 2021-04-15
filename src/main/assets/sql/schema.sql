@@ -10,6 +10,7 @@ CREATE TABLE UserReports (
      epoch INT,
      x INT NOT NULL,
      y INT NOT NULL,
+     signature VARBINARY(4096),
      isClosed BOOLEAN DEFAULT false,
      PRIMARY KEY (username,epoch)
 );
