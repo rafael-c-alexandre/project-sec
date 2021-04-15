@@ -61,6 +61,7 @@ public class UserReportsRepository {
                         rs.getInt("x"),
                         rs.getInt("y")
                 ));
+                userReport.setSignature(rs.getBytes("signature"));
                 userReport.setClosed(rs.getBoolean("isClosed"));
                 String sql1 = "SELECT prover_username,witness_username,epoch,x,y,signature FROM Proofs WHERE prover_username = ? AND epoch = ?";
                 PreparedStatement preparedStatement1 = connection.prepareStatement(sql1);

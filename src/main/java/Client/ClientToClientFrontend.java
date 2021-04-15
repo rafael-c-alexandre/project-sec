@@ -72,7 +72,7 @@ public class ClientToClientFrontend {
         byte[][] message = clientLogic.generateLocationReport(epoch);
 
         //TODO: return
-        serverFrontend.submitReport(message[0], message[1],message[2],message[3]);
+        serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
         System.out.println("Report sent to server");
 
         /* Request proof of location to other close clients */
@@ -113,6 +113,7 @@ public class ClientToClientFrontend {
                     byte[] witnessSessionKey = requestLocationProofReply.getWitnessSessionKey().toByteArray();
 
                     gotQuorum = serverFrontend.submitProof(encryptedProof, digitalSignature, encryptedSessionKey, iv, witnessSessionKey, witnessIv);
+
                 }
 
                 @Override
@@ -131,20 +132,14 @@ public class ClientToClientFrontend {
         System.out.println("Waiting for proofs quorum...");
 
         long start = System.currentTimeMillis();
-        while (!gotQuorum && !timeoutExpired ) {
+        while (!gotQuorum && !timeoutExpired) {
             long delta = System.currentTimeMillis() - start;
-            if(delta > 5000){
+            if (delta > 5000) {
                 timeoutExpired = true;
                 break;
             }
         }
 
-        if (gotQuorum)
-            System.out.println("Got response quorum");
-        else if (timeoutExpired)
-            System.err.println("Couldn't prove location within the time limit");
-        gotQuorum = false;
-        timeoutExpired = false;
     }
 
     public void shutdown() {

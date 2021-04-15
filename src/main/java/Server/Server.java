@@ -43,6 +43,8 @@ public class Server {
     }
 
     public static void main(String[] args) throws Exception {
+
+
         if (args.length != 3) {
             System.err.println("Invalid args. Try -> dbuser dbpassword numberOfByzantines");
             System.exit(0);
@@ -68,6 +70,7 @@ public class Server {
 
 
     private void start() throws IOException {
+
         server = ServerBuilder
                 .forPort(8084)
                 .addService(new ServerImp(this.serverLogic))

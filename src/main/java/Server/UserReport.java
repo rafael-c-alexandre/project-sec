@@ -13,6 +13,7 @@ public class UserReport {
     private String username;
     private Coords coords;
     private boolean closed = false;
+    private byte[] signature;
     private ArrayList<Proof> proofsList = new ArrayList<Proof>();
 
 
@@ -25,7 +26,7 @@ public class UserReport {
         this.coords = coords;
     }
 
-    public UserReport(JSONObject reportJSON) {
+    public UserReport(JSONObject reportJSON, byte[] signature) {
 
         try {
             this.epoch = reportJSON.getInt("epoch");
@@ -34,7 +35,7 @@ public class UserReport {
                     reportJSON.getInt("x"),
                     reportJSON.getInt("y")
             );
-
+            this.signature = signature;
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -82,7 +83,17 @@ public class UserReport {
         this.closed = closed;
     }
 
+    public byte[] getSignature() {
+        return signature;
+    }
 
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
+    }
+
+    public void setProofsList(ArrayList<Proof> proofsList) {
+        this.proofsList = proofsList;
+    }
 
     @Override
     public boolean equals(Object o) {
