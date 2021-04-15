@@ -33,6 +33,7 @@ public class ClientToServerFrontend {
                             .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
                             .build()
             );
+            System.out.println("Submited location report to server");
         } catch (StatusRuntimeException e) {
             io.grpc.Status status = io.grpc.Status.fromThrowable(e);
             System.err.println("Exception received from server: " + status.getDescription());

@@ -52,10 +52,11 @@ public class ClientToClientFrontend {
             //Wait for all users to connect
             Thread.sleep(5000);
             for(Integer ep : clientLogic.getGrid().get(username).keySet()){
-                System.out.println("Broadcast request for epoch " + ep +"\n");
+                System.out.println("------\nBroadcast request for epoch " + ep);
                 broadcastProofRequest(ep);
                 Thread.sleep(5000);
-                }
+            }
+            System.out.println("Finished execution, mo more location reports left");
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

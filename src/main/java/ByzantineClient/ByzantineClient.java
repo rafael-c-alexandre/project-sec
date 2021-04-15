@@ -27,25 +27,34 @@ public class ByzantineClient {
     private io.grpc.Server server;
     private int port;
 
-    public ByzantineClient(String username, String grid_file_path) throws IOException, InterruptedException {
+    public ByzantineClient(String username, String grid_file_path, int byzantineMode) throws IOException, InterruptedException {
         this.username = username;
 
         /* Initialize client logic */
-        clientLogic = new ByzantineClientLogic(username, grid_file_path);
+        clientLogic = new ByzantineClientLogic(username, grid_file_path, byzantineMode);
         /* Import users and server from mappings */
         importAddrMappings();
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length > 3 || args.length < 2) {
-            System.err.println("Invalid args. Try -> username grid_file_path [commands_file_path] ");
+        /* byzantineMode 0 = normal mode
+         * byzantineMode 1 = generate wrong location in report when requesting to server
+         * byzantineMode 2 = wrong epoch (epoch=999) when creating proofs to other prover
+         * byzantineMode 3 = send proof request to every witness available, at any range
+         * byzantineMode 4 = give proof to every prover who requests, use prover location as own location in the proof to make sure the server accepts it
+         * byzantineMode 5 = witness returns replayed proof, proof with signature of user1 for user2
+         * */
+
+        if (args.length > 4 || args.length < 3) {
+            System.err.println("Invalid args. Try -> username grid_file_path byzantineMode [commands_file_path] ");
             return;
         }
         String username = args[0];
         String grid_file_path = args[1];
-        ByzantineClient client = new ByzantineClient(username, grid_file_path);
+        int byzantineMode = Integer.parseInt(args[2]);
+        ByzantineClient client = new ByzantineClient(username, grid_file_path, byzantineMode);
 
-        String commandsFilePath = args.length == 3 ? args[2] : null;
+        String commandsFilePath = args.length == 4 ? args[3] : null;
 
         client.start(client.port);
         System.out.println(username + " Started");

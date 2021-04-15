@@ -70,7 +70,6 @@ public class Server {
 
 
     private void start() throws IOException {
-
         server = ServerBuilder
                 .forPort(8084)
                 .addService(new ServerImp(this.serverLogic))
