@@ -1,6 +1,8 @@
+sleep
+30000
 obtain_report
 user1
-9
+2
 obtain_report
 user2
 2
@@ -8,11 +10,11 @@ obtain_report
 user3
 5
 users_at_location
-10
-100
-50
+30
+32
+2
 users_at_location
-9
-90
 50
+31
+5
 exit

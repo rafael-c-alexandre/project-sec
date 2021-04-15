@@ -67,16 +67,16 @@ public class ServerLogic {
         //Verify signature
         if (isHA) {
             if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey("ha"))) {
-                System.out.println("Invalid signature!");
+                System.out.println("Invalid signature for HA request");
                 throw new InvalidSignatureException();
             } else
-                System.out.println("Valid signature!");
+                System.out.println("Valid signature for HA request!");
         } else {
             if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username))) {
-                System.out.println("Invalid signature!");
+                System.out.println("Invalid signature for client" + username + "!");
                 throw new InvalidSignatureException();
             } else
-                System.out.println("Valid signature!");
+                System.out.println("Valid signature for client" + username + "!");
         }
 
 
@@ -98,7 +98,6 @@ public class ServerLogic {
 
 
         //generate signature
-        System.out.println(jsonResponse);
         byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server", keystorePasswd));
 
         byte[][] ret = new byte[3][];
@@ -111,7 +110,7 @@ public class ServerLogic {
 
     public List<String> obtainUsersAtLocation(int x, int y, int epoch) {
         return this.reportList.stream()
-                .filter(report -> report.getCoords().getY() == y && report.getCoords().getX() == x && report.getEpoch() == epoch)
+                .filter(report -> report.getCoords().getY() == y && report.getCoords().getX() == x && report.getEpoch() == epoch && report.isClosed())
                 .map(report -> report.getUsername())
                 .collect(Collectors.toList());
     }
@@ -315,10 +314,10 @@ public class ServerLogic {
         //Verify signature
 
         if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey("ha"))) {
-            System.out.println("Invalid signature!");
+            System.out.println("Invalid signature for HA request!");
             throw new InvalidSignatureException();
         } else
-            System.out.println("Valid signature!");
+            System.out.println("Valid signature for HA request!");
 
 
 
@@ -339,7 +338,6 @@ public class ServerLogic {
 
 
         //generate signature
-        System.out.println(jsonResponse);
         byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server", keystorePasswd));
 
         byte[][] ret = new byte[3][];
