@@ -92,6 +92,7 @@ mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="<u
     - Mode `3`: sends proof request to every witness available, at any range
     - Mode `4`: gives proof to every prover who requests, use prover location as own location in the proof to make sure the server accepts it
     - Mode `5`: witness captures other user's proof and replays it
+    - Default: Regular user
 - **scriptFilePath**: path to the file containing a script of user's commands 
 
 
@@ -137,12 +138,11 @@ On terminal 4:
 ```bash
 mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid1.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
 ```
-After submitting all the reports, **launch an HA client**.
 
 On terminal 5:
 
 ```bash
-mvn exec:java -Dexec.mainClass="HA.HAClient" -Dexec.args="123456 correct_behaviour_ha.txt"
+mvn exec:java -Dexec.mainClass="HA.HAClient" -Dexec.args="123456 src/main/assets/command_files/correct_behaviour_ha.txt"
 ```
 
 
@@ -152,34 +152,28 @@ This test reflects the correct behaviour of the program. Users prove their locat
 
 ### Case 2. Byzantine user tries to generate a valid report using a fake location
 
-For this test case, start 1 server, 1 byzantine user with username byzantine_user1 in mode 1, 3 regular users with usernames user1 user2 and user3, all of them using the grid file **grid2.txt**. 
+For this test case, start 1 server, 1 byzantine user with username byzantine_user1 in mode 1, 3 regular users with usernames user1 and user2 , all of them using the grid file **grid2.txt**. 
 
 
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 123456" 
 ```
 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid2.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid2.txt 123456" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid2.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid2.txt 123456" 
 ```
 
 On terminal 4:
-
-```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid2.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
-```
-
-On terminal 6:
 ```bash
 mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid2.txt 123456 1" 
 ```
@@ -191,46 +185,39 @@ A byzantine prover sends a legit proof request to the witnesses but sends an inc
 
 ### Case 3. Byzantine user generating and sending a wrong proof to a correct user (altered epoch)
 
-For this test case, start 1 server, 1 byzantine user with username byzantine_user1 in mode 2, 3 regular users with usernames user1 user2 and user3, all of them using the grid file **grid3.txt**. 
+For this test case, start 1 server, 1 byzantine user with username byzantine_user1 in mode 2, 2 regular users with usernames user1 and user2,  all of them using the grid file **grid3.txt**. 
 
 
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 123456" 
 ```
 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid3.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid3.txt 123456" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid3.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid3.txt 123456" 
 ```
+
 
 On terminal 4:
 
+
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid3.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid3.txt 123456" 
 ```
 
 On terminal 5:
-
-
-```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid3.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
-```
-
-On terminal 6:
 ```bash
 mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid3.txt 123456 2" 
 ```
-
-
 
 
 In this test case, a byzantine user sends wrong location proofs to correct users that made a request, changing the epoch of the proof. It is expected that the server rejects the invalid proof.
@@ -247,32 +234,32 @@ For this test case, start 1 server, 2 byzantine users with usernames byzantine_u
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 123456" 
 ```
 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid4.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid4.txt 123456" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid4.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid4.txt 123456" 
 ```
 
 On terminal 4:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid4.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid4.txt 123456" 
 ```
 
 On terminal 5:
 
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid4.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid4.txt 123456" 
 ```
 
 On terminal 6:
@@ -286,56 +273,50 @@ mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="by
 ```
 
 
-
-In this test, there are 3 byzantine users collaborating. One is trying to proove himself to be in a fake location, the other two are sending fake proofs that match the fake proof request of the first one. 
+In this test, there are 2 byzantine users collaborating. One is trying to prove himself to be in a fake location, the other is colluding with the byzantine prover, sending fake proofs that match the fake proof request of the first one. However, because they will not be able to send f (in this case 2) valid proofs to the server, the report will not be accepted.
 
 
 
 ### Case 5. Byzantine user tries to replay a correct user's proof
 
 
-For this test case, start 1 server, 1 byzantine user with username byzantine_user1 in mode 5, 3 regular users with usernames user1 user2 and user3, all of them using the grid file **grid5.txt**. 
+For this test case, start 1 server, 1 byzantine user with username byzantine_user1 in mode 5, 2 regular users with usernames user1 and user2, all of them using the grid file **grid5.txt**. 
 
 
 
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 123456" 
 ```
 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid5.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid5.txt 123456" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid5.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid5.txt 123456" 
 ```
+
 
 On terminal 4:
-
-```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid5.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
-```
-
-On terminal 5:
-
-
-```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid5.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
-```
-
-On terminal 6:
 ```bash
 mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid4.txt 123456 5" 
 ```
 
+On terminal 5:
 
-In this test, the byzantine users captures a valid proof from a correct witness to a correct prover and replays it, also sending it to the prover. Because the proof comes, supposedly, from a user that has already submitted a proof for that report, the server will reject it.
+```bash
+mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user2 rc/main/assets/grid_examples/grid4.txt 123456 5" 
+```
+
+
+
+In this test, the byzantine user captures a valid proof from a correct witness to a correct prover and replays it, also sending it to the prover. Because the proof comes, supposedly, from a user that has already submitted a proof for that report, the server will reject it.
 
 
 #### Case 6. Server crashes and recovers its states after rebooting
@@ -345,7 +326,7 @@ For this test case, start 1 server with 0 byzantine users. 3 regular users with 
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 123456" 
 ```
 
 On terminal 2:
@@ -369,8 +350,9 @@ mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/asset
 On terminal 5:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid6.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="HA.HAClient" -Dexec.args="123456 correct_behaviour_ha.txt"
 ```
+
 
 After submitting all the reports, **crash the server**.
 Then reboot it again:
@@ -378,17 +360,6 @@ Then reboot it again:
 ```bash
 mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456" 
 ```
-
-and launch an HA client, on terminal 6:
-
-After submitting all the reports, **launch an HA client**.
-
-On terminal 5:
-
-```bash
-mvn exec:java -Dexec.mainClass="HA.HAClient" -Dexec.args="123456 correct_behaviour_ha.txt"
-```
-
 
 
 When the central server goes down, its in-memmory data is lost forever. However, all data is also stored in an external database, allowing the server to reboot and recover its previous up-to-date state.
