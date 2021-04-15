@@ -66,6 +66,8 @@ public class HAClient {
             System.out.print("State the milliseconds to sleep: ");
             int time = Integer.parseInt(in.nextLine());
             Thread.sleep(time);
+        }catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
