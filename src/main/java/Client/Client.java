@@ -28,25 +28,26 @@ public class Client {
     private io.grpc.Server server;
     private int port;
 
-    public Client(String username, String grid_file_path) throws IOException, InterruptedException {
+    public Client(String username, String grid_file_path, String keystorePasswd) throws IOException, InterruptedException {
         this.username = username;
 
         /* Initialize client logic */
-        clientLogic = new ClientLogic(username, grid_file_path);
+        clientLogic = new ClientLogic(username, grid_file_path, keystorePasswd);
         /* Import users and server from mappings */
         importAddrMappings();
+
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length > 3 || args.length < 2) {
-            System.err.println("Invalid args. Try -> username grid_file_path  [commands_file_path] ");
+        if (args.length > 4 || args.length < 3) {
+            System.err.println("Invalid args. Try -> username grid_file_path keystorePasswd [commands_file_path] ");
             return;
         }
         String username = args[0];
         String grid_file_path = args[1];
-        Client client = new Client(username, grid_file_path);
+        Client client = new Client(username, grid_file_path, args[2]);
 
-        String commandsFilePath = args.length == 3 ? args[2] : null;
+        String commandsFilePath = args.length == 4 ? args[3] : null;
 
         client.start(client.port);
         System.out.println(username + " Started");

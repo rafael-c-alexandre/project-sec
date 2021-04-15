@@ -17,15 +17,20 @@ public class HAClient {
     private final HALogic haLogic;
     private int port;
 
-    public HAClient() {
+    public HAClient(String keystorePasswd) {
         /* Initialize client logic */
-        haLogic = new HALogic();
+        haLogic = new HALogic(keystorePasswd);
         /* Import users and server from mappings */
         importAddrMappings();
     }
 
     public static void main(String[] args) {
-        HAClient client = new HAClient();
+        if (args.length != 1) {
+            System.err.println("Invalid args. Try -> keystorePasswd");
+            System.exit(0);
+        }
+
+        HAClient client = new HAClient(args[1]);
 
         System.out.println("Healthcare Authority started");
         try {

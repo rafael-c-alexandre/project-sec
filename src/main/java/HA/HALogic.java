@@ -14,6 +14,11 @@ import java.util.List;
 public class HALogic {
     private SecretKey sessionKey;
     private byte[] iv;
+    private String keystorePasswd;
+
+    public HALogic(String keystorePasswd) {
+        this.keystorePasswd = keystorePasswd;
+    }
 
 
     public byte[][] generateObtainLocationRequestParameters(String username, int epoch) {
@@ -45,7 +50,7 @@ public class HALogic {
         //Generate digital signature
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
                 object.toString().getBytes(),
-                EncryptionLogic.getPrivateKey("ha")
+                EncryptionLogic.getPrivateKey("ha", keystorePasswd)
         );
 
         ret[0] = encryptedData;
@@ -107,7 +112,7 @@ public class HALogic {
         //Generate digital signature
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
                 object.toString().getBytes(),
-                EncryptionLogic.getPrivateKey("ha")
+                EncryptionLogic.getPrivateKey("ha", keystorePasswd)
         );
 
         ret[0] = encryptedData;
