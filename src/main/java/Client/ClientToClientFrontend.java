@@ -54,7 +54,6 @@ public class ClientToClientFrontend {
             for(Integer ep : clientLogic.getGrid().get(username).keySet()){
                 System.out.println("------\nBroadcast request for epoch " + ep);
                 broadcastProofRequest(ep);
-                Thread.sleep(5000);
             }
             System.out.println("Finished execution, mo more location reports left");
         } catch (InterruptedException e) {
@@ -140,6 +139,7 @@ public class ClientToClientFrontend {
                 break;
             }
         }
+
 
     }
 

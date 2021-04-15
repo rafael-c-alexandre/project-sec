@@ -46,7 +46,7 @@ public class Server {
 
 
         if (args.length != 4) {
-            System.err.println("Invalid args. Try -> dbuser dbpassword keystorePasswd numberOfByzantines");
+            System.err.println("Invalid args. Try -> dbuser dbpassword numberOfByzantines keystorePasswd");
             System.exit(0);
         }
 

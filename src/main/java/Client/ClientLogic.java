@@ -20,7 +20,7 @@ public class ClientLogic {
 
     public ClientLogic(String username, String gridFilePath, String keystorePasswd) {
         this.username = username;
-        keystorePasswd = keystorePasswd;
+        this.keystorePasswd = keystorePasswd;
         populateGrid(gridFilePath);
     }
 
