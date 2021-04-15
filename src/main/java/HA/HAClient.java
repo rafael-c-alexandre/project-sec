@@ -47,6 +47,7 @@ public class HAClient {
             while (running) {
                 String cmd = in.nextLine();
                 switch (cmd) {
+                    case "sleep" -> client.sleep(in);
                     case "obtain_report" -> client.obtainReport(in);
                     case "users_at_location" -> client.obtainUsersAtLocation(in);
                     case "exit" -> running = false;
@@ -58,6 +59,16 @@ public class HAClient {
             client.haFrontend.shutdown();
         }
 
+    }
+
+    private void sleep(Scanner in) {
+        try {
+            System.out.print("State the milliseconds to sleep: ");
+            int time = Integer.parseInt(in.nextLine());
+            Thread.sleep(time);
+        }catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void obtainUsersAtLocation(Scanner in) {
