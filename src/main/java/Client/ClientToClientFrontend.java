@@ -139,6 +139,12 @@ public class ClientToClientFrontend {
                 break;
             }
         }
+        if (gotQuorum)
+            System.out.println("Got response quorum");
+        else if (timeoutExpired)
+            System.err.println("Couldn't prove location within the time limit");
+        gotQuorum = false;
+        timeoutExpired = false;
 
 
     }
