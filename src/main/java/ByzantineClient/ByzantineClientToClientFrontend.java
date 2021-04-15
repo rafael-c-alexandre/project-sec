@@ -46,7 +46,7 @@ public class ByzantineClientToClientFrontend {
             //Wait for all users to connect
             Thread.sleep(5000);
             for(Integer ep : clientLogic.getGrid().get(username).keySet()){
-                System.out.println("Broadcast request for epoch " + ep +"\n");
+                System.out.println("------\nBroadcast request for epoch " + ep);
                 broadcastProofRequest(ep);
                 Thread.sleep(5000);
                 }
@@ -71,8 +71,8 @@ public class ByzantineClientToClientFrontend {
         /* Request proof of location to other close clients */
         for (String user : closePeers) {
             /* Create location proof request */
-            stubMap.get(user).requestLocationProof(RequestLocationProofRequest.newBuilder().
-                    setUsername(username)
+            stubMap.get(user).requestLocationProof(RequestLocationProofRequest.newBuilder()
+                    .setUsername(username)
                     .setEpoch(epoch)
                     .build(), new StreamObserver<RequestLocationProofReply>() {
 

@@ -37,23 +37,24 @@ public class Server {
 
     private io.grpc.Server server;
 
-    public Server(String user, String pass, String f) throws SQLException {
+    public Server(String user, String pass, String f, String keystorePasswd) throws SQLException {
         this.connector = new Connector(user, pass);
-        this.serverLogic = new ServerLogic(this.connector.getConnection(), f);
+        this.serverLogic = new ServerLogic(this.connector.getConnection(), f, keystorePasswd);
     }
 
     public static void main(String[] args) throws Exception {
 
 
-        if (args.length != 3) {
-            System.err.println("Invalid args. Try -> dbuser dbpassword numberOfByzantines");
+        if (args.length != 4) {
+            System.err.println("Invalid args. Try -> dbuser dbpassword keystorePasswd numberOfByzantines");
             System.exit(0);
         }
 
         final Server server = new Server(
                 args[0],
                 args[1],
-                args[2]
+                args[2],
+                args[3]
         );
 
         server.start();
@@ -70,7 +71,6 @@ public class Server {
 
 
     private void start() throws IOException {
-
         server = ServerBuilder
                 .forPort(8084)
                 .addService(new ServerImp(this.serverLogic))

@@ -16,9 +16,13 @@ public class ByzantineClientLogic {
 
     private final String username;
     private final Map<String, Map<Integer, Coords>> grid = new HashMap<>();
+    private String keystorePasswd;
+    private final int byzantineMode;
 
-    public ByzantineClientLogic(String username, String gridFilePath) {
+    public ByzantineClientLogic(String username, String gridFilePath, String keystorePasswd, int byzantineMode) {
         this.username = username;
+        this.keystorePasswd = keystorePasswd;
+        this.byzantineMode = byzantineMode;
         populateGrid(gridFilePath);
     }
 
@@ -60,9 +64,14 @@ public class ByzantineClientLogic {
         message.put("username", username);
         message.put("epoch", epoch);
 
-        //byzantine user changes its coordinates to prove he is not inside the range
-        message.put("x", 200);
-        message.put("y", 300);
+        if(byzantineMode==1) {
+            //byzantine user changes its coordinates to prove he is not inside the range
+            message.put("x", 200);
+            message.put("y", 300);
+        } else {
+            message.put("x", coords.getX());
+            message.put("y", coords.getY());
+        }
 
         byte[][] result = new byte[4][];
 
@@ -78,7 +87,7 @@ public class ByzantineClientLogic {
 
         //sign message
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
-                EncryptionLogic.getPrivateKey(this.username));
+                EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
 
         result[1] = digitalSignature;
         result[2] = encryptedSessionKey;
@@ -95,23 +104,38 @@ public class ByzantineClientLogic {
         Coords currentUserCoords = grid.get(this.username).get(epoch);
         Coords proverCoords = grid.get(proverUsername).get(epoch);
 
-        //look at the grid to check if prover is nearby
-        if (!isClose(currentUserCoords, proverCoords))
-            throw new ProverNotCloseEnoughException();
-
+        if(!(this.byzantineMode==4)) {
+            //look at the grid to check if prover is nearby
+            if (!isClose(currentUserCoords, proverCoords))
+                throw new ProverNotCloseEnoughException();
+        }
 
         JSONObject jsonProof = new JSONObject();
         byte[][] result = new byte[4][];
 
         // Create response message
-        jsonProof.put("witnessUsername", this.username);
+        if(this.byzantineMode==5)//Simulation of replaying a proof from user1
+            jsonProof.put("witnessUsername", "user1");
+        else
+            jsonProof.put("witnessUsername", this.username);
+
         jsonProof.put("proverUsername", proverUsername);
-        jsonProof.put("epoch", epoch);
+
+        if(this.byzantineMode==2){
+            jsonProof.put("epoch", 999);
+        } else {
+            jsonProof.put("epoch", epoch);
+        }
 
         JSONObject jsonCoords = new JSONObject();
-        jsonCoords.put("x", currentUserCoords.getX());
-        jsonCoords.put("y", currentUserCoords.getY());
 
+        if(this.byzantineMode==4 || this.byzantineMode==5) {
+            jsonCoords.put("x", proverCoords.getX());
+            jsonCoords.put("y", proverCoords.getY());
+        } else {
+            jsonCoords.put("x", currentUserCoords.getX());
+            jsonCoords.put("y", currentUserCoords.getY());
+        }
         //Generate a session Key
         SecretKey sessionKey = EncryptionLogic.generateAESKey();
         byte[] sessionKeyBytes = sessionKey.getEncoded();
@@ -126,7 +150,11 @@ public class ByzantineClientLogic {
         result[0] = jsonProof.toString().getBytes();
 
         //generate proof digital signature
-        result[1] = EncryptionLogic.createDigitalSignature(jsonProof.toString().getBytes(), EncryptionLogic.getPrivateKey(this.username));
+        if(this.byzantineMode==5)//Simulation of replaying a proof from user1
+            result[1] = EncryptionLogic.createDigitalSignature(jsonProof.toString().getBytes(), EncryptionLogic.getPrivateKey("user1", keystorePasswd));
+        else
+            result[1] = EncryptionLogic.createDigitalSignature(jsonProof.toString().getBytes(), EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
+
         result[2] = encryptedSessionKey;
         result[3] = iv;
 
@@ -139,7 +167,10 @@ public class ByzantineClientLogic {
         List<String> peers = new ArrayList<>();
 
         for (String user : grid.keySet()) {
-            if (!user.equals(this.username) && isClose(grid.get(this.username).get(epoch), grid.get(user).get(epoch))) {
+            if(!user.equals(this.username) && this.byzantineMode==3){ //mode 3 sends proof request to every witness available
+                peers.add(user);
+            }
+            else if (!user.equals(this.username) && isClose(grid.get(this.username).get(epoch), grid.get(user).get(epoch))) {
                 peers.add(user);
             }
         }
@@ -188,7 +219,7 @@ public class ByzantineClientLogic {
         //Generate digital signature
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
                 object.toString().getBytes(),
-                EncryptionLogic.getPrivateKey(username)
+                EncryptionLogic.getPrivateKey(username, keystorePasswd)
         );
 
         ret[0] = encryptedData;
@@ -233,7 +264,7 @@ public class ByzantineClientLogic {
         byte[] encryptedProof = EncryptionLogic.encryptWithAES(sessionKey, proof, iv);
 
         //generate proof digital signature
-        res[3] = EncryptionLogic.createDigitalSignature(proof, EncryptionLogic.getPrivateKey(this.username));
+        res[3] = EncryptionLogic.createDigitalSignature(proof, EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
 
         res[0] = encryptedProof;
         res[1] = encryptedSessionKey;

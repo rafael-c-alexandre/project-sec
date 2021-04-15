@@ -1,0 +1,6 @@
+byzantine_user1, 0, 10, 20
+byzantine_user2, 0, 222, 221
+byzantine_user1, 1, 10, 20
+byzantine_user2, 1, 113, 231
+byzantine_user1, 2, 10, 20
+byzantine_user2, 2, 113, 231

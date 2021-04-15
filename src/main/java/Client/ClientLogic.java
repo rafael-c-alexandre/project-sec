@@ -16,9 +16,11 @@ public class ClientLogic {
 
     private final String username;
     private final Map<String, Map<Integer, Coords>> grid = new HashMap<>();
+    private String keystorePasswd;
 
-    public ClientLogic(String username, String gridFilePath) {
+    public ClientLogic(String username, String gridFilePath, String keystorePasswd) {
         this.username = username;
+        keystorePasswd = keystorePasswd;
         populateGrid(gridFilePath);
     }
 
@@ -76,7 +78,7 @@ public class ClientLogic {
 
         //sign message
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
-                EncryptionLogic.getPrivateKey(this.username));
+                EncryptionLogic.getPrivateKey(this.username,keystorePasswd));
 
         result[1] = digitalSignature;
         result[2] = encryptedSessionKey;
@@ -124,7 +126,7 @@ public class ClientLogic {
         result[0] = jsonProof.toString().getBytes();
 
         //generate proof digital signature
-        result[1] = EncryptionLogic.createDigitalSignature(jsonProof.toString().getBytes(), EncryptionLogic.getPrivateKey(this.username));
+        result[1] = EncryptionLogic.createDigitalSignature(jsonProof.toString().getBytes(), EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
         result[2] = encryptedSessionKey;
         result[3] = iv;
 
@@ -186,7 +188,7 @@ public class ClientLogic {
         //Generate digital signature
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
                 object.toString().getBytes(),
-                EncryptionLogic.getPrivateKey(username)
+                EncryptionLogic.getPrivateKey(username, keystorePasswd)
         );
 
         ret[0] = encryptedData;
@@ -231,7 +233,7 @@ public class ClientLogic {
         byte[] encryptedProof = EncryptionLogic.encryptWithAES(sessionKey, proof, iv);
 
         //generate proof digital signature
-        res[3] = EncryptionLogic.createDigitalSignature(proof, EncryptionLogic.getPrivateKey(this.username));
+        res[3] = EncryptionLogic.createDigitalSignature(proof, EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
 
         res[0] = encryptedProof;
         res[1] = encryptedSessionKey;
