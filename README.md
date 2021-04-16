@@ -358,3 +358,5 @@ mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 
 When the central server goes down, its in-memmory data is lost forever. However, all data is also stored in an external database, allowing the server to reboot and recover its previous up-to-date state.
 
 
+#### Note
+If command `konsole` is installed, it is also possible to run the test scripts `test<case_number>.sh` to perform the test. 
