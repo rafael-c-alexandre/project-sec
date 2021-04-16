@@ -208,13 +208,6 @@ mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/asset
 
 
 On terminal 4:
-
-
-```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid3.txt 123456" 
-```
-
-On terminal 5:
 ```bash
 mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid3.txt 123456 2" 
 ```
@@ -287,7 +280,7 @@ For this test case, start 1 server, 1 byzantine user with username byzantine_use
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 123456" 
 ```
 
 On terminal 2:
