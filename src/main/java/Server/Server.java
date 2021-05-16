@@ -1,6 +1,7 @@
 package Server;
 
 import Exceptions.*;
+import HA.HAFrontend;
 import Server.database.Connector;
 import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
@@ -12,10 +13,7 @@ import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
 import util.EncryptionLogic;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyFactory;
@@ -27,35 +25,39 @@ import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
 import java.util.Base64;
+import java.util.Scanner;
 
 
 public class Server {
 
     private final Connector connector;
     private final ServerLogic serverLogic;
-
+    final String ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings.txt";
 
     private io.grpc.Server server;
 
     public Server(String user, String pass, String f, String keystorePasswd) throws SQLException {
+        this(user, pass, f, keystorePasswd, "server");
+    }
+
+    public Server(String user, String pass, String f, String keystorePasswd, String serverName) throws SQLException {
         this.connector = new Connector(user, pass);
-        this.serverLogic = new ServerLogic(this.connector.getConnection(), f, keystorePasswd);
+        this.serverLogic = new ServerLogic(this.connector.getConnection(), f, keystorePasswd, serverName);
     }
 
     public static void main(String[] args) throws Exception {
 
 
-        if (args.length != 4) {
-            System.err.println("Invalid args. Try -> dbuser dbpassword numberOfByzantines keystorePasswd");
+        if (args.length != 4 && args.length != 5) {
+            System.err.println("Invalid args. Try -> dbuser dbpassword numberOfByzantines keystorePasswd servername");
             System.exit(0);
         }
 
-        final Server server = new Server(
-                args[0],
-                args[1],
-                args[2],
-                args[3]
-        );
+        final Server server;
+        if(args.length == 4)
+            server = new Server(args[0], args[1], args[2], args[3]);
+        else
+            server = new Server(args[0], args[1], args[2], args[3], args[4]);
 
         server.start();
         System.out.println("Server Started");
@@ -72,7 +74,7 @@ public class Server {
 
     private void start() throws IOException {
         server = ServerBuilder
-                .forPort(8084)
+                .forPort(getServerPort(serverLogic.getServerName()))
                 .addService(new ServerImp(this.serverLogic))
                 .addService(new HAToServerImp(this.serverLogic))
                 .build();
@@ -87,6 +89,29 @@ public class Server {
         }));
     }
 
+    private int getServerPort(String serverName){
+        Scanner scanner;
+        try {
+            scanner = new Scanner(new File(ADDR_MAPPINGS_FILE));
+        } catch (FileNotFoundException e) {
+            System.out.println("No such client mapping file!");
+            return 0;
+        }
+
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            // process the line
+            String[] parts = line.split(",");
+            String mappingsUser = parts[0].trim();
+            String mappingsHost = parts[1].trim();
+            int mappingsPort = Integer.parseInt(parts[2].trim());
+            //SERVER
+            if (mappingsUser.equals(serverName)) {
+                return mappingsPort;
+            }
+        }
+        return 0;
+    }
 
     private void stop() {
         if (server != null) {
@@ -103,8 +128,6 @@ public class Server {
             this.serverLogic = serverLogic;
 
         }
-
-
 
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {

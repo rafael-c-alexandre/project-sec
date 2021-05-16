@@ -24,12 +24,14 @@ public class ServerLogic {
     private  UserReportsRepository reportsRepository;
     private final int responseQuorum;
     private String keystorePasswd;
+    private String serverName;
 
-    public ServerLogic(Connection Connection, String f, String keystorePasswd) {
+    public ServerLogic(Connection Connection, String f, String keystorePasswd, String serverName) {
         reportsRepository = new UserReportsRepository(Connection);
         this.reportList = reportsRepository.getAllUserReports();
         this.responseQuorum = Integer.parseInt(f);
         this.keystorePasswd = keystorePasswd;
+        this.serverName = serverName;
     }
 
     public UserReport obtainLocationReport(String username, int epoch) throws NoReportFoundException {
@@ -356,6 +358,10 @@ public class ServerLogic {
         //let's assume a radius of 5
         int radius = 5;
         return (Math.pow(c2.getX() - c1.getX(), 2)) + (Math.pow(c2.getY() - c1.getY(), 2)) < Math.pow(radius, 2);
+    }
+
+    public String getServerName(){
+        return this.serverName;
     }
 
 }
