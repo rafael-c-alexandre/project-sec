@@ -40,6 +40,7 @@ public class Connector {
                 "     PRIMARY KEY (username,epoch)\n" +
                 ");");
 
+
         s = this.connection.createStatement();
         result = s.executeUpdate("CREATE TABLE IF NOT EXISTS Proofs (\n" +
                 "    witness_username VARCHAR(255),\n" +
@@ -51,6 +52,9 @@ public class Connector {
                 "    FOREIGN KEY (prover_username,epoch) REFERENCES UserReports(username,epoch),\n" +
                 "    PRIMARY KEY (witness_username, prover_username, epoch)\n" +
                 ");");
+
+        s.executeUpdate("DELETE FROM Proofs");
+        s.executeUpdate("DELETE FROM UserReports");
     }
 
     public Connection getConnection() {

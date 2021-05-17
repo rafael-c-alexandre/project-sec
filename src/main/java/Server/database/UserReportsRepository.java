@@ -177,7 +177,7 @@ public class UserReportsRepository {
 
     public void submitProof(Proof proof) {
         try {
-            String sql = "INSERT INTO Proofs(server_id,prover_username, witness_username,epoch,x,y,signature) VALUES (?,?,?,?,?,?,?)";
+            String sql = "INSERT INTO Proofs(prover_username, witness_username,epoch,x,y,signature) VALUES (?,?,?,?,?,?)";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             preparedStatement.setString(1, proof.getProverUsername());
