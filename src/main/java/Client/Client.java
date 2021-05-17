@@ -122,8 +122,9 @@ public class Client {
                 port = mappingsPort;
             }
             //SERVER
-            if (mappingsUser.equals("server")) {
+            if (mappingsUser.contains("server")) {
                 clientToServerFrontend.addServer(mappingsUser, mappingsHost, mappingsPort);
+                clientToClientFrontend.addServer(mappingsUser);
                 continue;
             }
 
