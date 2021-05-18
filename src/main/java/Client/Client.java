@@ -17,7 +17,10 @@ import util.EncryptionLogic;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class Client {
 
@@ -127,6 +130,7 @@ public class Client {
             if (mappingsUser.contains("server")) {
                 clientToServerFrontend.addServer(mappingsUser, mappingsHost, mappingsPort);
                 clientToClientFrontend.addServer(mappingsUser);
+                clientLogic.addServer(mappingsUser);
                 continue;
             }
 
@@ -189,7 +193,7 @@ public class Client {
 
             /* Create response message is user requesting is nearby*/
 
-            byte[][] response = new byte[0][];
+            List<byte[][]> response;
             try {
                 response = clientLogic.generateLocationProof(
                         username,
@@ -200,20 +204,23 @@ public class Client {
 
                 /* If the user is not close enough don't reply with a proof */
                 if (response == null) return;
+
                 /* Create digital signature and reply*/
-                byte[] responseJSON = response[0];
-                byte[] digitalSignature = response[1];
-                byte[] witnessSessionKey = response[2];
-                byte[] witnessIv = response[3];
+                List<byte[]> responseJSONs =  response.stream().map(b -> b[0]).collect(Collectors.toList());
+                List<byte[]> digitalSignatures =  response.stream().map(b -> b[1]).collect(Collectors.toList());
+                List<byte[]> witnessSessionKeys = response.stream().map(b -> b[2]).collect(Collectors.toList());
+                List<byte[]> witnessIvs = response.stream().map(b -> b[3]).collect(Collectors.toList());
+                List<String> destServers = response.stream().map(b -> new String(b[4], StandardCharsets.UTF_8)).collect(Collectors.toList());
 
                 RequestLocationProofReply reply = null;
-                if (digitalSignature != null) {
-                    reply = RequestLocationProofReply.newBuilder().setProof(ByteString.copyFrom(responseJSON))
-                            .setDigitalSignature(ByteString.copyFrom(digitalSignature))
-                            .setWitnessIv(ByteString.copyFrom(witnessIv))
-                            .setWitnessSessionKey(ByteString.copyFrom(witnessSessionKey))
-                            .build();
-                }
+
+                reply = RequestLocationProofReply.newBuilder().addAllProof(responseJSONs.stream().map(ByteString::copyFrom).collect(Collectors.toList()))
+                        .addAllDigitalSignature(digitalSignatures.stream().map(ByteString::copyFrom).collect(Collectors.toList()))
+                        .addAllWitnessIv(witnessIvs.stream().map(ByteString::copyFrom).collect(Collectors.toList()))
+                        .addAllWitnessSessionKey(witnessSessionKeys.stream().map(ByteString::copyFrom).collect(Collectors.toList()))
+                        .addAllServer(destServers)
+                        .build();
+
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
             } catch (ProverNotCloseEnoughException e) {

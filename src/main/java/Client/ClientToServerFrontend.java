@@ -10,10 +10,8 @@ import org.json.JSONObject;
 import util.Coords;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -24,9 +22,8 @@ public class ClientToServerFrontend {
     private final ClientLogic clientLogic;
 
     private ArrayList<ObtainLocationReportReply> readListLocationReport = new ArrayList<ObtainLocationReportReply>(); //List of read replies while waiting for reply quorum
-    private ArrayList<String> gotQuorums = new ArrayList<String>(); //Name of the server from who we received a gotQuorum for the current report
-    private final int serverQuorum = 2; //minimum number of servers that need to accept the
-    private volatile boolean timeoutExpired = false;
+    private volatile boolean reportTimeoutExpired = false;
+    private volatile boolean readTimeoutExpired = false;
 
     public ClientToServerFrontend(String username, ClientLogic clientLogic) {
         this.username = username;
@@ -44,16 +41,25 @@ public class ClientToServerFrontend {
         stubMap.put(username, ClientToServerGrpc.newStub(channel));
     }
 
-    public void submitReport(int epoch, byte[] encryptedMessage,byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] proofOfWork) {
+    public void submitReport(int epoch, List<byte[][]> message) {
 
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.put(proofOfWork);
-        buffer.flip();//need flip
-        long nonce =  buffer.getLong();
+        for (byte[][] report: message) {
+            byte[] encryptedMessage = report[0];
+            byte[] digitalSignature = report[1];
+            byte[] encryptedSessionKey = report[2];
+            byte[] iv = report[3];
+            byte[] proofOfWork = report[4];
+            String server = new String(report[5], StandardCharsets.UTF_8);
 
-        for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.put(proofOfWork);
+            buffer.flip();//need flip
+            long nonce = buffer.getLong();
+
+            clientLogic.gotReportQuorums.putIfAbsent(epoch, new CopyOnWriteArrayList<>());
+            ClientToServerGrpc.ClientToServerStub serverStub = stubMap.get(server);
             try {
-                server.getValue().submitLocationReport(SubmitLocationReportRequest.newBuilder()
+                serverStub.submitLocationReport(SubmitLocationReportRequest.newBuilder()
                                 .setEncryptedMessage(ByteString.copyFrom(encryptedMessage))
                                 .setSignature(ByteString.copyFrom(digitalSignature))
                                 .setIv(ByteString.copyFrom(iv))
@@ -63,11 +69,10 @@ public class ClientToServerFrontend {
                         new StreamObserver<SubmitLocationReportReply>() {
                             @Override
                             public void onNext(SubmitLocationReportReply submitLocationReportReply) {
-                                clientLogic.gotReportQuorums.putIfAbsent(epoch, new CopyOnWriteArrayList<>());
-                                if(clientLogic.gotReportQuorums.get(epoch).contains(server.getKey())){
+                                if (clientLogic.gotReportQuorums.get(epoch).contains(server)) {
                                     System.err.println("WARNING: gotReportQuorums replayed");
                                 } else {
-                                    clientLogic.gotReportQuorums.get(epoch).add(server.getKey());
+                                    clientLogic.gotReportQuorums.get(epoch).add(server);
                                 }
                             }
 
@@ -81,92 +86,72 @@ public class ClientToServerFrontend {
 
                             }
                         });
-                System.out.println("Submited location report to server " + server.getKey());
+                System.out.println("Submited location report to server " + server);
             } catch (StatusRuntimeException e) {
                 io.grpc.Status status = io.grpc.Status.fromThrowable(e);
                 System.err.println("Exception received from server: " + status.getDescription());
             }
-        }
 
-        System.out.println("Waiting for submit report quorum...");
 
-        long start = System.currentTimeMillis();
-        while ((clientLogic.gotReportQuorums.get(epoch).size()!=serverQuorum) && !timeoutExpired) {
-            long delta = System.currentTimeMillis() - start;
-            if (delta > 10000) {
-                timeoutExpired = true;
-                break;
+            System.out.println("Waiting for submit report quorum...");
+
+            long start = System.currentTimeMillis();
+            while ((clientLogic.gotReportQuorums.get(epoch).size() != clientLogic.serverQuorum) && !reportTimeoutExpired) {
+                long delta = System.currentTimeMillis() - start;
+                if (delta > 10000) {
+                    reportTimeoutExpired = true;
+                    break;
+                }
             }
+            if (clientLogic.gotReportQuorums.get(epoch).size() == clientLogic.serverQuorum) {
+                for (String name : clientLogic.gotReportQuorums.get(epoch))
+                    System.out.println("Got response quorum from server " + name + " for report submission, for epoch " + epoch);
+            } else if (reportTimeoutExpired)
+                System.err.println("Couldn't submit report within the time limit");
+            else {
+                System.err.println("SOMETHING IS WRONG");
+            }
+            clientLogic.gotReportQuorums.get(epoch).clear();
+            reportTimeoutExpired = false;
         }
-        if (clientLogic.gotReportQuorums.get(epoch).size() == serverQuorum){
-            for(String name: clientLogic.gotReportQuorums.get(epoch))
-                System.out.println("Got response quorum from server "+ name + " for report submission, for epoch " + epoch);
-        }
-        else if (timeoutExpired)
-            System.err.println("Couldn't submit report within the time limit");
-        else{
-            System.err.println("SOMETHING IS WRONG");
-        }
-        clientLogic.gotReportQuorums.get(epoch).clear();
-        timeoutExpired = false;
     }
 
-
-    public void submitProof(byte[] encryptedProof, byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] witnessSessionKey, byte[] witnessIv) {
+    public void submitProof(int epoch, byte[] encryptedProof, byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] witnessSessionKey, byte[] witnessIv, String server) {
         //Submit proofs to every server
-        for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
-            try {
-                server.getValue().submitLocationProof(
-                        SubmitLocationProofRequest.newBuilder()
-                                .setEncryptedProof(ByteString.copyFrom(encryptedProof))
-                                .setSignature(ByteString.copyFrom(digitalSignature))
-                                .setIv(ByteString.copyFrom(iv))
-                                .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
-                                .setWitnessIv(ByteString.copyFrom(witnessIv))
-                                .setWitnessSessionKey(ByteString.copyFrom(witnessSessionKey))
-                                .build(), new StreamObserver<SubmitLocationProofReply>() {
-                            @Override
-                            public void onNext(SubmitLocationProofReply submitLocationProofReply) {
-                                if (submitLocationProofReply.getReachedQuorum()) {
-                                    gotQuorums.add(server.getKey());
-                                }
-                            }
+        ClientToServerGrpc.ClientToServerStub serverStub = stubMap.get(server);
 
-                            @Override
-                            public void onError(Throwable throwable) {
-
-                            }
-
-                            @Override
-                            public void onCompleted() {
-
+        try {
+            serverStub.submitLocationProof(
+                    SubmitLocationProofRequest.newBuilder()
+                            .setEncryptedProof(ByteString.copyFrom(encryptedProof))
+                            .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setIv(ByteString.copyFrom(iv))
+                            .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                            .setWitnessIv(ByteString.copyFrom(witnessIv))
+                            .setWitnessSessionKey(ByteString.copyFrom(witnessSessionKey))
+                            .build(), new StreamObserver<SubmitLocationProofReply>() {
+                        @Override
+                        public void onNext(SubmitLocationProofReply submitLocationProofReply) {
+                            if (submitLocationProofReply.getReachedQuorum()) {
+                                clientLogic.gotProofQuorums.get(epoch).add(server);
                             }
                         }
-                );
-            } catch (StatusRuntimeException e) {
-                io.grpc.Status status = io.grpc.Status.fromThrowable(e);
-                System.err.println("Exception received from server: " + status.getDescription());
-            }
-        }
 
-        System.out.println("Waiting for proofs quorum...");
+                        @Override
+                        public void onError(Throwable throwable) {
 
-        long start = System.currentTimeMillis();
-        while (!(gotQuorums.size()!=serverQuorum) && !timeoutExpired) {
-            long delta = System.currentTimeMillis() - start;
-            if (delta > 5000) {
-                timeoutExpired = true;
-                break;
-            }
+                        }
+
+                        @Override
+                        public void onCompleted() {
+
+                        }
+                    }
+            );
+        } catch (StatusRuntimeException e) {
+            io.grpc.Status status = io.grpc.Status.fromThrowable(e);
+            System.err.println("Exception received from server: " + status.getDescription());
         }
-        if (gotQuorums.size() == serverQuorum){
-            for(String name: gotQuorums)
-                System.out.println("Got response quorum from server "+ name + ", location report confirmed");// for epoch " + epoch + " by the server");
-        }
-        else if (timeoutExpired)
-            System.err.println("Couldn't prove location within the time limit");
-        gotQuorums.clear();
-        timeoutExpired = false;
     }
 
     public Coords obtainLocationReport(String username, int epoch) {
@@ -178,7 +163,7 @@ public class ClientToServerFrontend {
         byte[] encryptedSessionKey = params[2];
         byte[] iv = params[3];
         byte[] sessionKeyBytes = params[4];
-
+        clientLogic.gotReadQuorum.putIfAbsent(epoch, new CopyOnWriteArrayList<>());
         for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
             server.getValue().obtainLocationReport(
                     ObtainLocationReportRequest.newBuilder()
@@ -195,6 +180,7 @@ public class ClientToServerFrontend {
                             //if valid add to the readList
                             //When readlist > quorum return the value with the highest timestamp to the client
                             readListLocationReport.add(obtainLocationReportReply);
+                            clientLogic.gotReadQuorum.get(epoch).add(server.getKey());
 
                         }
 
@@ -214,21 +200,21 @@ public class ClientToServerFrontend {
         System.out.println("Obtaining location reports...");
 
         long start = System.currentTimeMillis();
-        while (!(gotQuorums.size()!=serverQuorum) && !timeoutExpired) {
+        while ((clientLogic.gotReadQuorum.get(epoch).size()!=clientLogic.serverQuorum) && !readTimeoutExpired) {
             long delta = System.currentTimeMillis() - start;
             if (delta > 5000) {
-                timeoutExpired = true;
+                readTimeoutExpired = true;
                 break;
             }
         }
-        if (gotQuorums.size() == serverQuorum){
-            for(String name: gotQuorums)
+        if (clientLogic.gotReadQuorum.get(epoch).size() == clientLogic.serverQuorum){
+            for(String name: clientLogic.gotReadQuorum.get(epoch))
                 System.out.println("Got response quorum from server "+ name + ", obtained location report");
         }
-        else if (timeoutExpired)
+        else if (readTimeoutExpired)
             System.err.println("Couldn't obtain location report within the time limit");
-        gotQuorums.clear();
-        timeoutExpired = false;
+        clientLogic.gotReadQuorum.get(epoch).clear();
+        readTimeoutExpired = false;
 
         //TODO currently retuning first from readList
         ObtainLocationReportReply r = readListLocationReport.get(0);

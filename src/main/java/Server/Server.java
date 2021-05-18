@@ -144,6 +144,11 @@ public class Server {
                 Status status = Status.ALREADY_EXISTS
                         .withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
+            } catch (InvalidProofOfWorkException e) {
+                System.out.println("InvalidProofOfWorkException: " + e.getMessage());
+                Status status = Status.ABORTED
+                        .withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
             }
         }
 

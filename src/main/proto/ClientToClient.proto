@@ -18,9 +18,10 @@ message RequestLocationProofRequest {
 }
 
 message RequestLocationProofReply {
-  bytes proof = 1;
-  bytes digitalSignature = 2;
-  bytes witnessSessionKey = 3;
-  bytes witnessIv = 4;
+  repeated bytes proof = 1;
+  repeated bytes digitalSignature = 2;
+  repeated bytes witnessSessionKey = 3;
+  repeated bytes witnessIv = 4;
+  repeated string server = 5;
 
 }

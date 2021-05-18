@@ -61,7 +61,7 @@ public class ServerLogic {
         System.out.println("Valid freshness token");
 
         //Decrypt session key
-        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
         SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
 
 
@@ -108,7 +108,7 @@ public class ServerLogic {
 
 
         //generate signature
-        byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server", keystorePasswd));
+        byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey(serverName, keystorePasswd));
 
         byte[][] ret = new byte[3][];
         ret[0] = encryptedResponse;
@@ -126,10 +126,10 @@ public class ServerLogic {
                 .collect(Collectors.toList());
     }
 
-    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException {
+    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException, InvalidProofOfWorkException {
 
         //Decrypt session key
-        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
         SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
 
         //decipher message to get report as JSON
@@ -138,7 +138,7 @@ public class ServerLogic {
 
         //Verify proof of work
         if(!EncryptionLogic.verifyProofOfWork(proofOfWork,reportJSON.toString(),"00"))
-            throw new InvalidReportException();
+            throw new InvalidProofOfWorkException();
 
         //verify message integrity
         if(verifyMessage(decipheredMessage, digitalSignature)) {
@@ -225,7 +225,7 @@ public class ServerLogic {
     public synchronized boolean submitProof(byte[] witnessEncryptedSessionKey, byte[] witnessIv, byte[] encryptedSessionKey, byte[] encryptedProof, byte[] signature, byte[] iv) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
 
         //Decrypt session key
-        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
         SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
 
         //decrypt proof
@@ -309,7 +309,7 @@ public class ServerLogic {
         byte[] witnessLocationBytes = Base64.getDecoder().decode(proofJSON.getString("encrypted_location"));
 
         //Decrypt session key
-        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), witnessEncryptedSessionKey);
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), witnessEncryptedSessionKey);
         SecretKey witnessSessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
         byte[] witnessLocation = EncryptionLogic.decryptWithAES(witnessSessionKey, witnessLocationBytes, witnessIv);
 
@@ -342,7 +342,7 @@ public class ServerLogic {
         System.out.println("Valid freshness token");
 
         //Decrypt session key
-        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
         SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
 
 
@@ -383,7 +383,7 @@ public class ServerLogic {
 
 
         //generate signature
-        byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey("server", keystorePasswd));
+        byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey(serverName, keystorePasswd));
 
         byte[][] ret = new byte[3][];
         ret[0] = encryptedResponse;
