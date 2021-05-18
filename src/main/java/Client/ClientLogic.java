@@ -2,8 +2,10 @@ package Client;
 
 import Exceptions.InvalidSignatureException;
 import Exceptions.ProverNotCloseEnoughException;
+import Server.Proof;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import proto.RequestMyProofsReply;
 import util.Coords;
 import util.EncryptionLogic;
 
@@ -16,6 +18,7 @@ import java.security.Key;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 public class ClientLogic {
 
@@ -26,6 +29,7 @@ public class ClientLogic {
     public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotReportQuorums = new ConcurrentHashMap<>();
     public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotProofQuorums = new ConcurrentHashMap<>();
     public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotReadQuorum = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, CopyOnWriteArrayList<JSONObject>> gotReadMyProofsQuorum = new ConcurrentHashMap<>(); // Map of received responses from myProofs request
     public final int serverQuorum = 2; //quorum of responses of servers needed
 
     public ClientLogic(String username, String gridFilePath, String keystorePasswd) {
@@ -317,7 +321,7 @@ public class ClientLogic {
         return grid;
     }
 
-    public byte[][] requestMyProofs(String username, List<Integer> epochs) {
+    public byte[][] requestMyProofs(String readId, String username, List<Integer> epochs) {
         byte[][] ret = new byte[6][];
         JSONObject object = new JSONObject();
         JSONObject message = new JSONObject();
@@ -332,6 +336,7 @@ public class ClientLogic {
         //Pass data to json
         message.put("username", username);
         message.put("epochs", epochs);
+        message.put("readId", readId);
 
         object.put("message", message);
 
@@ -367,7 +372,23 @@ public class ClientLogic {
         buffer.clear();
         buffer.putLong(timestamp);
         ret[5] = buffer.array();
+        ret[6] = sessionKeyBytes;
 
         return ret;
+    }
+
+    public List<Proof> getMyProofs(String readId) {
+        //Map<Integer, String> proofs;  // <Epoch, <Username of prover, Proof >>
+
+        for (JSONObject reply : gotReadMyProofsQuorum.get(readId)) {
+            JSONObject msg = reply.getJSONObject("message");
+            List<String> epochs = msg.getJSONArray("proofList")
+                    .toList()
+                    .stream()
+                    .map(o -> (String) o)
+                    .collect(Collectors.toList());
+        }
+
+        return new ArrayList<Proof>();
     }
 }
