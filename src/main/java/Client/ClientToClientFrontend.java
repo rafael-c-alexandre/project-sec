@@ -127,7 +127,7 @@ public class ClientToClientFrontend {
                         proofObject.put("digital_signature", Base64.getEncoder().encodeToString(witnessDigitalSignature));
 
                         //encrypt proof
-                        byte[][] result = clientLogic.encryptProof(proofObject.toString().getBytes());
+                        byte[][] result = clientLogic.encryptProof(proofObject.toString().getBytes(), servers.get(i));
                         byte[] encryptedProof = result[0];
                         byte[] encryptedSessionKey = result[1];
                         byte[] iv = result[2];

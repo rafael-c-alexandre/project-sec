@@ -257,7 +257,7 @@ public class ClientLogic {
         return new Coords(msg.getInt("x"), msg.getInt("y"));
     }
 
-    public byte[][] encryptProof(byte[] proof) {
+    public byte[][] encryptProof(byte[] proof, String server) {
         byte [][] res = new byte[4][];
         //Generate a session Key
         SecretKey sessionKey = EncryptionLogic.generateAESKey();
@@ -265,7 +265,7 @@ public class ClientLogic {
 
         //Encrypt session jey with server public key
         byte[] iv = EncryptionLogic.generateIV();
-        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"), sessionKeyBytes);
+        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey(server), sessionKeyBytes);
 
         byte[] encryptedProof = EncryptionLogic.encryptWithAES(sessionKey, proof, iv);
 

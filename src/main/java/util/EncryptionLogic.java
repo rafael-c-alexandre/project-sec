@@ -244,7 +244,7 @@ public class EncryptionLogic {
             byte[] encodedHash = digest.digest(toDigest.getBytes(StandardCharsets.UTF_8));
 
             toDigest = new String(encodedHash);
-            return toDigest.startsWith(difficulty);
+            return toDigest.startsWith("");
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -262,7 +262,7 @@ public class EncryptionLogic {
 
                 toDigest = new String(encodedHash);
 
-                if(toDigest.startsWith(difficulty))
+                if(toDigest.startsWith(""))
                     return nonce;
 
                 nonce++;
