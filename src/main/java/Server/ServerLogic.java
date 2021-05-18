@@ -37,21 +37,6 @@ public class ServerLogic {
     }
 
     public UserReport obtainLocationReport(String username, int epoch) throws NoReportFoundException {
-        if(byzantineMode == 1) {
-            UserReport ret = new UserReport();
-            ret.setClosed(true);
-            ret.setProofsList(new ArrayList<>());
-            ret.setEpoch(4);
-            ret.setUsername("FAKENEWS");
-            ret.setSignature(new byte[128]);
-            ret.setCoords(new Coords(0,0));
-
-            return ret;
-        }
-
-        if(byzantineMode == 2)
-            throw new NoReportFoundException(username, epoch);
-
 
         for (UserReport report : this.reportList) {
             if (report.getUsername().equals(username) && report.getEpoch() == epoch)
@@ -61,20 +46,6 @@ public class ServerLogic {
     }
 
     public UserReport obtainClosedLocationReport(String username, int epoch) throws NoReportFoundException {
-        if(byzantineMode == 1) {
-            UserReport ret = new UserReport();
-            ret.setClosed(true);
-            ret.setProofsList(new ArrayList<>());
-            ret.setEpoch(4);
-            ret.setUsername("FAKENEWS");
-            ret.setSignature(new byte[128]);
-            ret.setCoords(new Coords(0,0));
-
-            return ret;
-        }
-
-        if(byzantineMode == 2)
-            throw new NoReportFoundException(username, epoch);
 
         for (UserReport report : this.reportList) {
             if (report.getUsername().equals(username) && report.getEpoch() == epoch && report.isClosed())
@@ -186,6 +157,19 @@ public class ServerLogic {
 
         //process request
         UserReport report = obtainClosedLocationReport(username, epoch);
+
+        if(byzantineMode == 1) {
+            report = new UserReport();
+            report.setClosed(true);
+            report.setProofsList(new ArrayList<>());
+            report.setEpoch(4);
+            report.setUsername("FAKENEWS");
+            report.setSignature(new byte[128]);
+            report.setCoords(new Coords(0,0));
+
+        }
+        else if(byzantineMode == 2)
+            throw new NoReportFoundException(username, epoch);
 
         JSONObject jsonResponse = new JSONObject();
 
@@ -375,8 +359,6 @@ public class ServerLogic {
 
     public synchronized boolean submitProof(byte[] witnessEncryptedSessionKey, byte[] witnessIv, byte[] encryptedSessionKey, byte[] encryptedProof, byte[] signature, byte[] iv, long timestamp, long proofOfWork) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException, InvalidFreshnessToken {
 
-        if(byzantineMode == 5)
-            return true;
 
         //max skew assumed: 30s
         if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
@@ -397,6 +379,13 @@ public class ServerLogic {
 
         //verify proofs integrity
         Proof newProof = verifyProof(witnessSessionKeyBytes,decryptedProof, signature,witnessIv,data, false);
+
+        if(byzantineMode == 5) {
+            UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
+            report.setClosed(true);
+            reportsRepository.closeUserReport(report);
+            return true;
+        }
 
 
         UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
@@ -485,7 +474,8 @@ public class ServerLogic {
     public boolean isDuplicateProof(UserReport report, String witness) {
 
         for (Proof proof : report.getProofsList()) {
-            return proof.getWitnessUsername().equals(witness);
+           if (proof.getWitnessUsername().equals(witness))
+               return true;
         }
         return false;
     }
@@ -535,7 +525,7 @@ public class ServerLogic {
 
         //check if witness has already submitted a proof for this report
         if (isDuplicateProof(report, witnessUser))
-            throw new InvalidProofException("Witness already submitted a valid proof for this location report");
+            throw new InvalidProofException("Witness " + witnessUser + " already submitted a valid proof for this location report for prover " + proverUser + " at epoch " + epoch);
 
         //decrypt witness location
         byte[] witnessLocationBytes = Base64.getDecoder().decode(proofJSON.getString("encrypted_location"));

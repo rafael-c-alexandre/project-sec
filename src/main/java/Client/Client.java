@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 
 public class Client {
 
-    final String GRID_FILE_PATH = "src/main/assets/grid_examples/grid1.txt";
-    final String CLIENT_ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings.txt";
+    final String GRID_FILE_PATH = "src/main/assets/grid_examples/grid1-stage1.txt";
+    final String CLIENT_ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings2.txt";
     protected String username;
     private ClientToClientFrontend clientToClientFrontend;
     private ClientToServerFrontend clientToServerFrontend;

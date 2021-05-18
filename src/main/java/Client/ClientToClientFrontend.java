@@ -108,7 +108,7 @@ public class ClientToClientFrontend {
 
                     for (int i = 0; i < proofs.size(); i++) {
                         JSONObject proofJSON = new JSONObject(new String(proofs.get(i)));
-                        System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername") + " for epoch " + epoch);
+                        System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername") + " for epoch " + epoch + " to server " + serverNames.get(i));
                         if (!closePeers.contains(proofJSON.getString("witnessUsername"))) {
                             System.out.println("Witness " + proofJSON.getString("witnessUsername") + " was not asked for a proof, is not a close peer");
                             return;
@@ -174,7 +174,7 @@ public class ClientToClientFrontend {
         long start = System.currentTimeMillis();
         while ((clientLogic.gotProofQuorums.get(epoch).size()!=clientLogic.serverQuorum) && !proofTimeoutExpired) {
             long delta = System.currentTimeMillis() - start;
-            if (delta > 5000) {
+            if (delta > 10000) {
                 proofTimeoutExpired = true;
                 break;
             }
