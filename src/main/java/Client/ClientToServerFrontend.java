@@ -43,82 +43,82 @@ public class ClientToServerFrontend {
         stubMap.put(username, ClientToServerGrpc.newStub(channel));
     }
 
-    public void submitReport(byte[] encryptedMessage,byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] proofOfWork) {
+    public void submitReport(byte[] encryptedMessage,byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] proofOfWork, String server) {
+
+        ClientToServerGrpc.ClientToServerStub serverStub = stubMap.get(server);
 
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.put(proofOfWork);
         buffer.flip();//need flip
         long nonce =  buffer.getLong();
 
-        for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
-            try {
-                server.getValue().submitLocationReport(SubmitLocationReportRequest.newBuilder()
-                                .setEncryptedMessage(ByteString.copyFrom(encryptedMessage))
-                                .setSignature(ByteString.copyFrom(digitalSignature))
-                                .setIv(ByteString.copyFrom(iv))
-                                .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
-                                .setProofOfWork(nonce)
-                                .build(),
-                        new StreamObserver<SubmitLocationReportReply>() {
-                            @Override
-                            public void onNext(SubmitLocationReportReply submitLocationReportReply) {
+        try {
+            serverStub.submitLocationReport(SubmitLocationReportRequest.newBuilder()
+                            .setEncryptedMessage(ByteString.copyFrom(encryptedMessage))
+                            .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setIv(ByteString.copyFrom(iv))
+                            .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                            .setProofOfWork(nonce)
+                            .build(),
+                    new StreamObserver<SubmitLocationReportReply>() {
+                        @Override
+                        public void onNext(SubmitLocationReportReply submitLocationReportReply) {
 
-                            }
+                        }
 
-                            @Override
-                            public void onError(Throwable throwable) {
+                        @Override
+                        public void onError(Throwable throwable) {
 
-                            }
+                        }
 
-                            @Override
-                            public void onCompleted() {
+                        @Override
+                        public void onCompleted() {
 
-                            }
-                        });
-                System.out.println("Submited location report to server " + server.getKey());
-            } catch (StatusRuntimeException e) {
-                io.grpc.Status status = io.grpc.Status.fromThrowable(e);
-                System.err.println("Exception received from server: " + status.getDescription());
-            }
+                        }
+                    });
+            System.out.println("Submited location report to server " + server);
+        } catch (StatusRuntimeException e) {
+            io.grpc.Status status = io.grpc.Status.fromThrowable(e);
+            System.err.println("Exception received from server: " + status.getDescription());
         }
     }
 
 
-    public void submitProof(byte[] encryptedProof, byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] witnessSessionKey, byte[] witnessIv) {
-        //Submit proofs to every server
-        for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
-            try {
-                server.getValue().submitLocationProof(
-                        SubmitLocationProofRequest.newBuilder()
-                                .setEncryptedProof(ByteString.copyFrom(encryptedProof))
-                                .setSignature(ByteString.copyFrom(digitalSignature))
-                                .setIv(ByteString.copyFrom(iv))
-                                .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
-                                .setWitnessIv(ByteString.copyFrom(witnessIv))
-                                .setWitnessSessionKey(ByteString.copyFrom(witnessSessionKey))
-                                .build(), new StreamObserver<SubmitLocationProofReply>() {
-                            @Override
-                            public void onNext(SubmitLocationProofReply submitLocationProofReply) {
-                                if (submitLocationProofReply.getReachedQuorum()) {
-                                    gotQuorums.add(server.getKey());
-                                }
-                            }
+    public void submitProof(byte[] encryptedProof, byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] witnessSessionKey, byte[] witnessIv, String server) {
 
-                            @Override
-                            public void onError(Throwable throwable) {
+        ClientToServerGrpc.ClientToServerStub serverStub = stubMap.get(server);
 
-                            }
-
-                            @Override
-                            public void onCompleted() {
-
+        try {
+            serverStub.submitLocationProof(
+                    SubmitLocationProofRequest.newBuilder()
+                            .setEncryptedProof(ByteString.copyFrom(encryptedProof))
+                            .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setIv(ByteString.copyFrom(iv))
+                            .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                            .setWitnessIv(ByteString.copyFrom(witnessIv))
+                            .setWitnessSessionKey(ByteString.copyFrom(witnessSessionKey))
+                            .build(), new StreamObserver<SubmitLocationProofReply>() {
+                        @Override
+                        public void onNext(SubmitLocationProofReply submitLocationProofReply) {
+                            if (submitLocationProofReply.getReachedQuorum()) {
+                                gotQuorums.add(server);
                             }
                         }
-                );
-            } catch (StatusRuntimeException e) {
-                io.grpc.Status status = io.grpc.Status.fromThrowable(e);
-                System.err.println("Exception received from server: " + status.getDescription());
-            }
+
+                        @Override
+                        public void onError(Throwable throwable) {
+
+                        }
+
+                        @Override
+                        public void onCompleted() {
+
+                        }
+                    }
+            );
+        } catch (StatusRuntimeException e) {
+            io.grpc.Status status = io.grpc.Status.fromThrowable(e);
+            System.err.println("Exception received from server: " + status.getDescription());
         }
 
         System.out.println("Waiting for proofs quorum...");

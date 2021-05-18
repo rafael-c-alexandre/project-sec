@@ -90,7 +90,7 @@ public class ByzantineClientToClientFrontend {
                 public void onNext(RequestLocationProofReply requestLocationProofReply) {
 
                     /* Check if witness is a close peer */
-                    byte[] proof = requestLocationProofReply.getProof().toByteArray();
+                    byte[] proof = null;
                     JSONObject proofJSON = new JSONObject(new String(proof));
                     System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername"));
                     if (!closePeers.contains(proofJSON.getString("witnessUsername"))) {
@@ -98,7 +98,7 @@ public class ByzantineClientToClientFrontend {
                         return;
                     }
 
-                    byte[] witnessDigitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
+                    byte[] witnessDigitalSignature = null;
 
                     //verify proof digital signature
                     if (!EncryptionLogic.verifyDigitalSignature(proof, witnessDigitalSignature, EncryptionLogic.getPublicKey(user))) {
@@ -119,8 +119,8 @@ public class ByzantineClientToClientFrontend {
                     byte[] iv = result[2];
                     byte[] digitalSignature = result[3];
 
-                    byte[] witnessIv = requestLocationProofReply.getWitnessIv().toByteArray();
-                    byte[] witnessSessionKey = requestLocationProofReply.getWitnessSessionKey().toByteArray();
+                    byte[] witnessIv = null;
+                    byte[] witnessSessionKey = null;
 
                     gotQuorum = serverFrontend.submitProof(encryptedProof, digitalSignature, encryptedSessionKey, iv, witnessSessionKey, witnessIv);
                 }

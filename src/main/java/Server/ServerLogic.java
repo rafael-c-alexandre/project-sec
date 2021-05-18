@@ -126,7 +126,7 @@ public class ServerLogic {
                 .collect(Collectors.toList());
     }
 
-    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException {
+    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException, InvalidProofOfWorkException {
 
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
@@ -138,7 +138,7 @@ public class ServerLogic {
 
         //Verify proof of work
         if(!EncryptionLogic.verifyProofOfWork(proofOfWork,reportJSON.toString(),"00"))
-            throw new InvalidReportException();
+            throw new InvalidProofOfWorkException();
 
         //verify message integrity
         if(verifyMessage(decipheredMessage, digitalSignature)) {

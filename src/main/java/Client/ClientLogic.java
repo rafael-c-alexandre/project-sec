@@ -11,6 +11,7 @@ import javax.crypto.SecretKey;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.*;
 
@@ -18,12 +19,17 @@ public class ClientLogic {
 
     private final String username;
     private final Map<String, Map<Integer, Coords>> grid = new HashMap<>();
+    private List<String> serverNames = new ArrayList<>();
     private String keystorePasswd;
 
     public ClientLogic(String username, String gridFilePath, String keystorePasswd) {
         this.username = username;
         this.keystorePasswd = keystorePasswd;
         populateGrid(gridFilePath);
+    }
+
+    public void addServer(String name) {
+        serverNames.add(name);
     }
 
     public void populateGrid(String gridFilePath) {
@@ -57,7 +63,7 @@ public class ClientLogic {
         return grid.get(username).get(epoch);
     }
 
-    public byte[][] generateLocationReport(int epoch) {
+    public List<byte[][]> generateLocationReport(int epoch) {
         Coords coords = getCoords(epoch);
 
         JSONObject message = new JSONObject();
@@ -66,36 +72,44 @@ public class ClientLogic {
         message.put("x", coords.getX());
         message.put("y", coords.getY());
 
-        byte[][] result = new byte[5][];
+        List<byte[][]> reports = new ArrayList<>();
 
-        //Generate a session Key
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-        byte[] sessionKeyBytes = sessionKey.getEncoded();
+        for (String server : serverNames) {
 
-        //Encrypt session jey with server public key
-        byte[] iv = EncryptionLogic.generateIV();
-        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"), sessionKeyBytes);
-        byte[] encryptedMessage = EncryptionLogic.encryptWithAES(sessionKey, message.toString().getBytes(), iv);
-        result[0] = encryptedMessage;
+            byte[][] result = new byte[6][];
 
-        //sign message
-        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
-                EncryptionLogic.getPrivateKey(this.username,keystorePasswd));
+            //Generate a session Key
+            SecretKey sessionKey = EncryptionLogic.generateAESKey();
+            byte[] sessionKeyBytes = sessionKey.getEncoded();
 
-        //Generate proof of work
-        long nonce = EncryptionLogic.generateProofOfWork(message.toString(),"00");
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(nonce);
+            //Encrypt session jey with server public key
+            byte[] iv = EncryptionLogic.generateIV();
+            byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey(server), sessionKeyBytes);
+            byte[] encryptedMessage = EncryptionLogic.encryptWithAES(sessionKey, message.toString().getBytes(), iv);
+            result[0] = encryptedMessage;
 
-        result[1] = digitalSignature;
-        result[2] = encryptedSessionKey;
-        result[3] = iv;
-        result[4] = buffer.array();
+            //sign message
+            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
+                    EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
 
-        return result;
+            //Generate proof of work
+            long nonce = EncryptionLogic.generateProofOfWork(message.toString(), "00");
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.putLong(nonce);
+
+            result[1] = digitalSignature;
+            result[2] = encryptedSessionKey;
+            result[3] = iv;
+            result[4] = buffer.array();
+            result[5] = server.getBytes(StandardCharsets.UTF_8);
+
+            reports.add(result);
+        }
+
+        return reports;
     }
 
-    public byte[][] generateLocationProof(String proverUsername, int epoch, byte[] request, byte[] digitalSignature) throws ProverNotCloseEnoughException, InvalidSignatureException {
+    public List<byte[][]> generateLocationProof(String proverUsername, int epoch, byte[] request, byte[] digitalSignature) throws ProverNotCloseEnoughException, InvalidSignatureException {
 
         Coords currentUserCoords = grid.get(this.username).get(epoch);
         Coords proverCoords = grid.get(proverUsername).get(epoch);
@@ -104,43 +118,50 @@ public class ClientLogic {
         if (!isClose(currentUserCoords, proverCoords))
             throw new ProverNotCloseEnoughException();
 
-        if (!EncryptionLogic.verifyDigitalSignature(request,digitalSignature, EncryptionLogic.getPublicKey(proverUsername)))
+        if (!EncryptionLogic.verifyDigitalSignature(request, digitalSignature, EncryptionLogic.getPublicKey(proverUsername)))
             throw new InvalidSignatureException();
 
         System.out.println("Valid request digital signature");
 
+        List<byte[][]> proofs = new ArrayList<>();
 
-        JSONObject jsonProof = new JSONObject();
-        byte[][] result = new byte[4][];
+        for (String server : serverNames) {
 
-        // Create response message
-        jsonProof.put("witnessUsername", this.username);
-        jsonProof.put("proverUsername", proverUsername);
-        jsonProof.put("epoch", epoch);
+            JSONObject jsonProof = new JSONObject();
 
-        JSONObject jsonCoords = new JSONObject();
-        jsonCoords.put("x", currentUserCoords.getX());
-        jsonCoords.put("y", currentUserCoords.getY());
+            byte[][] result = new byte[5][];
 
-        //Generate a session Key
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-        byte[] sessionKeyBytes = sessionKey.getEncoded();
+            // Create response message
+            jsonProof.put("witnessUsername", this.username);
+            jsonProof.put("proverUsername", proverUsername);
+            jsonProof.put("epoch", epoch);
 
-        //Encrypt session jey with server public key
-        byte[] iv = EncryptionLogic.generateIV();
-        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"), sessionKeyBytes);
+            JSONObject jsonCoords = new JSONObject();
+            jsonCoords.put("x", currentUserCoords.getX());
+            jsonCoords.put("y", currentUserCoords.getY());
+
+            //Generate a session Key
+            SecretKey sessionKey = EncryptionLogic.generateAESKey();
+            byte[] sessionKeyBytes = sessionKey.getEncoded();
+
+            //Encrypt session jey with server public key
+            byte[] iv = EncryptionLogic.generateIV();
+            byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey(server), sessionKeyBytes);
 
 
-        byte[] encryptedLocation = EncryptionLogic.encryptWithAES(sessionKey, jsonCoords.toString().getBytes(), iv);
-        jsonProof.put("encrypted_location", Base64.getEncoder().encodeToString(encryptedLocation));
-        result[0] = jsonProof.toString().getBytes();
+            byte[] encryptedLocation = EncryptionLogic.encryptWithAES(sessionKey, jsonCoords.toString().getBytes(), iv);
+            jsonProof.put("encrypted_location", Base64.getEncoder().encodeToString(encryptedLocation));
+            result[0] = jsonProof.toString().getBytes();
 
-        //generate proof digital signature
-        result[1] = EncryptionLogic.createDigitalSignature(jsonProof.toString().getBytes(), EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
-        result[2] = encryptedSessionKey;
-        result[3] = iv;
+            //generate proof digital signature
+            result[1] = EncryptionLogic.createDigitalSignature(jsonProof.toString().getBytes(), EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
+            result[2] = encryptedSessionKey;
+            result[3] = iv;
+            result[4] = server.getBytes(StandardCharsets.UTF_8);
+            proofs.add(result);
+        }
 
-        return result;
+        return proofs;
 
     }
 

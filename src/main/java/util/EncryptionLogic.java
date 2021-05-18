@@ -255,7 +255,6 @@ public class EncryptionLogic {
         try {
 
             long nonce = 0;
-
             while(true) {
                 String toDigest = data + nonce;
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -267,7 +266,6 @@ public class EncryptionLogic {
                     return nonce;
 
                 nonce++;
-
             }
 
         } catch (NoSuchAlgorithmException e) {

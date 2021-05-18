@@ -213,10 +213,7 @@ public class ByzantineClient {
 
                 RequestLocationProofReply reply = null;
                 if (digitalSignature != null) {
-                    reply = RequestLocationProofReply.newBuilder().setProof(ByteString.copyFrom(responseJSON))
-                            .setDigitalSignature(ByteString.copyFrom(digitalSignature))
-                            .setWitnessIv(ByteString.copyFrom(witnessIv))
-                            .setWitnessSessionKey(ByteString.copyFrom(witnessSessionKey))
+                    reply = RequestLocationProofReply.newBuilder()
                             .build();
                 }
                 responseObserver.onNext(reply);
