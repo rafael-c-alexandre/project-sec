@@ -13,10 +13,7 @@ import util.Coords;
 import util.EncryptionLogic;
 
 import javax.crypto.SecretKey;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -26,8 +23,8 @@ public class ClientToClientFrontend {
     private final Map<String, ClientToClientGrpc.ClientToClientStub> stubMap = new HashMap<>();
     private final ClientToServerFrontend serverFrontend;
     private final ClientLogic clientLogic;
-    private volatile boolean gotQuorum = false;
-    private volatile boolean timeoutExpired = false;
+
+    private final ArrayList<String> serverNames = new ArrayList<String>();
 
     public ClientToClientFrontend(String username, ClientToServerFrontend serverFrontend, ClientLogic clientLogic) {
         this.username = username;
@@ -44,6 +41,10 @@ public class ClientToClientFrontend {
 
 
         stubMap.put(username, ClientToClientGrpc.newStub(channel));
+    }
+
+    public void addServer(String serverName) {
+        serverNames.add(serverName);
     }
 
     public void broadcastAllInGrid(){
@@ -71,10 +72,11 @@ public class ClientToClientFrontend {
         /*send location report directly to server*/
         byte[][] message = clientLogic.generateLocationReport(epoch);
 
-        //TODO: return
-        serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
-        System.out.println("Report sent to server");
-
+        //Submits the report request to the servers, to indicate that the client will start submitting proofs
+        for (String serverName: serverNames){
+            serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
+            System.out.println("Report sent to server " + serverName);
+        }
         /* Request proof of location to other close clients */
         for (String user : closePeers) {
             /* Create location proof request */
@@ -112,7 +114,8 @@ public class ClientToClientFrontend {
                     byte[] witnessIv = requestLocationProofReply.getWitnessIv().toByteArray();
                     byte[] witnessSessionKey = requestLocationProofReply.getWitnessSessionKey().toByteArray();
 
-                    gotQuorum = serverFrontend.submitProof(encryptedProof, digitalSignature, encryptedSessionKey, iv, witnessSessionKey, witnessIv);
+                    //Submit the proof received from the witness to the servers
+                    serverFrontend.submitProof(encryptedProof, digitalSignature, encryptedSessionKey, iv, witnessSessionKey, witnessIv);
 
                 }
 
@@ -128,24 +131,6 @@ public class ClientToClientFrontend {
                 }
             });
         }
-
-        System.out.println("Waiting for proofs quorum...");
-
-        long start = System.currentTimeMillis();
-        while (!gotQuorum && !timeoutExpired) {
-            long delta = System.currentTimeMillis() - start;
-            if (delta > 5000) {
-                timeoutExpired = true;
-                break;
-            }
-        }
-        if (gotQuorum)
-            System.out.println("Got response quorum, location report confirmed for epoch " + epoch + " by the server");
-        else if (timeoutExpired)
-            System.err.println("Couldn't prove location within the time limit");
-        gotQuorum = false;
-        timeoutExpired = false;
-
 
     }
 

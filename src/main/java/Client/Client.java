@@ -109,6 +109,8 @@ public class Client {
             return;
         }
 
+        clientToServerFrontend = new ClientToServerFrontend(username, clientLogic);
+        clientToClientFrontend = new ClientToClientFrontend(username, clientToServerFrontend, clientLogic);
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
             // process the line
@@ -120,9 +122,9 @@ public class Client {
                 port = mappingsPort;
             }
             //SERVER
-            if (mappingsUser.equals("server")) {
-                clientToServerFrontend = new ClientToServerFrontend(username, mappingsHost, mappingsPort, clientLogic);
-                clientToClientFrontend = new ClientToClientFrontend(username, clientToServerFrontend, clientLogic);
+            if (mappingsUser.contains("server")) {
+                clientToServerFrontend.addServer(mappingsUser, mappingsHost, mappingsPort);
+                clientToClientFrontend.addServer(mappingsUser);
                 continue;
             }
 
