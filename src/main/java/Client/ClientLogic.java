@@ -1,5 +1,6 @@
 package Client;
 
+import Exceptions.InvalidSignatureException;
 import Exceptions.ProverNotCloseEnoughException;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -84,13 +85,10 @@ public class ClientLogic {
         result[2] = encryptedSessionKey;
         result[3] = iv;
 
-
-
-
         return result;
     }
 
-    public byte[][] generateLocationProof(String proverUsername, int epoch) throws ProverNotCloseEnoughException {
+    public byte[][] generateLocationProof(String proverUsername, int epoch, byte[] request, byte[] digitalSignature) throws ProverNotCloseEnoughException, InvalidSignatureException {
 
         Coords currentUserCoords = grid.get(this.username).get(epoch);
         Coords proverCoords = grid.get(proverUsername).get(epoch);
@@ -98,6 +96,9 @@ public class ClientLogic {
         //look at the grid to check if prover is nearby
         if (!isClose(currentUserCoords, proverCoords))
             throw new ProverNotCloseEnoughException();
+
+        if (!EncryptionLogic.verifyDigitalSignature(request,digitalSignature, EncryptionLogic.getPublicKey(proverUsername)))
+            throw new InvalidSignatureException();
 
 
         JSONObject jsonProof = new JSONObject();
@@ -208,9 +209,9 @@ public class ClientLogic {
 
         //Verify response signature
         if (!EncryptionLogic.verifyDigitalSignature(response, responseSignature, EncryptionLogic.getPublicKey("server")))
-            System.out.println("Invalid signature from response");
+            System.err.println("Invalid signature from response");
         else
-            System.out.println("Valid signature from response");
+            System.err.println("Valid signature from response");
 
         //process response and return coords
         String jsonString = new String(response);
@@ -239,6 +240,10 @@ public class ClientLogic {
         res[1] = encryptedSessionKey;
         res[2] = iv;
         return res;
+    }
+
+    public byte[] generateDigitalSignature(byte[] message) {
+        return EncryptionLogic.createDigitalSignature(message, EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
     }
 
     public Map<String, Map<Integer, Coords>> getGrid() {

@@ -35,6 +35,7 @@ public class ServerLogic {
     }
 
     public UserReport obtainLocationReport(String username, int epoch) throws NoReportFoundException {
+
         for (UserReport report : this.reportList) {
             if (report.getUsername().equals(username) && report.getEpoch() == epoch)
                 return report;
@@ -51,7 +52,13 @@ public class ServerLogic {
     }
 
 
-    public  byte[][] generateObtainLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, boolean isHA) throws NoSuchCoordsException, InvalidSignatureException, NoReportFoundException {
+    public  byte[][] generateObtainLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, boolean isHA, long timestamp) throws NoSuchCoordsException, InvalidSignatureException, NoReportFoundException, InvalidFreshnessToken {
+
+        //max skew assumed: 30s
+        if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
+            throw new InvalidFreshnessToken();
+        }
+
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
         SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
@@ -110,7 +117,8 @@ public class ServerLogic {
         return ret;
     }
 
-    public List<String> obtainUsersAtLocation(int x, int y, int epoch) {
+    public List<String> obtainUsersAtLocation(int x, int y, int epoch)  {
+
         return this.reportList.stream()
                 .filter(report -> report.getCoords().getY() == y && report.getCoords().getX() == x && report.getEpoch() == epoch && report.isClosed())
                 .map(report -> report.getUsername())
@@ -297,7 +305,13 @@ public class ServerLogic {
 
 
 
-    public byte[][] generateObtainUsersAtLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv) throws InvalidSignatureException {
+    public byte[][] generateObtainUsersAtLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long timestamp) throws InvalidSignatureException, InvalidFreshnessToken {
+
+        //max skew assumed: 30s
+        if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
+            throw new InvalidFreshnessToken();
+        }
+
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
         SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);

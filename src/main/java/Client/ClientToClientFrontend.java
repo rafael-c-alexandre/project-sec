@@ -1,6 +1,7 @@
 package Client;
 
 import Exceptions.ProverNotCloseEnoughException;
+import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -80,9 +81,17 @@ public class ClientToClientFrontend {
         /* Request proof of location to other close clients */
         for (String user : closePeers) {
             /* Create location proof request */
-            stubMap.get(user).requestLocationProof(RequestLocationProofRequest.newBuilder().
-                    setUsername(username)
-                    .setEpoch(epoch)
+
+            JSONObject requestJson = new JSONObject();
+            requestJson.put("username", username);
+            requestJson.put("epoch", epoch);
+
+            //generate request digital signature
+            byte[] ds = clientLogic.generateDigitalSignature(requestJson.toString().getBytes());
+
+            stubMap.get(user).requestLocationProof(RequestLocationProofRequest.newBuilder()
+                    .setRequest(requestJson.toString())
+                    .setDigitalSignature(ByteString.copyFrom(ds))
                     .build(), new StreamObserver<RequestLocationProofReply>() {
 
                 @Override
@@ -98,6 +107,13 @@ public class ClientToClientFrontend {
                     }
 
                     byte[] witnessDigitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
+
+                    //verify proof digital signature
+                    if (!EncryptionLogic.verifyDigitalSignature(proof, witnessDigitalSignature, EncryptionLogic.getPublicKey(user))) {
+                        System.err.println("Error verifying proof's digital signature. Skipped.");
+                        return;
+                    }
+
 
                     JSONObject proofObject = new JSONObject();
                     //create a proof json object
@@ -122,7 +138,7 @@ public class ClientToClientFrontend {
                 @Override
                 public void onError(Throwable throwable) {
                     io.grpc.Status status = io.grpc.Status.fromThrowable(throwable);
-                    System.out.println("Exception received from server: " + status.getDescription());
+                    System.err.println("Exception received from server: " + status.getDescription());
                 }
 
                 @Override

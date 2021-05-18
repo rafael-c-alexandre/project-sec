@@ -1,5 +1,6 @@
 package ByzantineClient;
 
+import Exceptions.InvalidSignatureException;
 import Exceptions.ProverNotCloseEnoughException;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -99,10 +100,14 @@ public class ByzantineClientLogic {
         return result;
     }
 
-    public byte[][] generateLocationProof(String proverUsername, int epoch) throws ProverNotCloseEnoughException {
+    public byte[][] generateLocationProof(String proverUsername, int epoch, byte[] request, byte[] digitalSignature) throws ProverNotCloseEnoughException, InvalidSignatureException {
 
         Coords currentUserCoords = grid.get(this.username).get(epoch);
         Coords proverCoords = grid.get(proverUsername).get(epoch);
+
+        if (!EncryptionLogic.verifyDigitalSignature(request,digitalSignature, EncryptionLogic.getPublicKey(proverUsername)))
+            throw new InvalidSignatureException();
+
 
         if(!(this.byzantineMode==4)) {
             //look at the grid to check if prover is nearby
@@ -270,6 +275,10 @@ public class ByzantineClientLogic {
         res[1] = encryptedSessionKey;
         res[2] = iv;
         return res;
+    }
+
+    public byte[] generateDigitalSignature(byte[] message) {
+        return EncryptionLogic.createDigitalSignature(message, EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
     }
 
     public Map<String, Map<Integer, Coords>> getGrid() {

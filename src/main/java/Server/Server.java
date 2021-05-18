@@ -1,7 +1,6 @@
 package Server;
 
 import Exceptions.*;
-import HA.HAFrontend;
 import Server.database.Connector;
 import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
@@ -11,20 +10,11 @@ import proto.*;
 import proto.HA.HAToServerGrpc;
 import proto.HA.ObtainUsersAtLocationReply;
 import proto.HA.ObtainUsersAtLocationRequest;
-import util.EncryptionLogic;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.KeyFactory;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.spec.PKCS8EncodedKeySpec;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Base64;
 import java.util.Scanner;
 
 
@@ -192,7 +182,7 @@ public class Server {
                 byte[] signature = request.getSignature().toByteArray();
                 byte[] iv = request.getIv().toByteArray();
 
-                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, false);
+                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, false, request.getTimestamp());
 
                 //Create reply
                 ObtainLocationReportReply reply = ObtainLocationReportReply.newBuilder()
@@ -207,11 +197,10 @@ public class Server {
             } catch (NoSuchCoordsException | NoReportFoundException e) {
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
-            } catch (InvalidSignatureException e) {
+            } catch (InvalidSignatureException | InvalidFreshnessToken e) {
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
-
         }
     }
 
@@ -230,7 +219,7 @@ public class Server {
                 byte[] signature = request.getSignature().toByteArray();
                 byte[] iv = request.getIv().toByteArray();
 
-                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, true);
+                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, true, request.getTimestamp());
 
                 //Create reply
                 proto.HA.ObtainLocationReportReply reply = proto.HA.ObtainLocationReportReply.newBuilder()
@@ -245,7 +234,7 @@ public class Server {
             } catch (NoSuchCoordsException | NoReportFoundException e) {
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
-            } catch (InvalidSignatureException e) {
+            } catch (InvalidSignatureException | InvalidFreshnessToken e) {
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
@@ -259,7 +248,7 @@ public class Server {
                 byte[] signature = request.getSignature().toByteArray();
                 byte[] iv = request.getIv().toByteArray();
 
-                byte[][] response = serverLogic.generateObtainUsersAtLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv);
+                byte[][] response = serverLogic.generateObtainUsersAtLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, request.getTimestamp());
 
                 //Create reply
                 ObtainUsersAtLocationReply reply = ObtainUsersAtLocationReply.newBuilder()
@@ -271,7 +260,7 @@ public class Server {
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
 
-            } catch (InvalidSignatureException e) {
+            } catch (InvalidSignatureException | InvalidFreshnessToken e) {
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
