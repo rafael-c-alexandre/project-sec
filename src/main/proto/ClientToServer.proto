@@ -45,6 +45,7 @@ message ObtainLocationReportRequest {
     bytes signature = 2;
     bytes encryptedSessionKey = 3;
     bytes iv = 4;
+    int64 timestamp = 5;
 }
 
 message ObtainLocationReportReply {

@@ -1,5 +1,6 @@
 package ByzantineClient;
 
+import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -7,6 +8,7 @@ import org.json.JSONObject;
 import proto.ClientToClientGrpc;
 import proto.RequestLocationProofReply;
 import proto.RequestLocationProofRequest;
+import util.EncryptionLogic;
 
 import java.util.Base64;
 import java.util.HashMap;
@@ -70,10 +72,18 @@ public class ByzantineClientToClientFrontend {
 
         /* Request proof of location to other close clients */
         for (String user : closePeers) {
+
+            JSONObject requestJson = new JSONObject();
+            requestJson.put("username", username);
+            requestJson.put("epoch", epoch);
+
+            //generate request digital signature
+            byte[] ds = clientLogic.generateDigitalSignature(requestJson.toString().getBytes());
+
             /* Create location proof request */
             stubMap.get(user).requestLocationProof(RequestLocationProofRequest.newBuilder()
-                    .setUsername(username)
-                    .setEpoch(epoch)
+                    .setRequest(requestJson.toString())
+                    .setDigitalSignature(ByteString.copyFrom(ds))
                     .build(), new StreamObserver<RequestLocationProofReply>() {
 
                 @Override
@@ -89,6 +99,13 @@ public class ByzantineClientToClientFrontend {
                     }
 
                     byte[] witnessDigitalSignature = requestLocationProofReply.getDigitalSignature().toByteArray();
+
+                    //verify proof digital signature
+                    if (!EncryptionLogic.verifyDigitalSignature(proof, witnessDigitalSignature, EncryptionLogic.getPublicKey(user))) {
+                        System.err.println("Error verifying proof's digital signature. Skipped.");
+                        return;
+                    }
+
 
                     JSONObject proofObject = new JSONObject();
                     //create a proof json object

@@ -1,11 +1,13 @@
 package ByzantineClient;
 
+import Exceptions.InvalidSignatureException;
 import Exceptions.ProverNotCloseEnoughException;
 import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import org.json.JSONObject;
 import proto.ClientToClientGrpc;
 import proto.RequestLocationProofReply;
 import proto.RequestLocationProofRequest;
@@ -182,15 +184,24 @@ public class ByzantineClient {
         @Override
         public void requestLocationProof(RequestLocationProofRequest request, StreamObserver<RequestLocationProofReply> responseObserver) {
 
-            System.out.println("Received location report request from " + request.getUsername());
+            String jsonString = request.getRequest();
+
+            JSONObject jsonObject = new JSONObject(jsonString);
+            String username = jsonObject.getString("username");
+            int epoch = jsonObject.getInt("epoch");
+
+            System.out.println("Received location report request from " + username);
 
             /* Create response message is user requesting is nearby*/
 
             byte[][] response = new byte[0][];
             try {
                 response = clientLogic.generateLocationProof(
-                        request.getUsername(),
-                        request.getEpoch());
+                        username,
+                        epoch,
+                        request.getRequest().getBytes(),
+                        request.getDigitalSignature().toByteArray()
+                );
 
                 /* If the user is not close enough don't reply with a proof */
                 if (response == null) return;
@@ -211,8 +222,13 @@ public class ByzantineClient {
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
             } catch (ProverNotCloseEnoughException e) {
-                System.out.println("ProverNotCloseEnoughException: " + e.getMessage());
+                System.err.println("ProverNotCloseEnoughException: " + e.getMessage());
                 Status status = Status.OUT_OF_RANGE
+                        .withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (InvalidSignatureException e) {
+                System.err.println("InvalidSignatureException: " + e.getMessage());
+                Status status = Status.UNAUTHENTICATED
                         .withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }

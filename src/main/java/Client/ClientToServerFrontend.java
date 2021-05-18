@@ -156,6 +156,7 @@ public class ClientToServerFrontend {
                     ObtainLocationReportRequest.newBuilder()
                             .setMessage(ByteString.copyFrom(encryptedData))
                             .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setTimestamp(System.currentTimeMillis())
                             .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
                             .setIv(ByteString.copyFrom(iv))
                             .build(), new StreamObserver<ObtainLocationReportReply>() {
