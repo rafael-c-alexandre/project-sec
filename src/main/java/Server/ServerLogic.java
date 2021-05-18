@@ -137,7 +137,7 @@ public class ServerLogic {
         JSONObject reportJSON = new JSONObject(new String(decipheredMessage));
 
         //Verify proof of work
-        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,reportJSON.toString(),"00"))
+        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,reportJSON.toString(),"000"))
             throw new InvalidProofOfWorkException();
 
         //verify message integrity

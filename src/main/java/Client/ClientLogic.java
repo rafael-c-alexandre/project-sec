@@ -99,7 +99,7 @@ public class ClientLogic {
                     EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
 
             //Generate proof of work
-            long nonce = EncryptionLogic.generateProofOfWork(message.toString(), "00");
+            long nonce = EncryptionLogic.generateProofOfWork(message.toString(), "000");
             ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
             buffer.putLong(nonce);
 

@@ -91,29 +91,29 @@ public class ClientToServerFrontend {
                 io.grpc.Status status = io.grpc.Status.fromThrowable(e);
                 System.err.println("Exception received from server: " + status.getDescription());
             }
-
-
-            System.out.println("Waiting for submit report quorum...");
-
-            long start = System.currentTimeMillis();
-            while ((clientLogic.gotReportQuorums.get(epoch).size() != clientLogic.serverQuorum) && !reportTimeoutExpired) {
-                long delta = System.currentTimeMillis() - start;
-                if (delta > 10000) {
-                    reportTimeoutExpired = true;
-                    break;
-                }
-            }
-            if (clientLogic.gotReportQuorums.get(epoch).size() == clientLogic.serverQuorum) {
-                for (String name : clientLogic.gotReportQuorums.get(epoch))
-                    System.out.println("Got response quorum from server " + name + " for report submission, for epoch " + epoch);
-            } else if (reportTimeoutExpired)
-                System.err.println("Couldn't submit report within the time limit");
-            else {
-                System.err.println("SOMETHING IS WRONG");
-            }
-            clientLogic.gotReportQuorums.get(epoch).clear();
-            reportTimeoutExpired = false;
         }
+
+
+        System.out.println("Waiting for submit report quorum...");
+
+        long start = System.currentTimeMillis();
+        while ((clientLogic.gotReportQuorums.get(epoch).size() != clientLogic.serverQuorum) && !reportTimeoutExpired) {
+            long delta = System.currentTimeMillis() - start;
+            if (delta > 10000) {
+                reportTimeoutExpired = true;
+                break;
+            }
+        }
+        if (clientLogic.gotReportQuorums.get(epoch).size() == clientLogic.serverQuorum) {
+            for (String name : clientLogic.gotReportQuorums.get(epoch))
+                System.out.println("Got response quorum from server " + name + " for report submission, for epoch " + epoch);
+        } else if (reportTimeoutExpired)
+            System.err.println("Couldn't submit report within the time limit");
+        else {
+            System.err.println("SOMETHING IS WRONG");
+        }
+        clientLogic.gotReportQuorums.get(epoch).clear();
+        reportTimeoutExpired = false;
     }
 
     public void submitProof(int epoch, byte[] encryptedProof, byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] witnessSessionKey, byte[] witnessIv, String server) {
