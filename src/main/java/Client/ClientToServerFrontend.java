@@ -11,12 +11,15 @@ import org.json.JSONArray;
 import proto.*;
 import org.json.JSONObject;
 import util.Coords;
+import util.EncryptionLogic;
 
+import javax.crypto.SecretKey;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class ClientToServerFrontend {
     private final String username;
@@ -27,7 +30,11 @@ public class ClientToServerFrontend {
     private ArrayList<ObtainLocationReportReply> readListLocationReport = new ArrayList<ObtainLocationReportReply>(); //List of read replies while waiting for reply quorum
     private volatile boolean reportTimeoutExpired = false;
     private volatile boolean readTimeoutExpired = false;
+    private volatile boolean myProofsTimeoutExpired = false;
     private volatile boolean writebackTimeoutExpired = false;
+
+    private Map<String, ArrayList<Proof>> myProofsReceived = new HashMap<>();
+
 
     public ClientToServerFrontend(String username, ClientLogic clientLogic) {
         this.username = username;
@@ -169,30 +176,36 @@ public class ClientToServerFrontend {
         }
     }
 
-    public List<Proof> requestMyProofs(String username,List<Integer> epochs){
+    public List<Proof> requestMyProofs(String readId, String username,List<Integer> epochs){
 
-        byte[][] params = this.clientLogic.requestMyProofs(username,epochs);
+        List<byte[][]> proofList = this.clientLogic.requestMyProofs(readId, username,epochs);
 
-        byte[] encryptedData = params[0];
-        byte[] digitalSignature = params[1];
-        byte[] encryptedSessionKey = params[2];
-        byte[] iv = params[3];
-        byte[] proofOfWorkBytes = params[4];
-        byte[] timestampBytes = params[5];
+        for(byte[][] params: proofList){
+            byte[] encryptedData = params[0];
+            byte[] digitalSignature = params[1];
+            byte[] encryptedSessionKey = params[2];
+            byte[] iv = params[3];
+            byte[] sessionKeyBytes = params[4];
+            byte[] proofOfWorkBytes = params[6];
+            byte[] timestampBytes = params[7];
 
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.put(proofOfWorkBytes);
-        buffer.flip();//need flip
-        long proofOfWork = buffer.getLong();
+            String server = new String(params[5], StandardCharsets.UTF_8);
 
-        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
-        buffer2.put(timestampBytes);
-        buffer2.flip();//need flip
-        long timestamp = buffer2.getLong();
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.put(proofOfWorkBytes);
+            buffer.flip();//need flip
+            long proofOfWork = buffer.getLong();
 
-        for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.put(timestampBytes);
+            buffer2.flip();//need flip
+            long timestamp = buffer2.getLong();
 
-            server.getValue().requestMyProofs(
+            clientLogic.gotMyProofsQuorum.putIfAbsent(readId, new CopyOnWriteArrayList<>());
+            clientLogic.myProofsResponses.putIfAbsent(readId, new CopyOnWriteArrayList<>());
+            ClientToServerGrpc.ClientToServerStub serverStub = stubMap.get(server);
+            try{
+                serverStub.requestMyProofs(
                     RequestMyProofsRequest.newBuilder()
                             .setEncryptedMessage(ByteString.copyFrom(encryptedData))
                             .setSignature(ByteString.copyFrom(digitalSignature))
@@ -203,10 +216,39 @@ public class ClientToServerFrontend {
                             .build(), new StreamObserver<RequestMyProofsReply>() {
                         @Override
                         public void onNext(RequestMyProofsReply requestMyProofsReply) {
-                            //TODO
-                            //Handle response
-                        }
+                            //Verify if read ID is the same the expected readID
+                            byte[] encryptedResponse = requestMyProofsReply.getMessage().toByteArray();
+                            byte[] responseSignature = requestMyProofsReply.getSignature().toByteArray();
+                            byte[] responseIv = requestMyProofsReply.getIv().toByteArray();
 
+                            //Decrypt response
+                            SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+                            byte[] response = EncryptionLogic.decryptWithAES(sessionKey, encryptedResponse, responseIv);
+
+                            //Verify response signature
+                            if (!EncryptionLogic.verifyDigitalSignature(response, responseSignature, EncryptionLogic.getPublicKey(server)))
+                                System.err.println("Invalid signature from My Proofs response");
+                            else
+                                System.err.println("Valid signature from My Proofs response");
+
+                            //process response to get read ID
+                            String jsonString = new String(response);
+                            JSONObject jsonObject = new JSONObject(jsonString);
+                            String receivedReadId = jsonObject.getString("readId");
+
+                            if (receivedReadId.equals(readId)) {
+                                //Add proofs received
+                                JSONArray receivedProofsJson = jsonObject.getJSONArray("proofList");
+                                for(int i = 0; i < receivedProofsJson.length(); i++){
+                                    JSONObject proofJSON = receivedProofsJson.getJSONObject(i);
+                                    clientLogic.myProofsResponses.get(readId).add(proofJSON);
+                                }
+                                clientLogic.gotMyProofsQuorum.get(readId).add(server);
+
+                            } else {
+                                System.out.println("Received WRONG read ID in myproof request");
+                            }
+                        }
                         @Override
                         public void onError(Throwable throwable) {
 
@@ -217,12 +259,38 @@ public class ClientToServerFrontend {
 
                         }
                     }
-            );
+                );
 
+            } catch (StatusRuntimeException e) {
+                io.grpc.Status status = io.grpc.Status.fromThrowable(e);
+                System.err.println("Exception received from server: " + status.getDescription());
+            }
         }
 
-        return null;
+        System.out.println("Waiting for my proofs quorum...");
 
+        long start = System.currentTimeMillis();
+        while ((clientLogic.gotMyProofsQuorum.get(readId).size() != clientLogic.serverQuorum) && !myProofsTimeoutExpired) {
+            long delta = System.currentTimeMillis() - start;
+            if (delta > 10000) {
+                myProofsTimeoutExpired = true;
+                break;
+            }
+        }
+        if (clientLogic.gotMyProofsQuorum.get(readId).size() == clientLogic.serverQuorum) {
+            System.out.println("Got response quorum for my proofs request");
+        } else if (myProofsTimeoutExpired)
+            System.err.println("Couldn't get my proofs the time limit");
+        else {
+            System.err.println("SOMETHING IS WRONG");
+        }
+        //Get proofs
+        List<Proof> proofs = clientLogic.getMyProofs(readId, epochs);
+
+        clientLogic.gotMyProofsQuorum.get(readId).clear();
+        myProofsTimeoutExpired = false;
+
+        return proofs;
     }
 
     public Coords obtainLocationReport(String username, int epoch, String requestUid) {
@@ -316,7 +384,7 @@ public class ClientToServerFrontend {
             System.err.println("Something went wrong");
             return null;
         }
-        
+
 
 
         new Thread(new Runnable() {

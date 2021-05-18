@@ -1,9 +1,14 @@
 package Server;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import util.Coords;
+import util.EncryptionLogic;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Objects;
 
 public class Proof {
     private int epoch;
@@ -16,6 +21,17 @@ public class Proof {
     private byte[] witnessIV;
 
     public Proof() {
+    }
+
+    public Proof(JSONObject proofJSON, JSONObject locationJSON){
+        this.epoch = proofJSON.getInt("epoch");
+        this.witnessUsername = proofJSON.getString("witnessUsername");
+        this.proverUsername = proofJSON.getString("proverUsername");
+
+        this.coords = new Coords(
+                locationJSON.getInt("x"),
+                locationJSON.getInt("y")
+        );
     }
 
     public Proof(JSONObject proofJSON, JSONObject locationJSON, byte[] proofBytes, byte[] witnessSessionKeyBytes, byte[] witnessIV) {
