@@ -149,7 +149,7 @@ public class UserReportsRepository {
         }
     }
 
-    public void replaceReport(String username, int epoch){
+    public void deleteReport(String username, int epoch){
         try {
             String sql = "DELETE FROM Proofs WHERE prover_username = ? AND epoch = ?";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);

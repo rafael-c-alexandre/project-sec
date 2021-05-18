@@ -10,6 +10,7 @@ import util.EncryptionLogic;
 import javax.crypto.SecretKey;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.ByteBuffer;
 import java.security.Key;
 import java.util.*;
 
@@ -65,7 +66,7 @@ public class ClientLogic {
         message.put("x", coords.getX());
         message.put("y", coords.getY());
 
-        byte[][] result = new byte[4][];
+        byte[][] result = new byte[5][];
 
         //Generate a session Key
         SecretKey sessionKey = EncryptionLogic.generateAESKey();
@@ -81,9 +82,15 @@ public class ClientLogic {
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
                 EncryptionLogic.getPrivateKey(this.username,keystorePasswd));
 
+        //Generate proof of work
+        long nonce = EncryptionLogic.generateProofOfWork(message.toString(),"00");
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(nonce);
+
         result[1] = digitalSignature;
         result[2] = encryptedSessionKey;
         result[3] = iv;
+        result[4] = buffer.array();
 
         return result;
     }

@@ -19,6 +19,7 @@ message SubmitLocationReportRequest {
     bytes encryptedMessage = 2;
     bytes signature = 3;
     bytes iv = 4;
+    int64 proofOfWork = 5;
 }
 
 message SubmitLocationReportReply {

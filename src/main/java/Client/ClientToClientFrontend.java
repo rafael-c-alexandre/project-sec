@@ -72,7 +72,7 @@ public class ClientToClientFrontend {
         byte[][] message = clientLogic.generateLocationReport(epoch);
 
         //Submits the report request to the servers, to indicate that the client will start submitting proofs
-        serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
+        serverFrontend.submitReport(message[0], message[1], message[2], message[3], message[4]);
 
         /* Request proof of location to other close clients */
         for (String user : closePeers) {
