@@ -143,7 +143,7 @@ public class ServerLogic {
             //try to replace report
             if(!replaceReport(userReport)) this.reportList.add(userReport);
 
-            System.out.println("Report from " + userReport.getUsername() + " from epoch " + userReport.getEpoch() + " report verified");
+            System.out.println("Initial Report received from " + userReport.getUsername() + " from epoch " + userReport.getEpoch() + " report verified");
             //Add to database
             reportsRepository.submitUserReport(userReport, digitalSignature);
         } else {
@@ -180,7 +180,7 @@ public class ServerLogic {
         //verify digital signature
         boolean isValid = EncryptionLogic.verifyDigitalSignature(decipheredMessage, digitalSignature, userPubKey);
 
-        System.out.println("Prover: " + username + " epoch: " +  epoch + " + Message digital signature valid? " + isValid);
+        //System.out.println("Prover: " + username + " epoch: " +  epoch + " + Message digital signature valid? " + isValid);
         if (isValid) {
             try {
                 obtainClosedLocationReport(username, epoch);
@@ -208,7 +208,7 @@ public class ServerLogic {
         Proof newProof = verifyProof(witnessEncryptedSessionKey,decryptedProof, signature,witnessIv);
 
         UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
-        System.out.println("Proof from " + newProof.getWitnessUsername() + " to " + newProof.getProverUsername() + " report verified");
+        System.out.println("\t Proof received from " + newProof.getWitnessUsername() + " to " + newProof.getProverUsername() + " report verified");
         report.addProof(newProof);
         reportsRepository.submitProof(newProof);
         if (report.getProofsList().size() >= responseQuorum && !report.isClosed()) {
@@ -264,7 +264,7 @@ public class ServerLogic {
         int epoch = proofJSON.getInt("epoch");
 
         UserReport report = obtainLocationReport(proverUser, epoch);
-        System.out.println("Proof signature valid from witness " + witnessUser + " to prover " + proverUser);
+        //System.out.println("Proof signature valid from witness " + witnessUser + " to prover " + proverUser);
 
         //prover cannot be a witness
         if (report.getUsername().equals(witnessUser))

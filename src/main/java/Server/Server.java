@@ -44,13 +44,16 @@ public class Server {
         }
 
         final Server server;
-        if(args.length == 4)
+        if(args.length == 4) {
             server = new Server(args[0], args[1], args[2], args[3]);
-        else
+            System.out.println("Server Started");
+        } else {
             server = new Server(args[0], args[1], args[2], args[3], args[4]);
+            System.out.println(args[4] + " Started");
+        }
 
         server.start();
-        System.out.println("Server Started");
+
 
         server.blockUntilShutdown();
     }
