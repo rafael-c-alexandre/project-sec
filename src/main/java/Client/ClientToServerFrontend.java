@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 public class ClientToServerFrontend {
@@ -43,7 +44,7 @@ public class ClientToServerFrontend {
         stubMap.put(username, ClientToServerGrpc.newStub(channel));
     }
 
-    public void submitReport(byte[] encryptedMessage,byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] proofOfWork) {
+    public void submitReport(int epoch, byte[] encryptedMessage,byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] proofOfWork) {
 
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.put(proofOfWork);
@@ -62,7 +63,12 @@ public class ClientToServerFrontend {
                         new StreamObserver<SubmitLocationReportReply>() {
                             @Override
                             public void onNext(SubmitLocationReportReply submitLocationReportReply) {
-
+                                clientLogic.gotReportQuorums.putIfAbsent(epoch, new CopyOnWriteArrayList<>());
+                                if(clientLogic.gotReportQuorums.get(epoch).contains(server.getKey())){
+                                    System.err.println("WARNING: gotReportQuorums replayed");
+                                } else {
+                                    clientLogic.gotReportQuorums.get(epoch).add(server.getKey());
+                                }
                             }
 
                             @Override
@@ -81,6 +87,28 @@ public class ClientToServerFrontend {
                 System.err.println("Exception received from server: " + status.getDescription());
             }
         }
+
+        System.out.println("Waiting for submit report quorum...");
+
+        long start = System.currentTimeMillis();
+        while ((clientLogic.gotReportQuorums.get(epoch).size()!=serverQuorum) && !timeoutExpired) {
+            long delta = System.currentTimeMillis() - start;
+            if (delta > 10000) {
+                timeoutExpired = true;
+                break;
+            }
+        }
+        if (clientLogic.gotReportQuorums.get(epoch).size() == serverQuorum){
+            for(String name: clientLogic.gotReportQuorums.get(epoch))
+                System.out.println("Got response quorum from server "+ name + " for report submission, for epoch " + epoch);
+        }
+        else if (timeoutExpired)
+            System.err.println("Couldn't submit report within the time limit");
+        else{
+            System.err.println("SOMETHING IS WRONG");
+        }
+        clientLogic.gotReportQuorums.get(epoch).clear();
+        timeoutExpired = false;
     }
 
 

@@ -13,12 +13,18 @@ import java.io.FileNotFoundException;
 import java.nio.ByteBuffer;
 import java.security.Key;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ClientLogic {
 
     private final String username;
     private final Map<String, Map<Integer, Coords>> grid = new HashMap<>();
     private String keystorePasswd;
+    public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotReportQuorums = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotProofQuorums = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotReadQuorum = new ConcurrentHashMap<>();
+
 
     public ClientLogic(String username, String gridFilePath, String keystorePasswd) {
         this.username = username;
