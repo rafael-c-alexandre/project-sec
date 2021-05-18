@@ -74,7 +74,7 @@ public class ClientToClientFrontend {
 
         //Submits the report request to the servers, to indicate that the client will start submitting proofs
         for (String serverName: serverNames){
-            serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
+            serverFrontend.submitReport(message[0], message[1], message[2], message[3], message[4]);
             System.out.println("Report sent to server " + serverName);
         }
         /* Request proof of location to other close clients */

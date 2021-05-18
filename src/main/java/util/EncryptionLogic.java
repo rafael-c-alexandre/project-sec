@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
@@ -29,6 +30,10 @@ public class EncryptionLogic {
     private final static String CRYPTO_FOLDER_PATH = "src/main/assets/crypto/";
 
     public EncryptionLogic() {
+    }
+
+    public static void main(String[] args){
+
     }
 
     public static KeyPair generateUserKeyPair() {
@@ -232,6 +237,44 @@ public class EncryptionLogic {
         return new SecretKeySpec(bytes, 0, bytes.length, "AES");
     }
 
+    public static boolean verifyProofOfWork(long nonce, String data, String difficulty){
+        try{
+            String toDigest = data + nonce;
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedHash = digest.digest(toDigest.getBytes(StandardCharsets.UTF_8));
+
+            toDigest = new String(encodedHash);
+            return toDigest.startsWith(difficulty);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    public static long generateProofOfWork(String data, String difficulty){
+        try {
+
+            long nonce = 0;
+
+            while(true) {
+                String toDigest = data + nonce;
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                byte[] encodedHash = digest.digest(toDigest.getBytes(StandardCharsets.UTF_8));
+
+                toDigest = new String(encodedHash);
+
+                if(toDigest.startsWith(difficulty))
+                    return nonce;
+
+                nonce++;
+
+            }
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
 
     public static PublicKey getPublicKey(String username) {
         try {

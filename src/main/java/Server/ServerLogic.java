@@ -117,7 +117,7 @@ public class ServerLogic {
                 .collect(Collectors.toList());
     }
 
-    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException {
+    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException {
 
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
@@ -127,10 +127,21 @@ public class ServerLogic {
         byte[] decipheredMessage = EncryptionLogic.decryptWithAES(sessionKey, encryptedMessage, iv);
         JSONObject reportJSON = new JSONObject(new String(decipheredMessage));
 
+        //Verify proof of work
+        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,reportJSON.toString(),"00"))
+            throw new InvalidReportException();
+
         //verify message integrity
         if(verifyMessage(decipheredMessage, digitalSignature)) {
             UserReport userReport = new UserReport(reportJSON, digitalSignature);
 
+
+
+
+            if(duplicateReport(userReport)) {
+                System.out.println("Received duplicate report, ignoring!");
+                return;
+            }
             //try to replace report
             if(!replaceReport(userReport)) this.reportList.add(userReport);
 
@@ -143,6 +154,20 @@ public class ServerLogic {
     }
 
     // when a user submits a new report from a epoch that has not a confirmed report
+    public synchronized boolean duplicateReport(UserReport newReport) {
+
+        for (int i = 0; i < reportList.size(); i++) {
+            if (reportList.get(i).getUsername().equals(newReport.getUsername())
+                    && reportList.get(i).getEpoch() == newReport.getEpoch()
+                    && !reportList.get(i).isClosed()
+                    && reportList.get(i).getCoords() == newReport.getCoords()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // when a user submits a new report from a epoch that has not a confirmed report
     public synchronized boolean replaceReport(UserReport newReport) {
 
         for (int i = 0; i < reportList.size(); i++) {
@@ -151,7 +176,9 @@ public class ServerLogic {
                     && !reportList.get(i).isClosed()) {
                 reportList.set(i, newReport);
                 System.out.println("Replaced in memory!");
-                reportsRepository.replaceReport(newReport.getUsername(),newReport.getEpoch());
+                reportsRepository.deleteReport(newReport.getUsername(),newReport.getEpoch());
+                reportsRepository.submitUserReport(newReport,newReport.getSignature());
+                System.out.println("Replace in DB!");
                 return true;
             }
         }

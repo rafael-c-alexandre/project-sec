@@ -9,6 +9,7 @@ import proto.*;
 import org.json.JSONObject;
 import util.Coords;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -42,7 +43,13 @@ public class ClientToServerFrontend {
         stubMap.put(username, ClientToServerGrpc.newStub(channel));
     }
 
-    public void submitReport(byte[] encryptedMessage,byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv) {
+    public void submitReport(byte[] encryptedMessage,byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] proofOfWork) {
+
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.put(proofOfWork);
+        buffer.flip();//need flip
+        long nonce =  buffer.getLong();
+
         for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
             try {
                 server.getValue().submitLocationReport(SubmitLocationReportRequest.newBuilder()
@@ -50,6 +57,7 @@ public class ClientToServerFrontend {
                                 .setSignature(ByteString.copyFrom(digitalSignature))
                                 .setIv(ByteString.copyFrom(iv))
                                 .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                                .setProofOfWork(nonce)
                                 .build(),
                         new StreamObserver<SubmitLocationReportReply>() {
                             @Override

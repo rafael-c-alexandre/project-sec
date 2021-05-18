@@ -132,7 +132,7 @@ public class Server {
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
             try {
-                serverLogic.submitReport(request.getEncryptedSessionKey().toByteArray(),request.getEncryptedMessage().toByteArray(), request.getSignature().toByteArray(),request.getIv().toByteArray());
+                serverLogic.submitReport(request.getEncryptedSessionKey().toByteArray(),request.getEncryptedMessage().toByteArray(), request.getSignature().toByteArray(),request.getIv().toByteArray(), request.getProofOfWork());
 
                 SubmitLocationReportReply reply = SubmitLocationReportReply.newBuilder().build();
                 responseObserver.onNext(reply);
