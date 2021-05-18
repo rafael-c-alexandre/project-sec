@@ -2,3 +2,4 @@ obtain_report
 0
 request_proofs
 0,1
+exit

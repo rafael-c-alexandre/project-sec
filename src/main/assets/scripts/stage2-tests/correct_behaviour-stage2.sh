@@ -1,6 +1,6 @@
 #! /bin/bash
 
-cd ../../../..
+cd ../../../../../
 mysql -u root -p123 < src/main/assets/sql/schema.sql
 konsole -e /bin/bash  --rcfile <(echo "mvn exec:java -Dexec.mainClass=\"Server.Server\" -Dexec.args=\"root 123 1 123456 server 0\"") &
 konsole -e /bin/bash  --rcfile <(echo "mvn exec:java -Dexec.mainClass=\"Server.Server\" -Dexec.args=\"root 123 1 123456 server2 0\"") &
