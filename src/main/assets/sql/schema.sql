@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS Proofs;
 DROP TABLE IF EXISTS UserReports;
 
 CREATE TABLE UserReports (
+     server_id VARCHAR(255),
      username VARCHAR(255),
      epoch INT,
      x INT NOT NULL,
@@ -16,6 +17,7 @@ CREATE TABLE UserReports (
 );
 
 CREATE TABLE Proofs (
+    server_id VARCHAR(255),
     witness_username VARCHAR(255),
     prover_username VARCHAR(255),
     x INT,
