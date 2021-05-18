@@ -86,7 +86,7 @@ public class ClientLogic {
 
         for (String server : serverNames) {
 
-            byte[][] result = new byte[5][];
+            byte[][] result = new byte[7][];
 
             //Generate a session Key
             SecretKey sessionKey = EncryptionLogic.generateAESKey();
@@ -98,9 +98,17 @@ public class ClientLogic {
             byte[] encryptedMessage = EncryptionLogic.encryptWithAES(sessionKey, message.toString().getBytes(), iv);
             result[0] = encryptedMessage;
 
-            //sign message
-            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
-                    EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
+            long timestamp = System.currentTimeMillis();
+            long proofOfWork = EncryptionLogic.generateProofOfWork(message.toString() + timestamp);
+
+
+            String data = message.toString() + timestamp + proofOfWork;
+
+            //Generate digital signature
+            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
+                    data.getBytes(),
+                    EncryptionLogic.getPrivateKey(username, keystorePasswd)
+            );
 
 
 
@@ -108,6 +116,14 @@ public class ClientLogic {
             result[2] = encryptedSessionKey;
             result[3] = iv;
             result[4] = server.getBytes(StandardCharsets.UTF_8);
+
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.putLong(proofOfWork);
+            result[5] = buffer.array();
+
+            buffer.clear();
+            buffer.putLong(timestamp);
+            result[6] = buffer.array();
 
             reports.add(result);
         }
