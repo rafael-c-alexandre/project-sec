@@ -100,6 +100,8 @@ public class ClientLogic {
         if (!EncryptionLogic.verifyDigitalSignature(request,digitalSignature, EncryptionLogic.getPublicKey(proverUsername)))
             throw new InvalidSignatureException();
 
+        System.out.println("Valid request digital signature");
+
 
         JSONObject jsonProof = new JSONObject();
         byte[][] result = new byte[4][];

@@ -40,7 +40,6 @@ public class ClientToClientFrontend {
                 channel
         );
 
-
         stubMap.put(username, ClientToClientGrpc.newStub(channel));
     }
 
@@ -65,7 +64,6 @@ public class ClientToClientFrontend {
 
     public void broadcastProofRequest(int epoch) {
 
-
         //Coords coords = clientLogic.getCoords(epoch);
         List<String> closePeers = clientLogic.closePeers(epoch);
 
@@ -74,10 +72,8 @@ public class ClientToClientFrontend {
         byte[][] message = clientLogic.generateLocationReport(epoch);
 
         //Submits the report request to the servers, to indicate that the client will start submitting proofs
-        for (String serverName: serverNames){
-            serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
-            System.out.println("Report sent to server " + serverName);
-        }
+        serverFrontend.submitReport(message[0], message[1], message[2], message[3]);
+
         /* Request proof of location to other close clients */
         for (String user : closePeers) {
             /* Create location proof request */

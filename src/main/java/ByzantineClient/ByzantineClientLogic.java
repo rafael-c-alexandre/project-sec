@@ -108,6 +108,8 @@ public class ByzantineClientLogic {
         if (!EncryptionLogic.verifyDigitalSignature(request,digitalSignature, EncryptionLogic.getPublicKey(proverUsername)))
             throw new InvalidSignatureException();
 
+        System.out.println("Valid request digital signature");
+
 
         if(!(this.byzantineMode==4)) {
             //look at the grid to check if prover is nearby

@@ -58,6 +58,7 @@ public class ServerLogic {
         if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
             throw new InvalidFreshnessToken();
         }
+        System.out.println("Valid freshness token");
 
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
@@ -311,6 +312,7 @@ public class ServerLogic {
         if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
             throw new InvalidFreshnessToken();
         }
+        System.out.println("Valid freshness token");
 
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("server", keystorePasswd), encryptedSessionKey);
