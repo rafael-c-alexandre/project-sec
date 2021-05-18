@@ -25,31 +25,34 @@ public class Server {
     final String ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings.txt";
 
     private io.grpc.Server server;
+    private int byzantineMode = 0;
 
-    public Server(String user, String pass, String f, String keystorePasswd) throws SQLException {
-        this(user, pass, f, keystorePasswd, "server");
+    public Server(String user, String pass, String f, String keystorePasswd,int byzantineMode) throws SQLException {
+        this(user, pass, f, keystorePasswd, "server", byzantineMode);
     }
 
-    public Server(String user, String pass, String f, String keystorePasswd, String serverName) throws SQLException {
+    public Server(String user, String pass, String f, String keystorePasswd, String serverName, int byzantineMode) throws SQLException {
         this.connector = new Connector(user, pass,serverName);
-        this.serverLogic = new ServerLogic(this.connector.getConnection(), f, keystorePasswd, serverName);
-
+        this.serverLogic = new ServerLogic(this.connector.getConnection(), f, keystorePasswd, serverName, byzantineMode);
+        this.byzantineMode = byzantineMode;
     }
 
     public static void main(String[] args) throws Exception {
 
 
-        if (args.length != 4 && args.length != 5) {
-            System.err.println("Invalid args. Try -> dbuser dbpassword numberOfByzantines keystorePasswd servername");
+        if (args.length != 5 && args.length != 6) {
+            System.err.println("Invalid args. Try -> dbuser dbpassword numberOfByzantines keystorePasswd servername byzantineMode");
             System.exit(0);
         }
 
+
+
         final Server server;
-        if(args.length == 4) {
-            server = new Server(args[0], args[1], args[2], args[3]);
+        if(args.length == 5) {
+            server = new Server(args[0], args[1], args[2], args[3], Integer.parseInt(args[4]));
             System.out.println("Server Started");
         } else {
-            server = new Server(args[0], args[1], args[2], args[3], args[4]);
+            server = new Server(args[0], args[1], args[2], args[3], args[4], Integer.parseInt(args[5]));
             System.out.println(args[4] + " Started");
         }
 
@@ -69,7 +72,7 @@ public class Server {
     private void start() throws IOException {
         server = ServerBuilder
                 .forPort(getServerPort(serverLogic.getServerName()))
-                .addService(new ServerImp(this.serverLogic))
+                .addService(new ServerImp(this.serverLogic, this.byzantineMode))
                 .addService(new HAToServerImp(this.serverLogic))
                 .build();
 
@@ -117,9 +120,11 @@ public class Server {
     static class ServerImp extends ClientToServerGrpc.ClientToServerImplBase {
 
         private final ServerLogic serverLogic;
+        private final int byzantineMode;
 
-        public ServerImp(ServerLogic serverLogic) {
+        public ServerImp(ServerLogic serverLogic, int byzantineMode) {
             this.serverLogic = serverLogic;
+            this.byzantineMode = byzantineMode;
 
         }
 

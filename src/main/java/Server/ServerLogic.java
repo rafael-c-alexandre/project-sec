@@ -25,16 +25,33 @@ public class ServerLogic {
     private final int responseQuorum;
     private String keystorePasswd;
     private String serverName;
+    private int byzantineMode;
 
-    public ServerLogic(Connection Connection, String f, String keystorePasswd, String serverName) {
+    public ServerLogic(Connection Connection, String f, String keystorePasswd, String serverName, int byzantineMode) {
         reportsRepository = new UserReportsRepository(Connection);
         this.reportList = reportsRepository.getAllUserReports();
         this.responseQuorum = Integer.parseInt(f);
         this.keystorePasswd = keystorePasswd;
         this.serverName = serverName;
+        this.byzantineMode = byzantineMode;
     }
 
     public UserReport obtainLocationReport(String username, int epoch) throws NoReportFoundException {
+        if(byzantineMode == 1) {
+            UserReport ret = new UserReport();
+            ret.setClosed(true);
+            ret.setProofsList(new ArrayList<>());
+            ret.setEpoch(4);
+            ret.setUsername("FAKENEWS");
+            ret.setSignature(new byte[128]);
+            ret.setCoords(new Coords(0,0));
+
+            return ret;
+        }
+
+        if(byzantineMode == 2)
+            throw new NoReportFoundException(username, epoch);
+
 
         for (UserReport report : this.reportList) {
             if (report.getUsername().equals(username) && report.getEpoch() == epoch)
@@ -44,6 +61,21 @@ public class ServerLogic {
     }
 
     public UserReport obtainClosedLocationReport(String username, int epoch) throws NoReportFoundException {
+        if(byzantineMode == 1) {
+            UserReport ret = new UserReport();
+            ret.setClosed(true);
+            ret.setProofsList(new ArrayList<>());
+            ret.setEpoch(4);
+            ret.setUsername("FAKENEWS");
+            ret.setSignature(new byte[128]);
+            ret.setCoords(new Coords(0,0));
+
+            return ret;
+        }
+
+        if(byzantineMode == 2)
+            throw new NoReportFoundException(username, epoch);
+
         for (UserReport report : this.reportList) {
             if (report.getUsername().equals(username) && report.getEpoch() == epoch && report.isClosed())
                 return report;
@@ -192,6 +224,24 @@ public class ServerLogic {
 
     public JSONArray obtainUsersAtLocation(int x, int y, int epoch)  {
 
+        if(byzantineMode == 3){
+            String u1 = "1";
+            String u2 = "2";
+            String u3 = "3";
+
+            JSONArray ret = new JSONArray();
+            ret.put(u1);
+            ret.put(u2);
+            ret.put(u3);
+
+            return ret;
+
+        }
+
+        if(byzantineMode == 4)
+            return new JSONArray();
+
+
         JSONArray userReports = new JSONArray();
         for(UserReport report: this.reportList){
             Coords coords = report.getCoords();
@@ -325,6 +375,9 @@ public class ServerLogic {
 
     public synchronized boolean submitProof(byte[] witnessEncryptedSessionKey, byte[] witnessIv, byte[] encryptedSessionKey, byte[] encryptedProof, byte[] signature, byte[] iv, long timestamp, long proofOfWork) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException, InvalidFreshnessToken {
 
+        if(byzantineMode == 5)
+            return true;
+
         //max skew assumed: 30s
         if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
             throw new InvalidFreshnessToken();
@@ -370,6 +423,50 @@ public class ServerLogic {
     public List<Proof> getUserProofs(String username, List<Integer> epochs){
         List<Proof> ret = new ArrayList<>();
 
+        if(byzantineMode == 6)
+            return new ArrayList<>();
+
+        if(byzantineMode == 7){
+            List<Proof> proofs = new ArrayList<>();
+            var p1 = new Proof();
+            var p2 = new Proof();
+            var p3 = new Proof();
+
+            p1.setSignature(new byte[128]);
+            p1.setProverUsername("nonono");
+            p1.setWitnessUsername("yyy");
+            p1.setEpoch(1);
+            p1.setCoords(new Coords(0,0));
+            p1.setProofBytes(new byte[128]);
+            p1.setWitnessIV(new byte[128]);
+            p1.setWitnessSessionKeyBytes(new byte[128]);
+
+            p2.setSignature(new byte[128]);
+            p2.setProverUsername("nanana");
+            p2.setWitnessUsername("xxx");
+            p2.setEpoch(1);
+            p2.setCoords(new Coords(0,0));
+            p2.setProofBytes(new byte[128]);
+            p2.setWitnessIV(new byte[128]);
+            p2.setWitnessSessionKeyBytes(new byte[128]);
+
+            p3.setSignature(new byte[128]);
+            p3.setProverUsername("neenene");
+            p3.setWitnessUsername("zzz");
+            p3.setEpoch(1);
+            p3.setCoords(new Coords(0,0));
+            p3.setProofBytes(new byte[128]);
+            p3.setWitnessIV(new byte[128]);
+            p3.setWitnessSessionKeyBytes(new byte[128]);
+
+
+            proofs.add(p1);
+            proofs.add(p2);
+            proofs.add(p3);
+
+            return proofs;
+
+        }
 
         for(int epoch : epochs){
             Stream<Proof> result = reportList.stream()
