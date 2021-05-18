@@ -80,7 +80,9 @@ public class HAClient {
             int y = Integer.parseInt(in.nextLine());
             System.out.print("State the epoch: ");
             int epoch = Integer.parseInt(in.nextLine());
-            List<String> result = haFrontend.obtainUsersAtLocation(x, y, epoch);
+
+            String uuid = UUID.randomUUID().toString();
+            List<String> result = haFrontend.obtainUsersAtLocation(uuid, x, y, epoch);
 
             if (result.size() == 0)
                 System.out.println("No users at this location in the given epoch.");

@@ -1,18 +1,23 @@
 package HA;
 
+import Server.Proof;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import org.json.JSONArray;
 import org.json.JSONObject;
-import proto.ClientToServerGrpc;
+import proto.*;
 import proto.HA.*;
-import proto.ObtainLocationReportReply;
-import proto.WriteBackReply;
-import proto.WriteBackRequest;
+import proto.HA.ObtainLocationReportReply;
+import proto.HA.ObtainLocationReportRequest;
+import proto.HA.WriteBackReply;
+import proto.HA.WriteBackRequest;
 import util.Coords;
+import util.EncryptionLogic;
 
+import javax.crypto.SecretKey;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -28,6 +33,7 @@ public class HAFrontend {
     private final HALogic haLogic;
     private volatile boolean readTimeoutExpired = false;
     private volatile boolean writebackTimeoutExpired = false;
+    private volatile boolean obtainUsersTimeoutExpired = false;
 
     public HAFrontend(HALogic haLogic) {
         this.haLogic = haLogic;
@@ -43,31 +49,121 @@ public class HAFrontend {
     }
 
 
-    public List<String> obtainUsersAtLocation(int x, int y, int epoch) {
-        /*byte[][] params = this.haLogic.generateObtainUsersAtLocationRequestParameters(x, y, epoch);
+    public List<String> obtainUsersAtLocation(String readId, int x, int y, int epoch) {
+        List<byte[][]> usersList = this.haLogic.generateObtainUsersAtLocationRequestParameters(readId, x, y, epoch);
 
-        byte[] encryptedData = params[0];
-        byte[] digitalSignature = params[1];
-        byte[] encryptedSessionKey = params[2];
-        byte[] iv = params[3];
-        byte[] sessionKeyBytes = params[4];
+        for(byte[][] params: usersList) {
+            byte[] encryptedData = params[0];
+            byte[] digitalSignature = params[1];
+            byte[] encryptedSessionKey = params[2];
+            byte[] iv = params[3];
+            byte[] sessionKeyBytes = params[4];
+            byte[] proofOfWorkBytes = params[6];
+            byte[] timestampBytes = params[7];
 
-        ObtainUsersAtLocationReply reply = this.blockingStub.obtainUsersAtLocation(
-                ObtainUsersAtLocationRequest.newBuilder()
-                        .setMessage(ByteString.copyFrom(encryptedData))
-                        .setSignature(ByteString.copyFrom(digitalSignature))
-                        .setTimestamp(System.currentTimeMillis())
-                        .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
-                        .setIv(ByteString.copyFrom(iv))
-                        .build()
-        );
+            String server = new String(params[5], StandardCharsets.UTF_8);
 
-        byte[] encryptedResponse = reply.getMessage().toByteArray();
-        byte[] responseSignature = reply.getSignature().toByteArray();
-        byte[] responseIv = reply.getIv().toByteArray();
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.put(proofOfWorkBytes);
+            buffer.flip();//need flip
+            long proofOfWork = buffer.getLong();
 
-        return this.haLogic.getUsersFromReply(sessionKeyBytes, encryptedResponse, responseSignature, responseIv);*/
-        return new ArrayList<>();
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.put(timestampBytes);
+            buffer2.flip();//need flip
+            long timestamp = buffer2.getLong();
+
+            haLogic.gotUsersQuorum.putIfAbsent(readId, new CopyOnWriteArrayList<>());
+            haLogic.gotUsersResponses.putIfAbsent(readId, new CopyOnWriteArrayList<>());
+            HAToServerGrpc.HAToServerStub serverStub = stubMap.get(server);
+
+            try{
+                serverStub.obtainUsersAtLocation(
+                    ObtainUsersAtLocationRequest.newBuilder()
+                            .setMessage(ByteString.copyFrom(encryptedData))
+                            .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setTimestamp(timestamp)
+                            .setProofOfWork(proofOfWork)
+                            .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                            .setIv(ByteString.copyFrom(iv))
+                            .build(), new StreamObserver<ObtainUsersAtLocationReply>() {
+                        @Override
+                        public void onNext(ObtainUsersAtLocationReply obtainUsersAtLocationReply) {
+                            //Verify if read ID is the same the expected readID
+                            byte[] encryptedResponse = obtainUsersAtLocationReply.getMessage().toByteArray();
+                            byte[] responseSignature = obtainUsersAtLocationReply.getSignature().toByteArray();
+                            byte[] responseIv = obtainUsersAtLocationReply.getIv().toByteArray();
+
+                            //Decrypt response
+                            SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+                            byte[] response = EncryptionLogic.decryptWithAES(sessionKey, encryptedResponse, responseIv);
+
+                            //Verify response signature
+                            if (!EncryptionLogic.verifyDigitalSignature(response, responseSignature, EncryptionLogic.getPublicKey(server)))
+                                System.err.println("Invalid signature for obtain users at location response");
+                            else
+                                System.err.println("Valid signature for obtain users at location response");
+
+                            //process response to get read ID
+                            String jsonString = new String(response);
+                            JSONObject jsonObject = new JSONObject(jsonString);
+                            String receivedReadId = jsonObject.getString("readId");
+
+                            if (receivedReadId.equals(readId)) {
+                                //Add users received
+                                JSONArray receivedUserReports = jsonObject.getJSONArray("userReports");
+                                for(int i = 0; i < receivedUserReports.length(); i++){
+                                    JSONObject userReportJson = receivedUserReports.getJSONObject(i);
+                                    haLogic.gotUsersResponses.get(readId).add(userReportJson);
+                                }
+                                haLogic.gotUsersQuorum.get(readId).add(server);
+
+                            } else {
+                                System.out.println("Received WRONG read ID in myproof request");
+                            }
+                        }
+                        @Override
+                        public void onError(Throwable throwable) {
+
+                        }
+
+                        @Override
+                        public void onCompleted() {
+
+                        }
+                    }
+                );
+
+            } catch (StatusRuntimeException e) {
+                io.grpc.Status status = io.grpc.Status.fromThrowable(e);
+                System.err.println("Exception received from server: " + status.getDescription());
+            }
+        }
+
+        System.out.println("Waiting for Users at location quorum");
+
+        long start = System.currentTimeMillis();
+        while ((haLogic.gotUsersQuorum.get(readId).size() != haLogic.serverQuorum) && !obtainUsersTimeoutExpired) {
+            long delta = System.currentTimeMillis() - start;
+            if (delta > 10000) {
+                obtainUsersTimeoutExpired = true;
+                break;
+            }
+        }
+        if (haLogic.gotUsersQuorum.get(readId).size() == haLogic.serverQuorum) {
+            System.out.println("Got response quorum for obtain users at location request");
+        } else if (obtainUsersTimeoutExpired)
+            System.err.println("Couldn't get users at location in the time limit");
+        else {
+            System.err.println("SOMETHING IS WRONG");
+        }
+        //Get users at location
+        List<String> users = haLogic.getUsersFromReply(readId, x, y, epoch);
+
+        haLogic.gotUsersQuorum.get(readId).clear();
+        obtainUsersTimeoutExpired = false;
+
+        return users;
 
     }
 

@@ -35,7 +35,8 @@ message ObtainUsersAtLocationRequest {
   bytes message = 2;
   bytes signature = 3;
   bytes iv = 4;
-  int64 timestamp = 5;
+  int64 proofOfWork = 5;
+  int64 timestamp = 6;
 }
 
 message ObtainUsersAtLocationReply {

@@ -1,5 +1,6 @@
 package HA;
 
+import Server.Proof;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import util.Coords;
@@ -9,9 +10,7 @@ import javax.crypto.SecretKey;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -25,6 +24,9 @@ public class HALogic {
     public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotReadQuorum = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotWriteBackQuorum = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, JSONObject> readRequests = new ConcurrentHashMap<>();
+
+    public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotUsersQuorum = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, CopyOnWriteArrayList<JSONObject>> gotUsersResponses = new ConcurrentHashMap<>(); //<Epoch, <ProverUsername, ProofJSON
     public final int serverQuorum; //quorum of responses of servers needed
 
     public HALogic(String keystorePasswd, int numberOfByzantineClients, int numberOfByzantineServers)  {
@@ -164,28 +166,66 @@ public class HALogic {
 
     }
 
-    public List<String> getUsersFromReply(byte[] sessionKeyBytes, byte[] encryptedResponse, byte[] responseSignature, byte[] responseIv) {
-        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
-        //Decrypt response
-        byte[] response = EncryptionLogic.decryptWithAES(sessionKey, encryptedResponse, responseIv);
+    public List<String> getUsersFromReply(String readId, int x, int y, int epoch) {
+        ArrayList<String> uniqueUsers = new ArrayList<>();
 
-        //Verify response signature
-        if (!EncryptionLogic.verifyDigitalSignature(response, responseSignature, EncryptionLogic.getPublicKey("server")))
-            System.out.println("Invalid signature");
-        else
-            System.out.println("Valid signature");
+        for(JSONObject jsonObject: gotUsersResponses.get(readId)){
+            //JSONObject proofJson = jsonObject.getJSONObject()
 
-        //process response and return coords
-        String jsonString = new String(response);
-        JSONObject jsonObject = new JSONObject(jsonString);
-        JSONObject msg = jsonObject.getJSONObject("message");
+            //Verify Location report
+            //process response and return coords
+            JSONObject report = jsonObject.getJSONObject("report");
+            byte[] reportSignature = Base64.getDecoder().decode(report.getString("report_digital_signature"));
 
-        JSONArray arr = msg.getJSONArray("users");
-        List<String> list = new ArrayList<String>();
-        for(int i = 0; i < arr.length(); i++){
-            list.add(arr.getString(i));
+            //verify location report
+            JSONObject reportJson = report.getJSONObject("report_info");
+            if (!isValidReport(reportJson,reportSignature, epoch, reportJson.getString("username"))) {
+                System.err.println("Invalid user report");
+                return null;
+            }
+            if(reportJson.getInt("x") != x || reportJson.getInt("y") != y){
+                System.err.println("Invalid coordinates in the report");
+                return null;
+            }
+
+
+            //verify if proofs are valid and enough to prove report
+            JSONArray proofs = jsonObject.getJSONArray("proofs");
+
+            int validProofs = 0;
+            boolean isValid = false;
+
+            List<String> proofUsers = new ArrayList<>();
+
+            for (Object proof : proofs) {
+                JSONObject p = (JSONObject) proof;
+
+                JSONObject proofJson  = p.getJSONObject("proof");
+                byte[] proofSignature = Base64.getDecoder().decode(p.getString("digital_signature"));
+
+                String witnessUsername = proofJson.getString("witnessUsername");
+                if (proofUsers.contains(witnessUsername)) {
+                    System.err.println("Duplicate user proof");
+                } else {
+
+                    proofUsers.add(witnessUsername);
+
+                    if (isValidProof( proofJson, proofSignature, epoch, proofJson.getString("proverUsername")))
+                        validProofs++;
+
+                    //got the needed proofs
+                    if (validProofs >= numberOfByzantineClients)
+                        isValid = true;
+                }
+            }
+
+            if(isValid){
+                uniqueUsers.add(reportJson.getString("username"));
+            }
+
         }
-        return list;
+
+        return uniqueUsers;
     }
 
     public synchronized JSONObject verifyLocationReportResponse(byte[] encryptedMessage, byte[] signature, byte[] encryptedSessionKey, byte[] iv, String serverName, int epoch, String requestUid, String username) {
@@ -249,7 +289,7 @@ public class HALogic {
                     validProofs++;
 
                 //got the needed proofs
-                if (validProofs == numberOfByzantineClients)
+                if (validProofs >= numberOfByzantineClients)
                     isValid = true;
             }
         }
@@ -374,5 +414,68 @@ public class HALogic {
 
 
         return response;
+    }
+
+    public List<byte[][]> generateObtainUsersAtLocationRequestParameters(String readId, int x, int y, int epoch) {
+        List<byte[][]> usersRequests = new ArrayList<>();
+
+        for (String server : serverNames) {
+
+            byte[][] ret = new byte[8][];
+            JSONObject object = new JSONObject();
+            JSONObject message = new JSONObject();
+
+            //Generate a session Key
+            SecretKey sessionKey = EncryptionLogic.generateAESKey();
+            byte[] sessionKeyBytes = sessionKey.getEncoded();
+
+            //Encrypt session jey with server public key
+            byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey(server), sessionKeyBytes);
+
+            //Pass data to json
+            message.put("x", x);
+            message.put("y", y);
+            message.put("epoch", epoch);
+            message.put("readId", readId);
+
+            object.put("message", message);
+
+            //Encrypt data with session key
+            byte[] iv = EncryptionLogic.generateIV();
+            byte[] encryptedData = EncryptionLogic.encryptWithAES(
+                    sessionKey,
+                    object.toString().getBytes(),
+                    iv
+            );
+
+            long timestamp = System.currentTimeMillis();
+            long proofOfWork = EncryptionLogic.generateProofOfWork(object.toString() + timestamp);
+
+            String data = object.toString() + timestamp + proofOfWork;
+
+            //Generate digital signature
+            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
+                    data.getBytes(),
+                    EncryptionLogic.getPrivateKey("ha", keystorePasswd)
+            );
+
+            ret[0] = encryptedData;
+            ret[1] = digitalSignature;
+            ret[2] = encryptedSessionKey;
+            ret[3] = iv;
+            ret[4] = sessionKeyBytes;
+            ret[5] = server.getBytes(StandardCharsets.UTF_8);
+
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.putLong(proofOfWork);
+            ret[6] = buffer.array();
+
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.putLong(timestamp);
+            ret[7] = buffer2.array();
+
+            usersRequests.add(ret);
+        }
+        return usersRequests;
     }
 }

@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import util.Coords;
 import util.EncryptionLogic;
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
 import java.sql.Connection;
 import java.util.*;
@@ -189,12 +190,26 @@ public class ServerLogic {
         return ret;
     }
 
-    public List<String> obtainUsersAtLocation(int x, int y, int epoch)  {
+    public JSONArray obtainUsersAtLocation(int x, int y, int epoch)  {
 
-        return this.reportList.stream()
-                .filter(report -> report.getCoords().getY() == y && report.getCoords().getX() == x && report.getEpoch() == epoch && report.isClosed())
-                .map(report -> report.getUsername())
-                .collect(Collectors.toList());
+        JSONArray userReports = new JSONArray();
+        for(UserReport report: this.reportList){
+            Coords coords = report.getCoords();
+            if(report.isClosed() && coords.getX()==x && coords.getY()==y && report.getEpoch()==epoch){
+                JSONObject r = new JSONObject();
+                r.put("report", report.getReportJSON());
+
+                //add proofs to response
+                JSONArray proofs = new JSONArray();
+                for (int i = 0; i < report.getProofsList().size(); i++) {
+                    proofs.put(report.getProofsList().get(i).getProofJSON());
+                }
+                //add array to json response
+                r.put("proofs", proofs);
+                userReports.put(r);
+            }
+        }
+        return userReports;
     }
 
     public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork, long timestamp, boolean isHA) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException, InvalidProofOfWorkException, InvalidFreshnessToken {
@@ -451,13 +466,12 @@ public class ServerLogic {
 
 
 
-    public byte[][] generateObtainUsersAtLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long timestamp) throws InvalidSignatureException, InvalidFreshnessToken {
+    public byte[][] generateObtainUsersAtLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long proofOfWork, long timestamp) throws InvalidSignatureException, InvalidFreshnessToken, InvalidProofOfWorkException {
 
         //max skew assumed: 30s
         if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
             throw new InvalidFreshnessToken();
         }
-        System.out.println("Valid freshness token");
 
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
@@ -469,43 +483,44 @@ public class ServerLogic {
         String jsonString = new String(decryptedData);
         JSONObject jsonObject = new JSONObject(jsonString);
         JSONObject message = jsonObject.getJSONObject("message");
-        int epoch = message.getInt("epoch");
-        int x = message.getInt("x");
-        int y = message.getInt("y");
 
+        String data = jsonString + timestamp + proofOfWork;
+
+        //Verify proof of work
+        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,jsonString + timestamp))
+            throw new InvalidProofOfWorkException();
 
         //Verify signature
-
-        if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey("ha"))) {
+        if (!EncryptionLogic.verifyDigitalSignature(data.getBytes(), signature, EncryptionLogic.getPublicKey("ha"))) {
             System.out.println("Invalid signature for HA request!");
             throw new InvalidSignatureException();
         } else
             System.out.println("Valid signature for HA request!");
 
+        int epoch = message.getInt("epoch");
+        int x = message.getInt("x");
+        int y = message.getInt("y");
 
         //process request
-        List<String> users = obtainUsersAtLocation(x,y, epoch);
-
-        JSONObject jsonResponse = new JSONObject();
+        JSONArray userReports = obtainUsersAtLocation(x,y, epoch);
         JSONObject jsonResponseMessage = new JSONObject();
 
-        jsonResponseMessage.put("users", users);
-
-        jsonResponse.put("message", jsonResponseMessage);
-
+        jsonResponseMessage.put("userReports", userReports);
+        jsonResponseMessage.put("readId", message.getString("readId"));
 
         //encrypt response
         byte[] responseIv = EncryptionLogic.generateIV();
-        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
+        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponseMessage.toString().getBytes(), responseIv);
+        byte[] newEncryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("ha"),sessionKeyBytes);
 
         //generate signature
-        byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey(serverName, keystorePasswd));
+        byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponseMessage.toString().getBytes(), EncryptionLogic.getPrivateKey(serverName, keystorePasswd));
 
-        byte[][] ret = new byte[3][];
+        byte[][] ret = new byte[4][];
         ret[0] = encryptedResponse;
         ret[1] = responseSignature;
         ret[2] = responseIv;
-
+        ret[3] = newEncryptedSessionKey;
         return ret;
     }
 
@@ -538,9 +553,6 @@ public class ServerLogic {
 
         //Decrypt data
         byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
-
-
-
         String jsonString = new String(decryptedData);
         JSONObject jsonObject = new JSONObject(jsonString);
         JSONObject message = jsonObject.getJSONObject("message");
