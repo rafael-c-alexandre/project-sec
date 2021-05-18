@@ -78,6 +78,10 @@ public class UserReportsRepository {
                             rs.getInt("y")
                     ));
                     proof.setSignature(rs.getBytes("signature"));
+                    proof.setProofBytes(rs.getBytes("proof_bytes"));
+                    proof.setWitnessSessionKeyBytes(rs.getBytes("witness_session_key_bytes"));
+                    proof.setWitnessIV(rs.getBytes("witness_iv"));
+
                     userReport.addProof(proof);
                 }
                 result.add(userReport);
@@ -177,7 +181,7 @@ public class UserReportsRepository {
 
     public void submitProof(Proof proof) {
         try {
-            String sql = "INSERT INTO Proofs(prover_username, witness_username,epoch,x,y,signature) VALUES (?,?,?,?,?,?)";
+            String sql = "INSERT INTO Proofs(prover_username, witness_username,epoch,x,y,signature, proof_bytes, witness_session_key_bytes, witness_iv) VALUES (?,?,?,?,?,?,?,?,?)";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
             preparedStatement.setString(1, proof.getProverUsername());
@@ -186,6 +190,9 @@ public class UserReportsRepository {
             preparedStatement.setInt(4, proof.getCoords().getX());
             preparedStatement.setInt(5, proof.getCoords().getY());
             preparedStatement.setBytes(6,proof.getSignature());
+            preparedStatement.setBytes(7, proof.getProofBytes());
+            preparedStatement.setBytes(8, proof.getWitnessSessionKeyBytes());
+            preparedStatement.setBytes(9, proof.getWitnessIV());
 
             preparedStatement.executeUpdate();
             connection.commit();

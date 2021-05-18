@@ -22,6 +22,9 @@ CREATE TABLE Proofs (
     y INT,
     epoch INT,
     signature VARBINARY(4096),
+    proof_bytes VARBINARY(4096),
+    witness_session_key_bytes VARBINARY(4096),
+    witness_iv VARBINARY(4096),
     FOREIGN KEY (prover_username,epoch) REFERENCES UserReports(username,epoch),
     PRIMARY KEY (witness_username, prover_username, epoch)
 );

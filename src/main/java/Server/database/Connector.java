@@ -20,7 +20,8 @@ public class Connector {
         this.connection = DriverManager.getConnection(DB_URL, user, password);
         this.connection.setAutoCommit(false);
         Statement s=this.connection.createStatement();
-        int result = s.executeUpdate("CREATE DATABASE IF NOT EXISTS SecDB_" + serverId);
+        s.executeUpdate("DROP DATABASE IF EXISTS SecDB_" + serverId);
+        int result = s.executeUpdate("CREATE DATABASE SecDB_" + serverId);
 
         this.connection.close();
 
@@ -49,6 +50,9 @@ public class Connector {
                 "    y INT,\n" +
                 "    epoch INT,\n" +
                 "    signature VARBINARY(4096),\n" +
+                "    proof_bytes VARBINARY(4096),\n" +
+                "    witness_session_key_bytes VARBINARY(4096),\n" +
+                "    witness_iv VARBINARY(4096),\n" +
                 "    FOREIGN KEY (prover_username,epoch) REFERENCES UserReports(username,epoch),\n" +
                 "    PRIMARY KEY (witness_username, prover_username, epoch)\n" +
                 ");");

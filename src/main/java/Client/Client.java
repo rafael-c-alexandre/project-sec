@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class Client {
@@ -35,26 +36,26 @@ public class Client {
     private io.grpc.Server server;
     private int port;
 
-    public Client(String username, String grid_file_path, String keystorePasswd) throws IOException, InterruptedException {
+    public Client(String username, String grid_file_path, String keystorePasswd, int numberOfByzantineClients, int numberOfByzantineServers) throws IOException, InterruptedException {
         this.username = username;
 
         /* Initialize client logic */
-        clientLogic = new ClientLogic(username, grid_file_path, keystorePasswd);
+        clientLogic = new ClientLogic(username, grid_file_path, keystorePasswd, numberOfByzantineClients, numberOfByzantineServers);
         /* Import users and server from mappings */
         importAddrMappings();
 
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length > 4 || args.length < 3) {
-            System.err.println("Invalid args. Try -> username grid_file_path keystorePasswd [commands_file_path] ");
+        if (args.length > 6 || args.length < 5) {
+            System.err.println("Invalid args. Try -> username grid_file_path keystorePasswd numberOfByzantineClients numberOfByzantineServers [commands_file_path] ");
             return;
         }
         String username = args[0];
         String grid_file_path = args[1];
-        Client client = new Client(username, grid_file_path, args[2]);
+        Client client = new Client(username, grid_file_path, args[2], Integer.parseInt(args[3]), Integer.parseInt(args[4]));
 
-        String commandsFilePath = args.length == 4 ? args[3] : null;
+        String commandsFilePath = args.length == 6 ? args[5] : null;
 
         client.start(client.port);
         System.out.println(username + " Started");
@@ -113,8 +114,13 @@ public class Client {
         try {
             System.out.print("From which epoch do you wish to get your location report? ");
             int epoch = Integer.parseInt(in.nextLine());
-            Coords result = clientToServerFrontend.obtainLocationReport(this.username, epoch);
-            System.out.println("User " + username + " was at position (" + result.getX() + "," + result.getY() + ") at epoch " + epoch);
+
+            //generate request uid
+            String requestUid = UUID.randomUUID().toString();
+
+            Coords result = clientToServerFrontend.obtainLocationReport(this.username, epoch, requestUid);
+            if (result != null)
+                System.out.println("User " + username + " was at position (" + result.getX() + "," + result.getY() + ") at epoch " + epoch);
         } catch (StatusRuntimeException e) {
             System.err.println(e.getMessage());
         }
