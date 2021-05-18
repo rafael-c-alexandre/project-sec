@@ -31,7 +31,7 @@ public class Server {
     }
 
     public Server(String user, String pass, String f, String keystorePasswd, String serverName) throws SQLException {
-        this.connector = new Connector(user, pass);
+        this.connector = new Connector(user, pass,serverName);
         this.serverLogic = new ServerLogic(this.connector.getConnection(), f, keystorePasswd, serverName);
     }
 
