@@ -1,5 +1,6 @@
 package Client;
 
+import Server.Proof;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -152,6 +153,49 @@ public class ClientToServerFrontend {
             io.grpc.Status status = io.grpc.Status.fromThrowable(e);
             System.err.println("Exception received from server: " + status.getDescription());
         }
+    }
+
+    public List<Proof> requestMyProofs(String username,List<Integer> epochs){
+
+        byte[][] params = this.clientLogic.requestMyProofs(username,epochs);
+
+        byte[] encryptedData = params[0];
+        byte[] digitalSignature = params[1];
+        byte[] encryptedSessionKey = params[2];
+        byte[] iv = params[3];
+
+        for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
+
+            server.getValue().requestMyProofs(
+                    RequestMyProofsRequest.newBuilder()
+                            .setEncryptedMessage(ByteString.copyFrom(encryptedData))
+                            .setSignature(ByteString.copyFrom(digitalSignature))
+                            .setTimestamp(System.currentTimeMillis())
+                            .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
+                            .setIv(ByteString.copyFrom(iv))
+                            .build(), new StreamObserver<RequestMyProofsReply>() {
+                        @Override
+                        public void onNext(RequestMyProofsReply requestMyProofsReply) {
+                            //TODO
+                            //Handle response
+                        }
+
+                        @Override
+                        public void onError(Throwable throwable) {
+
+                        }
+
+                        @Override
+                        public void onCompleted() {
+
+                        }
+                    }
+            );
+
+        }
+
+        return null;
+
     }
 
     public Coords obtainLocationReport(String username, int epoch) {

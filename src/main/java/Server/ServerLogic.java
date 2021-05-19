@@ -4,18 +4,17 @@ import Exceptions.*;
 import Server.database.UserReportsRepository;
 import com.google.protobuf.ByteString;
 import javafx.util.Pair;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import util.Coords;
 import util.EncryptionLogic;
 import javax.crypto.SecretKey;
 import java.security.PublicKey;
 import java.sql.Connection;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class ServerLogic {
@@ -255,6 +254,24 @@ public class ServerLogic {
         return false;
     }
 
+    public List<Proof> getUserProofs(String username, List<Integer> epochs){
+        List<Proof> ret = new ArrayList<>();
+
+
+        for(int epoch : epochs){
+            Stream<Proof> result = reportList.stream()
+                    .filter(report -> report.getEpoch() == epoch)
+                    .map(report -> report.getProofsList())
+                    .flatMap(Collection::stream)
+                    .filter(proof -> proof.getWitnessUsername().equals(username));
+
+            ret = Stream.concat(result,ret.stream()).collect(Collectors.toList());
+        }
+
+        return ret;
+
+    }
+
     public boolean isDuplicateProof(UserReport report, String witness) {
 
         for (Proof proof : report.getProofsList()) {
@@ -407,4 +424,67 @@ public class ServerLogic {
         return this.serverName;
     }
 
+    public byte[][] requestMyProofs(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long proofOfWork, long timestamp) throws InvalidProofOfWorkException, InvalidSignatureException, ReportAlreadyExistsException, InvalidFreshnessToken {
+
+
+        //max skew assumed: 30s
+        if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
+            throw new InvalidFreshnessToken();
+        }
+
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
+        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+
+
+        //Decrypt data
+        byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
+
+
+
+        String jsonString = new String(decryptedData);
+        JSONObject jsonObject = new JSONObject(jsonString);
+        JSONObject message = jsonObject.getJSONObject("message");
+
+        //Verify proof of work
+        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,jsonString,"000"))
+            throw new InvalidProofOfWorkException();
+
+        //verify message integrity
+        if(!verifyMessage(decryptedData, signature))
+            throw new InvalidSignatureException();
+
+
+        List<Integer> epochs = message.getJSONArray("epochs")
+                .toList()
+                .stream()
+                .map(o -> (Integer) o)
+                .collect(Collectors.toList());
+
+        String username = message.getString("username");
+
+        List<Proof> proofs = getUserProofs(username,epochs);
+
+        JSONObject jsonResponseMessage = new JSONObject();
+        List<JSONObject> proofList = proofs.stream().map(proof -> proof.getProofJSON()).collect(Collectors.toList());
+
+        jsonResponseMessage.put("proofList", proofList);
+
+
+        //encrypt response
+        byte[] responseIv = EncryptionLogic.generateIV();
+        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponseMessage.toString().getBytes(), responseIv);
+        byte[] newEncryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey(username),sessionKeyBytes);
+
+        //generate signature
+        byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponseMessage.toString().getBytes(), EncryptionLogic.getPrivateKey(serverName, keystorePasswd));
+
+        byte[][] ret = new byte[4][];
+        ret[0] = encryptedResponse;
+        ret[1] = responseSignature;
+        ret[2] = responseIv;
+        ret[3] = newEncryptedSessionKey;
+
+        return ret;
+    }
 }

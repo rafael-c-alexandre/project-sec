@@ -285,4 +285,44 @@ public class ClientLogic {
     public Map<String, Map<Integer, Coords>> getGrid() {
         return grid;
     }
+
+    public byte[][] requestMyProofs(String username, List<Integer> epochs) {
+        byte[][] ret = new byte[4][];
+        JSONObject object = new JSONObject();
+        JSONObject message = new JSONObject();
+
+        //Generate a session Key
+        SecretKey sessionKey = EncryptionLogic.generateAESKey();
+        byte[] sessionKeyBytes = sessionKey.getEncoded();
+
+        //Encrypt session jey with server public key
+        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"), sessionKeyBytes);
+
+        //Pass data to json
+        message.put("username", username);
+        message.put("epochs", epochs);
+
+        object.put("message", message);
+
+        //Encrypt data with session key
+        byte[] iv = EncryptionLogic.generateIV();
+        byte[] encryptedData = EncryptionLogic.encryptWithAES(
+                sessionKey,
+                object.toString().getBytes(),
+                iv
+        );
+
+        //Generate digital signature
+        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
+                object.toString().getBytes(),
+                EncryptionLogic.getPrivateKey(username, keystorePasswd)
+        );
+
+        ret[0] = encryptedData;
+        ret[1] = digitalSignature;
+        ret[2] = encryptedSessionKey;
+        ret[3] = iv;
+
+        return ret;
+    }
 }

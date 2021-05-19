@@ -27,6 +27,18 @@ public class Proof {
         this.signature = signature;
     }
 
+    public JSONObject getProofJSON(){
+        JSONObject ret = new JSONObject();
+        ret.put("epoch",this.epoch);
+        ret.put("witnessUsername",this.witnessUsername);
+        ret.put("proverUsername",this.epoch);
+        ret.put("x",this.epoch);
+        ret.put("y",this.epoch);
+        ret.put("signature",this.signature);
+        return ret;
+
+    }
+
     public byte[] getSignature() {
         return signature;
     }

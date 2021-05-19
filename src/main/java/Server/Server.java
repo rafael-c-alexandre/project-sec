@@ -184,6 +184,34 @@ public class Server {
         }
 
         @Override
+        public void requestMyProofs(RequestMyProofsRequest request, StreamObserver<RequestMyProofsReply> responseObserver) {
+            try {
+                byte[] encryptedData = request.getEncryptedMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
+                byte[] signature = request.getSignature().toByteArray();
+                byte[] iv = request.getIv().toByteArray();
+                long proofOfWork = request.getProofOfWork();
+
+                byte[][] response = serverLogic.requestMyProofs(encryptedData, encryptedSessionKey, signature, iv, proofOfWork, request.getTimestamp());
+
+                //Create reply
+                RequestMyProofsReply reply = RequestMyProofsReply.newBuilder()
+                        .setMessage(ByteString.copyFrom(response[0]))
+                        .setSignature(ByteString.copyFrom(response[1]))
+                        .setIv(ByteString.copyFrom(response[2]))
+                        .setEncryptedSessionKey(ByteString.copyFrom(response[3]))
+                        .build();
+
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+
+            } catch (InvalidSignatureException | InvalidProofOfWorkException | ReportAlreadyExistsException | InvalidFreshnessToken e) {
+                Status status = Status.ABORTED.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            }
+        }
+
+        @Override
         public void obtainLocationReport(ObtainLocationReportRequest request, StreamObserver<ObtainLocationReportReply> responseObserver) {
             try {
                 byte[] encryptedData = request.getMessage().toByteArray();
