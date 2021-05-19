@@ -82,7 +82,7 @@ public class ClientLogic {
 
         for (String server : serverNames) {
 
-            byte[][] result = new byte[6][];
+            byte[][] result = new byte[5][];
 
             //Generate a session Key
             SecretKey sessionKey = EncryptionLogic.generateAESKey();
@@ -98,16 +98,12 @@ public class ClientLogic {
             byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
                     EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
 
-            //Generate proof of work
-            long nonce = EncryptionLogic.generateProofOfWork(message.toString(), "000");
-            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-            buffer.putLong(nonce);
+
 
             result[1] = digitalSignature;
             result[2] = encryptedSessionKey;
             result[3] = iv;
-            result[4] = buffer.array();
-            result[5] = server.getBytes(StandardCharsets.UTF_8);
+            result[4] = server.getBytes(StandardCharsets.UTF_8);
 
             reports.add(result);
         }
@@ -197,7 +193,7 @@ public class ClientLogic {
 
 
     public byte[][] generateObtainLocationRequestParameters(String username, int epoch) {
-        byte[][] ret = new byte[5][];
+        byte[][] ret = new byte[7][];
         JSONObject object = new JSONObject();
         JSONObject message = new JSONObject();
 
@@ -222,9 +218,15 @@ public class ClientLogic {
                 iv
         );
 
+        long timestamp = System.currentTimeMillis();
+        long proofOfWork = EncryptionLogic.generateProofOfWork(object.toString() + timestamp);
+
+
+        String data = object.toString() + timestamp + proofOfWork;
+
         //Generate digital signature
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
-                object.toString().getBytes(),
+                data.getBytes(),
                 EncryptionLogic.getPrivateKey(username, keystorePasswd)
         );
 
@@ -233,6 +235,14 @@ public class ClientLogic {
         ret[2] = encryptedSessionKey;
         ret[3] = iv;
         ret[4] = sessionKeyBytes;
+
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(proofOfWork);
+        ret[5] = buffer.array();
+
+        buffer.clear();
+        buffer.putLong(timestamp);
+        ret[6] = buffer.array();
 
         return ret;
     }
@@ -269,12 +279,33 @@ public class ClientLogic {
 
         byte[] encryptedProof = EncryptionLogic.encryptWithAES(sessionKey, proof, iv);
 
+        long timestamp = System.currentTimeMillis();
+        long proofOfWork = EncryptionLogic.generateProofOfWork(new String(proof) + timestamp);
+
+
+        String data = new String(proof) + timestamp + proofOfWork;
+
+        //Generate digital signature
+        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
+                data.getBytes(),
+                EncryptionLogic.getPrivateKey(username, keystorePasswd)
+        );
+
         //generate proof digital signature
-        res[3] = EncryptionLogic.createDigitalSignature(proof, EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
+        res[3] = digitalSignature;
 
         res[0] = encryptedProof;
         res[1] = encryptedSessionKey;
         res[2] = iv;
+
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(proofOfWork);
+        res[4] = buffer.array();
+
+        buffer.clear();
+        buffer.putLong(timestamp);
+        res[5] = buffer.array();
+
         return res;
     }
 
@@ -287,7 +318,7 @@ public class ClientLogic {
     }
 
     public byte[][] requestMyProofs(String username, List<Integer> epochs) {
-        byte[][] ret = new byte[4][];
+        byte[][] ret = new byte[6][];
         JSONObject object = new JSONObject();
         JSONObject message = new JSONObject();
 
@@ -312,9 +343,15 @@ public class ClientLogic {
                 iv
         );
 
+        long timestamp = System.currentTimeMillis();
+        long proofOfWork = EncryptionLogic.generateProofOfWork(object.toString() + timestamp);
+
+
+        String data = object.toString() + timestamp + proofOfWork;
+
         //Generate digital signature
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
-                object.toString().getBytes(),
+                data.getBytes(),
                 EncryptionLogic.getPrivateKey(username, keystorePasswd)
         );
 
@@ -322,6 +359,14 @@ public class ClientLogic {
         ret[1] = digitalSignature;
         ret[2] = encryptedSessionKey;
         ret[3] = iv;
+
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(proofOfWork);
+        ret[4] = buffer.array();
+
+        buffer.clear();
+        buffer.putLong(timestamp);
+        ret[5] = buffer.array();
 
         return ret;
     }

@@ -14,6 +14,7 @@ import util.Coords;
 import util.EncryptionLogic;
 
 import javax.crypto.SecretKey;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -132,12 +133,24 @@ public class ClientToClientFrontend {
                         byte[] encryptedSessionKey = result[1];
                         byte[] iv = result[2];
                         byte[] digitalSignature = result[3];
+                        byte[] proofOfWorkBytes = result[4];
+                        byte[] timestampBytes = result[5];
+
+                        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+                        buffer.put(proofOfWorkBytes);
+                        buffer.flip();//need flip
+                        long proofOfWork = buffer.getLong();
+
+                        buffer.clear();
+                        buffer.put(timestampBytes);
+                        buffer.flip();//need flip
+                        long timestamp = buffer.getLong();
 
                         byte[] witnessIv = witnessIvs.get(i);
                         byte[] witnessSessionKey = witnessSessionKeys.get(i);
 
                         //Submit the proof received from the witness to the servers
-                        serverFrontend.submitProof(epoch, encryptedProof, digitalSignature, encryptedSessionKey, iv, witnessSessionKey, witnessIv, servers.get(i));
+                        serverFrontend.submitProof(epoch, encryptedProof, digitalSignature, encryptedSessionKey, iv, witnessSessionKey, witnessIv, servers.get(i), timestamp, proofOfWork);
                     }
                 }
 
