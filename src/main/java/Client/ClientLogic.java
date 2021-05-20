@@ -33,6 +33,7 @@ public class ClientLogic {
     public ConcurrentHashMap<String, JSONObject> readRequests = new ConcurrentHashMap<>();
     public final int serverQuorum = 2; //quorum of responses of servers needed
 
+
     public ClientLogic(String username, String gridFilePath, String keystorePasswd, String numberOfByzantines) {
         this.username = username;
         this.keystorePasswd = keystorePasswd;
@@ -88,7 +89,7 @@ public class ClientLogic {
 
         for (String server : serverNames) {
 
-            byte[][] result = new byte[6][];
+            byte[][] result = new byte[7][];
 
             //Generate a session Key
             SecretKey sessionKey = EncryptionLogic.generateAESKey();
@@ -100,20 +101,32 @@ public class ClientLogic {
             byte[] encryptedMessage = EncryptionLogic.encryptWithAES(sessionKey, message.toString().getBytes(), iv);
             result[0] = encryptedMessage;
 
-            //sign message
-            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(message.toString().getBytes(),
-                    EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
+            long timestamp = System.currentTimeMillis();
+            long proofOfWork = EncryptionLogic.generateProofOfWork(message.toString() + timestamp);
 
-            //Generate proof of work
-            long nonce = EncryptionLogic.generateProofOfWork(message.toString(), "000");
-            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-            buffer.putLong(nonce);
+
+            String data = message.toString() + timestamp + proofOfWork;
+
+            //Generate digital signature
+            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
+                    data.getBytes(),
+                    EncryptionLogic.getPrivateKey(username, keystorePasswd)
+            );
+
+
 
             result[1] = digitalSignature;
             result[2] = encryptedSessionKey;
             result[3] = iv;
-            result[4] = buffer.array();
-            result[5] = server.getBytes(StandardCharsets.UTF_8);
+            result[4] = server.getBytes(StandardCharsets.UTF_8);
+
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.putLong(proofOfWork);
+            result[5] = buffer.array();
+
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.putLong(timestamp);
+            result[6] = buffer2.array();
 
             reports.add(result);
         }
@@ -208,7 +221,7 @@ public class ClientLogic {
 
         for (String server : serverNames) {
 
-            byte[][] ret = new byte[6][];
+            byte[][] ret = new byte[7][];
             JSONObject object = new JSONObject();
             JSONObject message = new JSONObject();
 
@@ -225,6 +238,16 @@ public class ClientLogic {
             message.put("uid", requestUid);
 
             object.put("message", message);
+            long timestamp = System.currentTimeMillis();
+            long proofOfWork = EncryptionLogic.generateProofOfWork(object.toString() + timestamp);
+
+            String data = object.toString() + timestamp + proofOfWork;
+
+            //Generate digital signature
+            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
+                    data.getBytes(),
+                    EncryptionLogic.getPrivateKey(username, keystorePasswd)
+            );
 
             //Encrypt data with session key
             byte[] iv = EncryptionLogic.generateIV();
@@ -234,23 +257,25 @@ public class ClientLogic {
                     iv
             );
 
-            //Generate digital signature
-            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
-                    object.toString().getBytes(),
-                    EncryptionLogic.getPrivateKey(username, keystorePasswd)
-            );
 
             ret[0] = encryptedData;
             ret[1] = digitalSignature;
             ret[2] = encryptedSessionKey;
             ret[3] = iv;
-            ret[4] = sessionKeyBytes;
-            ret[5] = server.getBytes(StandardCharsets.UTF_8);
+            ret[4] = server.getBytes(StandardCharsets.UTF_8);
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.putLong(proofOfWork);
+            ret[5] = buffer.array();
+
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.putLong(timestamp);
+            ret[6] = buffer2.array();
 
             requests.add(ret);
         }
 
         return requests;
+
     }
 
     public Coords getCoordsFromReply(byte[] sessionKeyBytes, byte[] encryptedResponse, byte[] responseSignature, byte[] responseIv) {
@@ -274,7 +299,7 @@ public class ClientLogic {
     }
 
     public byte[][] encryptProof(byte[] proof, String server) {
-        byte [][] res = new byte[4][];
+        byte [][] res = new byte[6][];
         //Generate a session Key
         SecretKey sessionKey = EncryptionLogic.generateAESKey();
         byte[] sessionKeyBytes = sessionKey.getEncoded();
@@ -285,12 +310,33 @@ public class ClientLogic {
 
         byte[] encryptedProof = EncryptionLogic.encryptWithAES(sessionKey, proof, iv);
 
+        long timestamp = System.currentTimeMillis();
+        long proofOfWork = EncryptionLogic.generateProofOfWork(new String(proof) + timestamp);
+
+
+        String data = new String(proof) + timestamp + proofOfWork;
+
+        //Generate digital signature
+        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
+                data.getBytes(),
+                EncryptionLogic.getPrivateKey(username, keystorePasswd)
+        );
+
         //generate proof digital signature
-        res[3] = EncryptionLogic.createDigitalSignature(proof, EncryptionLogic.getPrivateKey(this.username, keystorePasswd));
+        res[3] = digitalSignature;
 
         res[0] = encryptedProof;
         res[1] = encryptedSessionKey;
         res[2] = iv;
+
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(proofOfWork);
+        res[4] = buffer.array();
+
+        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+        buffer2.putLong(timestamp);
+        res[5] = buffer2.array();
+
         return res;
     }
 
@@ -303,7 +349,7 @@ public class ClientLogic {
     }
 
     public byte[][] requestMyProofs(String username, List<Integer> epochs) {
-        byte[][] ret = new byte[4][];
+        byte[][] ret = new byte[6][];
         JSONObject object = new JSONObject();
         JSONObject message = new JSONObject();
 
@@ -328,9 +374,15 @@ public class ClientLogic {
                 iv
         );
 
+        long timestamp = System.currentTimeMillis();
+        long proofOfWork = EncryptionLogic.generateProofOfWork(object.toString() + timestamp);
+
+
+        String data = object.toString() + timestamp + proofOfWork;
+
         //Generate digital signature
         byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
-                object.toString().getBytes(),
+                data.getBytes(),
                 EncryptionLogic.getPrivateKey(username, keystorePasswd)
         );
 
@@ -338,6 +390,14 @@ public class ClientLogic {
         ret[1] = digitalSignature;
         ret[2] = encryptedSessionKey;
         ret[3] = iv;
+
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(proofOfWork);
+        ret[4] = buffer.array();
+
+        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+        buffer2.putLong(timestamp);
+        ret[5] = buffer2.array();
 
         return ret;
     }
@@ -382,7 +442,7 @@ public class ClientLogic {
             JSONObject p = (JSONObject) proof;
 
             JSONObject proofJson  = p.getJSONObject("proof");
-            byte[] proofSignature = Base64.getDecoder().decode(p.getString("signature"));
+            byte[] proofSignature = Base64.getDecoder().decode(p.getString("digital_signature"));
 
 
             String witnessUsername = proofJson.getString("witnessUsername");
@@ -402,7 +462,7 @@ public class ClientLogic {
         }
 
         if (isValid)
-            return msg;
+            return jsonObject;
         else
             return null;
 
@@ -435,9 +495,11 @@ public class ClientLogic {
 
         List<byte[][]> response = new ArrayList<>();
 
+        JSONObject reportJson = jsonObject.getJSONObject("message");
+
         //report section
-        int x = jsonObject.getInt("x");
-        int y = jsonObject.getInt("y");
+        int x = reportJson.getInt("x");
+        int y = reportJson.getInt("y");
 
         JSONObject report = new JSONObject();
         report.put("x", x);
@@ -449,6 +511,17 @@ public class ClientLogic {
         JSONArray proofs = jsonObject.getJSONArray("proofs");
 
         report.put("proofs", proofs);
+
+        long timestamp = System.currentTimeMillis();
+        long proofOfWork = EncryptionLogic.generateProofOfWork(report.toString() + timestamp);
+
+        String data = report.toString() + timestamp + proofOfWork;
+
+        //Generate digital signature
+        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
+                data.getBytes(),
+                EncryptionLogic.getPrivateKey(username, keystorePasswd)
+        );
 
 
         for (String server : serverNames) {
@@ -467,23 +540,26 @@ public class ClientLogic {
                     iv
             );
 
-            //Generate digital signature
-            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
-                    report.toString().getBytes(),
-                    EncryptionLogic.getPrivateKey(username, keystorePasswd)
-            );
 
-            byte[][] ret = new byte[5][];
+            byte[][] ret = new byte[7][];
             ret[0] = encryptedData;
             ret[1] = digitalSignature;
             ret[2] = encryptedSessionKey;
             ret[3] = iv;
             ret[4] = server.getBytes(StandardCharsets.UTF_8);
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.putLong(proofOfWork);
+            ret[5] = buffer.array();
 
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.putLong(timestamp);
+            ret[6] = buffer2.array();
 
 
             response.add(ret);
         }
+
+
 
        return response;
     }

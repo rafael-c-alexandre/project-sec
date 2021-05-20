@@ -28,6 +28,7 @@ import java.util.Objects;
 public class EncryptionLogic {
     private final static int ITERATIONS = 10000;
     private final static String CRYPTO_FOLDER_PATH = "src/main/assets/crypto/";
+    private final static String DIFFICULTY = "00";
 
     public EncryptionLogic() {
     }
@@ -237,21 +238,21 @@ public class EncryptionLogic {
         return new SecretKeySpec(bytes, 0, bytes.length, "AES");
     }
 
-    public static boolean verifyProofOfWork(long nonce, String data, String difficulty){
+    public static boolean verifyProofOfWork(long nonce, String data){
         try{
             String toDigest = data + nonce;
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] encodedHash = digest.digest(toDigest.getBytes(StandardCharsets.UTF_8));
 
             toDigest = new String(encodedHash);
-            return toDigest.startsWith("");
+            return toDigest.startsWith(DIFFICULTY);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
         return true;
     }
 
-    public static long generateProofOfWork(String data, String difficulty){
+    public static long generateProofOfWork(String data){
         try {
 
             long nonce = 0;
@@ -262,7 +263,7 @@ public class EncryptionLogic {
 
                 toDigest = new String(encodedHash);
 
-                if(toDigest.startsWith(""))
+                if(toDigest.startsWith(DIFFICULTY))
                     return nonce;
 
                 nonce++;

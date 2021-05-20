@@ -51,7 +51,73 @@ public class ServerLogic {
     }
 
 
-    public  byte[][] generateObtainLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, boolean isHA, long timestamp) throws NoSuchCoordsException, InvalidSignatureException, NoReportFoundException, InvalidFreshnessToken {
+    public  byte[][] generateObtainLocationReportResponseHA(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long proofOfWork, long timestamp) throws InvalidSignatureException, NoReportFoundException {
+
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
+        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+
+
+        //Decrypt data
+        byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
+        String jsonString = new String(decryptedData);
+        JSONObject jsonObject = new JSONObject(jsonString);
+        JSONObject message = jsonObject.getJSONObject("message");
+        String username = message.getString("username");
+        int epoch = message.getInt("epoch");
+        String requestUid = message.getString("uid");
+
+        String data = jsonString + timestamp + proofOfWork;
+
+        //Verify signature
+        if (!EncryptionLogic.verifyDigitalSignature(data.getBytes(), signature, EncryptionLogic.getPublicKey("ha"))) {
+            System.out.println("Invalid signature for HA request");
+            throw new InvalidSignatureException();
+        } else
+            System.out.println("Valid signature for HA request!");
+
+
+        //process request
+        UserReport report = obtainClosedLocationReport(username, epoch);
+
+        JSONObject jsonResponse = new JSONObject();
+        JSONObject jsonResponseMessage = new JSONObject();
+
+        jsonResponseMessage.put("x", report.getCoords().getX());
+        jsonResponseMessage.put("y", report.getCoords().getY());
+        jsonResponseMessage.put("uid", requestUid);
+
+        jsonResponse.put("message", jsonResponseMessage);
+
+        //add proofs to response
+        JSONArray proofs = new JSONArray();
+
+        for (int i = 0; i < report.getProofsList().size(); i++) {
+            proofs.put(report.getProofsList().get(i).getProofJSON());
+        }
+
+        //add array to json response
+        jsonResponse.put("proofs", proofs);
+
+
+        //encrypt response
+        byte[] responseIv = EncryptionLogic.generateIV();
+        byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
+
+
+        //generate signature
+        byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey(serverName, keystorePasswd));
+
+        byte[][] ret = new byte[4][];
+        ret[0] = encryptedResponse;
+        ret[1] = responseSignature;
+        ret[2] = responseIv;
+        ret[3] = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("ha"), sessionKeyBytes);
+
+        return ret;
+    }
+
+    public  byte[][] generateObtainLocationReportResponse(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long timestamp, long proofOfWork) throws  InvalidSignatureException, NoReportFoundException, InvalidFreshnessToken, InvalidProofOfWorkException {
 
         //max skew assumed: 30s
         if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
@@ -73,22 +139,20 @@ public class ServerLogic {
         int epoch = message.getInt("epoch");
         String requestUid = message.getString("uid");
 
+        String data = jsonString + timestamp + proofOfWork;
 
-        //Verify signature
-        if (isHA) {
-            if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey("ha"))) {
-                System.out.println("Invalid signature for HA request");
-                throw new InvalidSignatureException();
-            } else
-                System.out.println("Valid signature for HA request!");
-        } else {
-            if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username))) {
-                System.out.println("Invalid signature for client " + username + "!");
-                throw new InvalidSignatureException();
-            } else
-                System.out.println("Valid signature for client " + username + "!");
-        }
 
+        //Verify proof of work
+        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,jsonString + timestamp))
+            throw new InvalidProofOfWorkException();
+
+
+
+        if (!EncryptionLogic.verifyDigitalSignature(data.getBytes(), signature, EncryptionLogic.getPublicKey(username))) {
+            System.out.println("Invalid signature for client" + username + "!");
+            throw new InvalidSignatureException();
+        } else
+            System.out.println("Valid signature for client" + username + "!");
 
         //process request
         UserReport report = obtainClosedLocationReport(username, epoch);
@@ -140,7 +204,12 @@ public class ServerLogic {
                 .collect(Collectors.toList());
     }
 
-    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException, InvalidProofOfWorkException {
+    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork, long timestamp, boolean isHA) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException, InvalidProofOfWorkException, InvalidFreshnessToken {
+
+        //max skew assumed: 30s
+        if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
+            throw new InvalidFreshnessToken();
+        }
 
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
@@ -150,12 +219,14 @@ public class ServerLogic {
         byte[] decipheredMessage = EncryptionLogic.decryptWithAES(sessionKey, encryptedMessage, iv);
         JSONObject reportJSON = new JSONObject(new String(decipheredMessage));
 
+        String data = reportJSON.toString() + timestamp + proofOfWork;
+
         //Verify proof of work
-        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,reportJSON.toString(),"000"))
+        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,reportJSON.toString() + timestamp))
             throw new InvalidProofOfWorkException();
 
         //verify message integrity
-        if(verifyMessage(decipheredMessage, digitalSignature)) {
+        if(verifyMessage(data.getBytes(), digitalSignature, isHA)) {
             UserReport userReport = new UserReport(reportJSON, digitalSignature);
 
 
@@ -206,7 +277,7 @@ public class ServerLogic {
         return false;
     }
 
-    public boolean verifyMessage(byte[] decipheredMessage, byte[] digitalSignature) throws ReportAlreadyExistsException, InvalidSignatureException {
+    public boolean verifyMessage(byte[] decipheredMessage, byte[] digitalSignature, boolean isHA) throws ReportAlreadyExistsException, InvalidSignatureException {
 
 
         //get username and respective public key
@@ -214,7 +285,12 @@ public class ServerLogic {
         String username = obj.getString("username");
         int epoch = obj.getInt("epoch");
 
-        PublicKey userPubKey = EncryptionLogic.getPublicKey(username);
+        PublicKey userPubKey = null;
+
+        if (isHA)
+            userPubKey = EncryptionLogic.getPublicKey("ha");
+        else
+            userPubKey = EncryptionLogic.getPublicKey(username);
 
         //verify digital signature
         boolean isValid = EncryptionLogic.verifyDigitalSignature(decipheredMessage, digitalSignature, userPubKey);
@@ -234,7 +310,12 @@ public class ServerLogic {
 
     }
 
-    public synchronized boolean submitProof(byte[] witnessEncryptedSessionKey, byte[] witnessIv, byte[] encryptedSessionKey, byte[] encryptedProof, byte[] signature, byte[] iv) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
+    public synchronized boolean submitProof(byte[] witnessEncryptedSessionKey, byte[] witnessIv, byte[] encryptedSessionKey, byte[] encryptedProof, byte[] signature, byte[] iv, long timestamp, long proofOfWork) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException, InvalidFreshnessToken {
+
+        //max skew assumed: 30s
+        if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
+            throw new InvalidFreshnessToken();
+        }
 
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
@@ -246,8 +327,11 @@ public class ServerLogic {
         //Decrypt witnesssession key
         byte[] witnessSessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), witnessEncryptedSessionKey);
 
+        String data = new String(decryptedProof) + timestamp + proofOfWork;
+
         //verify proofs integrity
-        Proof newProof = verifyProof(witnessSessionKeyBytes,decryptedProof, signature,witnessIv);
+        Proof newProof = verifyProof(witnessSessionKeyBytes,decryptedProof, signature,witnessIv,data, false);
+
 
         UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
         System.out.println("\t Proof received from " + newProof.getWitnessUsername() + " to " + newProof.getProverUsername() + " report verified");
@@ -297,7 +381,7 @@ public class ServerLogic {
     }
 
 
-    public Proof verifyProof(byte[] witnessSessionKeyBytes ,byte[] proof, byte[] signature, byte[] witnessIv) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
+    public Proof verifyProof(byte[] witnessSessionKeyBytes,byte[] proof, byte[] signature, byte[] witnessIv, String data, boolean isHA) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
 
         JSONObject messageJSON = new JSONObject(new String(proof));
         JSONObject proofJSON = messageJSON.getJSONObject("proof");
@@ -314,7 +398,11 @@ public class ServerLogic {
         PublicKey witnessPubKey = EncryptionLogic.getPublicKey(witnessUser);
 
         //verify message
-        boolean validSignatureMessage = EncryptionLogic.verifyDigitalSignature(proof, signature, proverPubKey);
+        boolean validSignatureMessage;
+        if (isHA)
+            validSignatureMessage = EncryptionLogic.verifyDigitalSignature(data.getBytes(), signature, EncryptionLogic.getPublicKey("ha"));
+        else
+            validSignatureMessage = EncryptionLogic.verifyDigitalSignature(data.getBytes(), signature, proverPubKey);
 
         //verify witness proof
         boolean validSignatureProof = EncryptionLogic.verifyDigitalSignature(proofJSON.toString().getBytes(), witnessSignature, witnessPubKey);
@@ -459,13 +547,11 @@ public class ServerLogic {
         JSONObject jsonObject = new JSONObject(jsonString);
         JSONObject message = jsonObject.getJSONObject("message");
 
-        //Verify proof of work
-        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,jsonString,"000"))
-            throw new InvalidProofOfWorkException();
+        String data = jsonString + timestamp + proofOfWork;
 
-        //verify message integrity
-        if(!verifyMessage(decryptedData, signature))
-            throw new InvalidSignatureException();
+        //Verify proof of work
+        if(!EncryptionLogic.verifyProofOfWork(proofOfWork,jsonString + timestamp))
+            throw new InvalidProofOfWorkException();
 
 
         List<Integer> epochs = message.getJSONArray("epochs")
@@ -475,6 +561,11 @@ public class ServerLogic {
                 .collect(Collectors.toList());
 
         String username = message.getString("username");
+
+
+        //verify message integrity
+        if(EncryptionLogic.verifyDigitalSignature(data.getBytes(),signature,EncryptionLogic.getPublicKey(username)))
+            throw new InvalidSignatureException();
 
         List<Proof> proofs = getUserProofs(username,epochs);
 
@@ -501,13 +592,13 @@ public class ServerLogic {
         return ret;
     }
 
-    public void writeback(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long proofOfWork) throws InvalidSignatureException, InvalidReportException, InvalidProofOfWorkException, AlreadyConfirmedReportException, NoReportFoundException {
+    public void writeback(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long proofOfWork, long timestamp, boolean isHA) throws InvalidSignatureException, InvalidReportException, InvalidProofOfWorkException, AlreadyConfirmedReportException, NoReportFoundException, InvalidFreshnessToken {
 
         //submit report if it does not exist
         try {
-            submitReport(encryptedSessionKey, encryptedData, signature,iv, proofOfWork);
+            submitReport(encryptedSessionKey, encryptedData, signature,iv, proofOfWork, timestamp, isHA);
         } catch (ReportAlreadyExistsException e) {
-            //continue
+            System.err.println(e.getMessage());
         }
 
         //Decrypt session key
@@ -528,11 +619,15 @@ public class ServerLogic {
             byte[] witnessIv = Base64.getDecoder().decode(proof.getString("witness_iv"));
             byte[] witnessSessionKey = Base64.getDecoder().decode(proof.getString("witness_session_key_bytes"));
 
+
             //verify proofs integrity
             Proof newProof = null;
             try {
-                newProof = verifyProof(witnessSessionKey, proof.toString().getBytes(), signature, witnessIv);
+                String data = new String(decryptedData)+ timestamp + proofOfWork;
+
+                newProof = verifyProof(witnessSessionKey, proof.toString().getBytes(), signature, witnessIv, data, isHA);
             } catch (InvalidProofException e) {
+                System.err.println(e.getMessage());
                 continue;
             }
 

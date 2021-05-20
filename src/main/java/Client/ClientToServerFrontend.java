@@ -52,13 +52,21 @@ public class ClientToServerFrontend {
             byte[] digitalSignature = report[1];
             byte[] encryptedSessionKey = report[2];
             byte[] iv = report[3];
-            byte[] proofOfWork = report[4];
-            String server = new String(report[5], StandardCharsets.UTF_8);
+            byte[] proofOfWorkBytes = report[5];
+            byte[] timestampBytes = report[6];
+
+            String server = new String(report[4], StandardCharsets.UTF_8);
 
             ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-            buffer.put(proofOfWork);
+            buffer.put(proofOfWorkBytes);
             buffer.flip();//need flip
-            long nonce = buffer.getLong();
+            long proofOfWork = buffer.getLong();
+
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.put(timestampBytes);
+            buffer2.flip();//need flip
+            long timestamp = buffer2.getLong();
+
 
             clientLogic.gotReportQuorums.putIfAbsent(epoch, new CopyOnWriteArrayList<>());
             ClientToServerGrpc.ClientToServerStub serverStub = stubMap.get(server);
@@ -68,7 +76,8 @@ public class ClientToServerFrontend {
                                 .setSignature(ByteString.copyFrom(digitalSignature))
                                 .setIv(ByteString.copyFrom(iv))
                                 .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
-                                .setProofOfWork(nonce)
+                                .setProofOfWork(proofOfWork)
+                                .setTimestamp(timestamp)
                                 .build(),
                         new StreamObserver<SubmitLocationReportReply>() {
                             @Override
@@ -120,7 +129,7 @@ public class ClientToServerFrontend {
         reportTimeoutExpired = false;
     }
 
-    public void submitProof(int epoch, byte[] encryptedProof, byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] witnessSessionKey, byte[] witnessIv, String server) {
+    public void submitProof(int epoch, byte[] encryptedProof, byte[] digitalSignature,byte[] encryptedSessionKey, byte[] iv, byte[] witnessSessionKey, byte[] witnessIv, String server, long timestamp, long proofOfWork) {
         //Submit proofs to every server
         ClientToServerGrpc.ClientToServerStub serverStub = stubMap.get(server);
 
@@ -133,6 +142,8 @@ public class ClientToServerFrontend {
                             .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
                             .setWitnessIv(ByteString.copyFrom(witnessIv))
                             .setWitnessSessionKey(ByteString.copyFrom(witnessSessionKey))
+                            .setProofOfWork(proofOfWork)
+                            .setTimestamp(timestamp)
                             .build(), new StreamObserver<SubmitLocationProofReply>() {
                         @Override
                         public void onNext(SubmitLocationProofReply submitLocationProofReply) {
@@ -143,7 +154,7 @@ public class ClientToServerFrontend {
 
                         @Override
                         public void onError(Throwable throwable) {
-
+                            System.err.println("Caught '" + throwable.getMessage() + "' from server " + server);
                         }
 
                         @Override
@@ -166,6 +177,18 @@ public class ClientToServerFrontend {
         byte[] digitalSignature = params[1];
         byte[] encryptedSessionKey = params[2];
         byte[] iv = params[3];
+        byte[] proofOfWorkBytes = params[4];
+        byte[] timestampBytes = params[5];
+
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.put(proofOfWorkBytes);
+        buffer.flip();//need flip
+        long proofOfWork = buffer.getLong();
+
+        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+        buffer2.put(timestampBytes);
+        buffer2.flip();//need flip
+        long timestamp = buffer2.getLong();
 
         for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
 
@@ -173,7 +196,8 @@ public class ClientToServerFrontend {
                     RequestMyProofsRequest.newBuilder()
                             .setEncryptedMessage(ByteString.copyFrom(encryptedData))
                             .setSignature(ByteString.copyFrom(digitalSignature))
-                            .setTimestamp(System.currentTimeMillis())
+                            .setTimestamp(timestamp)
+                            .setProofOfWork(proofOfWork)
                             .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
                             .setIv(ByteString.copyFrom(iv))
                             .build(), new StreamObserver<RequestMyProofsReply>() {
@@ -205,7 +229,9 @@ public class ClientToServerFrontend {
 
         List<byte[][]> requests = this.clientLogic.generateObtainLocationRequestParameters(username, epoch, requestUid);
 
+
         clientLogic.gotReadQuorum.putIfAbsent(requestUid, new CopyOnWriteArrayList<>());
+
 
         for (byte[][] params : requests) {
 
@@ -213,15 +239,28 @@ public class ClientToServerFrontend {
             byte[] digitalSignature = params[1];
             byte[] encryptedSessionKey = params[2];
             byte[] iv = params[3];
-            byte[] sessionKeyBytes = params[4];
-            String server = new String(params[5], StandardCharsets.UTF_8);
+            String server = new String(params[4], StandardCharsets.UTF_8);
+
+            byte[] proofOfWorkBytes = params[5];
+            byte[] timestampBytes = params[6];
+
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.put(proofOfWorkBytes);
+            buffer.flip();//need flip
+            long proofOfWork = buffer.getLong();
+
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.put(timestampBytes);
+            buffer2.flip();//need flip
+            long timestamp = buffer2.getLong();
 
             ClientToServerGrpc.ClientToServerStub serverStub = stubMap.get(server);
             serverStub.obtainLocationReport(
                         ObtainLocationReportRequest.newBuilder()
                                 .setMessage(ByteString.copyFrom(encryptedData))
                                 .setSignature(ByteString.copyFrom(digitalSignature))
-                                .setTimestamp(System.currentTimeMillis())
+                                .setTimestamp(timestamp)
+                                .setProofOfWork(proofOfWork)
                                 .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
                                 .setIv(ByteString.copyFrom(iv))
                                 .build(), new StreamObserver<ObtainLocationReportReply>() {
@@ -278,11 +317,20 @@ public class ClientToServerFrontend {
             return null;
         }
         
-        // writeback phase atomic operation
-        writeBackToServers(this.clientLogic.readRequests.get(requestUid), epoch);
 
-        return new Coords(this.clientLogic.readRequests.get(requestUid).getInt("x"),
-                this.clientLogic.readRequests.get(requestUid).getInt("y"));
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // writeback phase atomic operation
+                writeBackToServers(clientLogic.readRequests.get(requestUid), epoch);
+            }
+        }).start();
+
+        JSONObject reportObject = this.clientLogic.readRequests.get(requestUid).getJSONObject("message");
+
+        return new Coords(reportObject.getInt("x"),
+                reportObject.getInt("y"));
 
     }
 
@@ -293,7 +341,7 @@ public class ClientToServerFrontend {
 
         System.out.println("Sending writeback request...");
         //use the same uid for the writeback phase as for the obtain report request
-        String uid = jsonObject.getString("uid");
+        String uid = jsonObject.getJSONObject("message").getString("uid");
 
 
         for (byte[][] report : response) {
@@ -303,14 +351,21 @@ public class ClientToServerFrontend {
             byte[] iv = report[3];
             String server = new String(report[4], StandardCharsets.UTF_8);
 
-            //byte[] proofOfWork = report[4];
+            byte[] proofOfWorkBytes = report[5];
+            byte[] timestampBytes = report[6];
 
-            //ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-            //buffer.put(proofOfWork);
-            //buffer.flip();//need flip
-            //long nonce = buffer.getLong();
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.put(proofOfWorkBytes);
+            buffer.flip();//need flip
+            long proofOfWork = buffer.getLong();
 
-            clientLogic.gotReportQuorums.putIfAbsent(epoch, new CopyOnWriteArrayList<>());
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.put(timestampBytes);
+            buffer2.flip();//need flip
+            long timestamp = buffer2.getLong();
+
+
+            clientLogic.gotWriteBackQuorum.putIfAbsent(uid, new CopyOnWriteArrayList<>());
             ClientToServerGrpc.ClientToServerStub serverStub = stubMap.get(server);
             try {
                 serverStub.writeBack(WriteBackRequest.newBuilder()
@@ -318,7 +373,8 @@ public class ClientToServerFrontend {
                                 .setSignature(ByteString.copyFrom(digitalSignature))
                                 .setIv(ByteString.copyFrom(iv))
                                 .setEncryptedSessionKey(ByteString.copyFrom(encryptedSessionKey))
-                                //.setProofOfWork(nonce)
+                                .setProofOfWork(proofOfWork)
+                                .setTimestamp(timestamp)
                                 .build(),
                         new StreamObserver<WriteBackReply>() {
                             @Override
@@ -332,7 +388,7 @@ public class ClientToServerFrontend {
 
                             @Override
                             public void onError(Throwable throwable) {
-
+                                System.err.println("Caught '" + throwable.getMessage() + "' from server " + server);
                             }
 
                             @Override
@@ -346,7 +402,6 @@ public class ClientToServerFrontend {
                 System.err.println("Exception received from server: " + status.getDescription());
             }
         }
-
 
         System.out.println("Waiting for writeback submit quorum...");
 

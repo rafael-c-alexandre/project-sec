@@ -126,7 +126,12 @@ public class Server {
         @Override
         public void submitLocationReport(SubmitLocationReportRequest request, StreamObserver<SubmitLocationReportReply> responseObserver) {
             try {
-                serverLogic.submitReport(request.getEncryptedSessionKey().toByteArray(),request.getEncryptedMessage().toByteArray(), request.getSignature().toByteArray(),request.getIv().toByteArray(), request.getProofOfWork());
+                serverLogic.submitReport(request.getEncryptedSessionKey().toByteArray()
+                        ,request.getEncryptedMessage().toByteArray()
+                        , request.getSignature().toByteArray()
+                        ,request.getIv().toByteArray()
+                        , request.getProofOfWork()
+                        , request.getTimestamp(), false);
 
                 SubmitLocationReportReply reply = SubmitLocationReportReply.newBuilder().build();
                 responseObserver.onNext(reply);
@@ -150,6 +155,11 @@ public class Server {
                 Status status = Status.ABORTED
                         .withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
+            } catch (InvalidFreshnessToken e) {
+                System.out.println("InvalidFreshnessToken: " + e.getMessage());
+                Status status = Status.ABORTED
+                        .withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
             }
         }
 
@@ -162,6 +172,8 @@ public class Server {
                         ,request.getEncryptedProof().toByteArray()
                         ,request.getSignature().toByteArray()
                         ,request.getIv().toByteArray()
+                        ,request.getTimestamp()
+                        ,request.getProofOfWork()
                         );
 
                 SubmitLocationProofReply reply = SubmitLocationProofReply.newBuilder().setReachedQuorum(reachedQuorum).build();
@@ -180,6 +192,11 @@ public class Server {
                 System.out.println("AlreadyConfirmedReportException: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
+            } catch (InvalidFreshnessToken e) {
+                System.out.println("InvalidFreshnessToken: " + e.getMessage());
+                Status status = Status.ABORTED
+                        .withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
             }
         }
 
@@ -190,9 +207,10 @@ public class Server {
                 byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
                 byte[] signature = request.getSignature().toByteArray();
                 byte[] iv = request.getIv().toByteArray();
+                long timestamp = request.getTimestamp();
                 long proofOfWork = request.getProofOfWork();
 
-                byte[][] response = serverLogic.requestMyProofs(encryptedData, encryptedSessionKey, signature, iv, proofOfWork, request.getTimestamp());
+                byte[][] response = serverLogic.requestMyProofs(encryptedData, encryptedSessionKey, signature, iv, proofOfWork, timestamp);
 
                 //Create reply
                 RequestMyProofsReply reply = RequestMyProofsReply.newBuilder()
@@ -218,9 +236,10 @@ public class Server {
                 byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
                 byte[] signature = request.getSignature().toByteArray();
                 byte[] iv = request.getIv().toByteArray();
-                //long proofOfWork = request.getProofOfWork();
+                long proofOfWork = request.getProofOfWork();
+                long timestamp = request.getTimestamp();
 
-                serverLogic.writeback(encryptedData, encryptedSessionKey, signature, iv);
+                serverLogic.writeback(encryptedData, encryptedSessionKey, signature, iv, proofOfWork, timestamp, false);
 
                 //Create reply
                 WriteBackReply reply = WriteBackReply.newBuilder()
@@ -229,7 +248,7 @@ public class Server {
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
 
-            } catch (InvalidSignatureException | InvalidProofOfWorkException e) {
+            } catch (InvalidSignatureException | InvalidProofOfWorkException | InvalidFreshnessToken e) {
                 Status status = Status.INVALID_ARGUMENT.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (AlreadyConfirmedReportException e) {
@@ -251,8 +270,10 @@ public class Server {
                 byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
                 byte[] signature = request.getSignature().toByteArray();
                 byte[] iv = request.getIv().toByteArray();
+                long timestamp = request.getTimestamp();
+                long proofOfWork = request.getProofOfWork();
 
-                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, false, request.getTimestamp());
+                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, timestamp, proofOfWork);
 
                 //Create reply
                 ObtainLocationReportReply reply = ObtainLocationReportReply.newBuilder()
@@ -265,10 +286,10 @@ public class Server {
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
 
-            } catch (NoSuchCoordsException | NoReportFoundException e) {
+            } catch (NoReportFoundException e) {
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
-            } catch (InvalidSignatureException | InvalidFreshnessToken e) {
+            } catch (InvalidSignatureException | InvalidFreshnessToken | InvalidProofOfWorkException e) {
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
@@ -289,23 +310,26 @@ public class Server {
                 byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
                 byte[] signature = request.getSignature().toByteArray();
                 byte[] iv = request.getIv().toByteArray();
+                long proofOfWork = request.getProofOfWork();
+                long timestamp = request.getTimestamp();
 
-                byte[][] response = serverLogic.generateObtainLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, true, request.getTimestamp());
+                byte[][] response = serverLogic.generateObtainLocationReportResponseHA(encryptedData, encryptedSessionKey, signature, iv, proofOfWork, timestamp);
 
                 //Create reply
                 proto.HA.ObtainLocationReportReply reply = proto.HA.ObtainLocationReportReply.newBuilder()
                         .setMessage(ByteString.copyFrom(response[0]))
                         .setSignature(ByteString.copyFrom(response[1]))
                         .setIv(ByteString.copyFrom(response[2]))
+                        .setEncryptedSessionKey(ByteString.copyFrom(response[3]))
                         .build();
 
                 responseObserver.onNext(reply);
                 responseObserver.onCompleted();
 
-            } catch (NoSuchCoordsException | NoReportFoundException e) {
+            } catch (NoReportFoundException e) {
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
-            } catch (InvalidSignatureException | InvalidFreshnessToken e) {
+            } catch (InvalidSignatureException e) {
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
@@ -318,6 +342,7 @@ public class Server {
                 byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
                 byte[] signature = request.getSignature().toByteArray();
                 byte[] iv = request.getIv().toByteArray();
+                long timestamp = request.getTimestamp();
 
                 byte[][] response = serverLogic.generateObtainUsersAtLocationReportResponse(encryptedData, encryptedSessionKey, signature, iv, request.getTimestamp());
 
@@ -336,6 +361,40 @@ public class Server {
                 responseObserver.onError(status.asRuntimeException());
             }
 
+        }
+
+        @Override
+        public void writeBack(proto.HA.WriteBackRequest request, StreamObserver<proto.HA.WriteBackReply> responseObserver) {
+            try {
+                byte[] encryptedData = request.getMessage().toByteArray();
+                byte[] encryptedSessionKey = request.getEncryptedSessionKey().toByteArray();
+                byte[] signature = request.getSignature().toByteArray();
+                byte[] iv = request.getIv().toByteArray();
+                long proofOfWork = request.getProofOfWork();
+                long timestamp = request.getTimestamp();
+
+                serverLogic.writeback(encryptedData, encryptedSessionKey, signature, iv, proofOfWork, timestamp, true);
+
+                //Create reply
+                proto.HA.WriteBackReply reply = proto.HA.WriteBackReply.newBuilder()
+                        .build();
+
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+
+            } catch (InvalidSignatureException | InvalidProofOfWorkException | InvalidFreshnessToken e) {
+                Status status = Status.INVALID_ARGUMENT.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (AlreadyConfirmedReportException e) {
+                Status status = Status.ALREADY_EXISTS.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (NoReportFoundException e) {
+                Status status = Status.NOT_FOUND.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (InvalidReportException e) {
+                Status status = Status.ABORTED.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            }
         }
 
     }

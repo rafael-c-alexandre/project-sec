@@ -10,6 +10,8 @@ package proto.HA;
 service HAToServer {
   rpc ObtainLocationReport (ObtainLocationReportRequest) returns (ObtainLocationReportReply){}
   rpc ObtainUsersAtLocation (ObtainUsersAtLocationRequest) returns (ObtainUsersAtLocationReply){}
+  rpc WriteBack (WriteBackRequest) returns (WriteBackReply) {}
+
 }
 
 message ObtainLocationReportRequest {
@@ -17,7 +19,8 @@ message ObtainLocationReportRequest {
   bytes signature = 2;
   bytes encryptedSessionKey = 3;
   bytes iv = 4;
-  int64 timestamp = 5;
+  int64 proofOfWork = 5;
+  int64 timestamp = 6;
 }
 
 message ObtainLocationReportReply {
@@ -40,6 +43,18 @@ message ObtainUsersAtLocationReply {
   bytes message = 2;
   bytes signature = 3;
   bytes iv = 4;
+}
+
+message WriteBackRequest {
+  bytes message = 1;
+  bytes signature = 2;
+  bytes encryptedSessionKey = 3;
+  bytes iv = 4;
+  int64 proofOfWork = 5;
+  int64 timestamp = 6;
+}
+
+message WriteBackReply {
 }
 
 

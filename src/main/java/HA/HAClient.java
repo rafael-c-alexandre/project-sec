@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Scanner;
+import java.util.UUID;
 
 public class HAClient {
 
@@ -17,22 +18,22 @@ public class HAClient {
     private final HALogic haLogic;
     private int port;
 
-    public HAClient(String keystorePasswd) {
+    public HAClient(String keystorePasswd, int f) {
         /* Initialize client logic */
-        haLogic = new HALogic(keystorePasswd);
+        haLogic = new HALogic(keystorePasswd, f);
         /* Import users and server from mappings */
         importAddrMappings();
     }
 
     public static void main(String[] args) throws FileNotFoundException {
-        if (args.length > 2 || args.length < 1) {
-            System.err.println("Invalid args. Try -> keystorePasswd [commands_file_path]");
+        if (args.length > 3 || args.length < 2) {
+            System.err.println("Invalid args. Try -> keystorePasswd numberOfByzantines [commands_file_path]");
             System.exit(0);
         }
 
-        HAClient client = new HAClient(args[0]);
+        HAClient client = new HAClient(args[0], Integer.parseInt(args[1]));
 
-        String commandsFilePath = args.length == 2 ? args[1] : null;
+        String commandsFilePath = args.length == 3 ? args[2] : null;
 
         System.out.println("Healthcare Authority started");
         try {
@@ -100,8 +101,9 @@ public class HAClient {
             String username = in.nextLine();
             System.out.print("From which epoch do you wish to get your location report? ");
             int epoch = Integer.parseInt(in.nextLine());
-            Coords result = haFrontend.obtainLocationReport(username, epoch);
-            System.out.println("User " + username + " was at position (" + result.getX() + "," + result.getY() + ") at epoch " + epoch);
+            Coords result = haFrontend.obtainLocationReport(username, epoch, UUID.randomUUID().toString());
+            if (result != null)
+                System.out.println("User " + username + " was at position (" + result.getX() + "," + result.getY() + ") at epoch " + epoch);
         } catch (StatusRuntimeException e) {
             System.err.println(e.getMessage());
         }
@@ -126,16 +128,20 @@ public class HAClient {
             return;
         }
 
+        haFrontend = new HAFrontend(haLogic);
+
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
+
             // process the line
             String[] parts = line.split(",");
             String mappingsUser = parts[0].trim();
             String mappingsHost = parts[1].trim();
             int mappingsPort = Integer.parseInt(parts[2].trim());
             //SERVER
-            if (mappingsUser.equals("server")) {
-                haFrontend = new HAFrontend(mappingsHost, mappingsPort, haLogic);
+            if (mappingsUser.contains("server")) {
+                haFrontend.addServer(mappingsUser, mappingsHost, mappingsPort);
+                haLogic.addServer(mappingsUser);
                 continue;
             }
         }

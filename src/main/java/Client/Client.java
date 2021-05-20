@@ -2,6 +2,7 @@ package Client;
 
 import Exceptions.InvalidSignatureException;
 import Exceptions.ProverNotCloseEnoughException;
+import Server.Proof;
 import com.google.protobuf.ByteString;
 import io.grpc.ServerBuilder;
 import io.grpc.Status;
@@ -18,6 +19,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.UUID;
@@ -74,6 +76,7 @@ public class Client {
             String cmd = in.nextLine();
                 switch (cmd) {
                     case "obtain_report" -> client.obtainReport(in);
+                    case "request_proofs" -> client.requestMyProofs(in);
                     case "exit" -> running = false;
                     case "help" -> client.displayHelp();
                     default -> System.err.println("Error: Command not recognized");
@@ -85,6 +88,26 @@ public class Client {
             client.blockUntilShutdown();
         }
 
+    }
+
+    public void requestMyProofs(Scanner in){
+        try {
+            System.out.print("From which epochs do you wish to get your proofs? (Separated by commas)");
+            String epochs = in.nextLine();
+            List<Integer> epochList = Arrays.stream(epochs.split(","))
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
+
+            List<Proof> proofs = clientToServerFrontend.requestMyProofs(this.username,epochList);
+
+            for(Proof proof : proofs){
+                System.out.println(proof);
+            }
+
+
+        } catch (StatusRuntimeException e) {
+            System.err.println(e.getMessage());
+        }
     }
 
     public void obtainReport(Scanner in) {

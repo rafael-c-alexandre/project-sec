@@ -39,7 +39,7 @@ public class Proof {
         //we only need the proof itself and its digital signature,
         // not the outer original request digital signature and json
         proof.put("proof", message.getJSONObject("proof"));
-        proof.put("signature", message.getString("digital_signature"));
+        proof.put("digital_signature", message.getString("digital_signature"));
         proof.put("witness_session_key_bytes", Base64.getEncoder().encodeToString(this.witnessSessionKeyBytes));
         proof.put("witness_iv", Base64.getEncoder().encodeToString(witnessIV));
 
@@ -86,6 +86,30 @@ public class Proof {
 
     public void setCoords(Coords coords) {
         this.coords = coords;
+    }
+
+    public byte[] getProofBytes() {
+        return proofBytes;
+    }
+
+    public void setProofBytes(byte[] proofBytes) {
+        this.proofBytes = proofBytes;
+    }
+
+    public byte[] getWitnessSessionKeyBytes() {
+        return witnessSessionKeyBytes;
+    }
+
+    public void setWitnessSessionKeyBytes(byte[] witnessSessionKeyBytes) {
+        this.witnessSessionKeyBytes = witnessSessionKeyBytes;
+    }
+
+    public byte[] getWitnessIV() {
+        return witnessIV;
+    }
+
+    public void setWitnessIV(byte[] witnessIV) {
+        this.witnessIV = witnessIV;
     }
 
     @Override
