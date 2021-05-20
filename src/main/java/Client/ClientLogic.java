@@ -26,7 +26,7 @@ public class ClientLogic {
     public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotReportQuorums = new ConcurrentHashMap<>();
     public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotProofQuorums = new ConcurrentHashMap<>();
     public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotReadQuorum = new ConcurrentHashMap<>();
-    public final int serverQuorum = 2; //quorum of responses of servers needed
+    public final int serverQuorum = 1; //quorum of responses of servers needed
 
     public ClientLogic(String username, String gridFilePath, String keystorePasswd) {
         this.username = username;
@@ -117,9 +117,9 @@ public class ClientLogic {
             buffer.putLong(proofOfWork);
             result[5] = buffer.array();
 
-            buffer.clear();
-            buffer.putLong(timestamp);
-            result[6] = buffer.array();
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.putLong(timestamp);
+            result[6] = buffer2.array();
 
             reports.add(result);
         }
@@ -256,9 +256,9 @@ public class ClientLogic {
         buffer.putLong(proofOfWork);
         ret[5] = buffer.array();
 
-        buffer.clear();
-        buffer.putLong(timestamp);
-        ret[6] = buffer.array();
+        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+        buffer2.putLong(timestamp);
+        ret[6] = buffer2.array();
 
         return ret;
     }
@@ -284,7 +284,7 @@ public class ClientLogic {
     }
 
     public byte[][] encryptProof(byte[] proof, String server) {
-        byte [][] res = new byte[4][];
+        byte [][] res = new byte[6][];
         //Generate a session Key
         SecretKey sessionKey = EncryptionLogic.generateAESKey();
         byte[] sessionKeyBytes = sessionKey.getEncoded();
@@ -318,9 +318,9 @@ public class ClientLogic {
         buffer.putLong(proofOfWork);
         res[4] = buffer.array();
 
-        buffer.clear();
-        buffer.putLong(timestamp);
-        res[5] = buffer.array();
+        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+        buffer2.putLong(timestamp);
+        res[5] = buffer2.array();
 
         return res;
     }
@@ -380,9 +380,9 @@ public class ClientLogic {
         buffer.putLong(proofOfWork);
         ret[4] = buffer.array();
 
-        buffer.clear();
-        buffer.putLong(timestamp);
-        ret[5] = buffer.array();
+        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+        buffer2.putLong(timestamp);
+        ret[5] = buffer2.array();
 
         return ret;
     }

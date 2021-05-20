@@ -49,8 +49,8 @@ public class ClientToServerFrontend {
             byte[] digitalSignature = report[1];
             byte[] encryptedSessionKey = report[2];
             byte[] iv = report[3];
-            byte[] timestampBytes = report[5];
-            byte[] proofOfWorkBytes = report[6];
+            byte[] proofOfWorkBytes = report[5];
+            byte[] timestampBytes = report[6];
 
             String server = new String(report[4], StandardCharsets.UTF_8);
 
@@ -59,10 +59,10 @@ public class ClientToServerFrontend {
             buffer.flip();//need flip
             long proofOfWork = buffer.getLong();
 
-            buffer.clear();
-            buffer.put(timestampBytes);
-            buffer.flip();//need flip
-            long timestamp = buffer.getLong();
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.put(timestampBytes);
+            buffer2.flip();//need flip
+            long timestamp = buffer2.getLong();
 
 
             clientLogic.gotReportQuorums.putIfAbsent(epoch, new CopyOnWriteArrayList<>());
@@ -182,10 +182,10 @@ public class ClientToServerFrontend {
         buffer.flip();//need flip
         long proofOfWork = buffer.getLong();
 
-        buffer.clear();
-        buffer.put(timestampBytes);
-        buffer.flip();//need flip
-        long timestamp = buffer.getLong();
+        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+        buffer2.put(timestampBytes);
+        buffer2.flip();//need flip
+        long timestamp = buffer2.getLong();
 
         for (Map.Entry<String,ClientToServerGrpc.ClientToServerStub> server: stubMap.entrySet()) {
 
@@ -239,10 +239,10 @@ public class ClientToServerFrontend {
         buffer.flip();//need flip
         long proofOfWork = buffer.getLong();
 
-        buffer.clear();
-        buffer.put(timestampBytes);
-        buffer.flip();//need flip
-        long timestamp = buffer.getLong();
+        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+        buffer2.put(timestampBytes);
+        buffer2.flip();//need flip
+        long timestamp = buffer2.getLong();
 
 
 

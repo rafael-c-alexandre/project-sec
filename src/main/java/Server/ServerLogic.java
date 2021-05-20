@@ -523,10 +523,6 @@ public class ServerLogic {
         if(!EncryptionLogic.verifyProofOfWork(proofOfWork,jsonString + timestamp))
             throw new InvalidProofOfWorkException();
 
-        //verify message integrity
-        if(verifyMessage(data.getBytes(), signature))
-            throw new InvalidSignatureException();
-
 
         List<Integer> epochs = message.getJSONArray("epochs")
                 .toList()
@@ -535,6 +531,11 @@ public class ServerLogic {
                 .collect(Collectors.toList());
 
         String username = message.getString("username");
+
+
+        //verify message integrity
+        if(EncryptionLogic.verifyDigitalSignature(data.getBytes(),signature,EncryptionLogic.getPublicKey(username)))
+            throw new InvalidSignatureException();
 
         List<Proof> proofs = getUserProofs(username,epochs);
 

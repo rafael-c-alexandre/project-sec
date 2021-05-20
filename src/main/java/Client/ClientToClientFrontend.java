@@ -141,10 +141,10 @@ public class ClientToClientFrontend {
                         buffer.flip();//need flip
                         long proofOfWork = buffer.getLong();
 
-                        buffer.clear();
-                        buffer.put(timestampBytes);
-                        buffer.flip();//need flip
-                        long timestamp = buffer.getLong();
+                        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+                        buffer2.put(timestampBytes);
+                        buffer2.flip();//need flip
+                        long timestamp = buffer2.getLong();
 
                         byte[] witnessIv = witnessIvs.get(i);
                         byte[] witnessSessionKey = witnessSessionKeys.get(i);
