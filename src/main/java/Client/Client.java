@@ -36,26 +36,26 @@ public class Client {
     private io.grpc.Server server;
     private int port;
 
-    public Client(String username, String grid_file_path, String keystorePasswd, String numberOfByzantines) throws IOException, InterruptedException {
+    public Client(String username, String grid_file_path, String keystorePasswd, int numberOfByzantineClients, int numberOfByzantineServers) throws IOException, InterruptedException {
         this.username = username;
 
         /* Initialize client logic */
-        clientLogic = new ClientLogic(username, grid_file_path, keystorePasswd, numberOfByzantines);
+        clientLogic = new ClientLogic(username, grid_file_path, keystorePasswd, numberOfByzantineClients, numberOfByzantineServers);
         /* Import users and server from mappings */
         importAddrMappings();
 
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length > 5 || args.length < 4) {
-            System.err.println("Invalid args. Try -> username grid_file_path keystorePasswd numberOfByzantines [commands_file_path] ");
+        if (args.length > 6 || args.length < 5) {
+            System.err.println("Invalid args. Try -> username grid_file_path keystorePasswd numberOfByzantineClients numberOfByzantineServers [commands_file_path] ");
             return;
         }
         String username = args[0];
         String grid_file_path = args[1];
-        Client client = new Client(username, grid_file_path, args[2], args[3]);
+        Client client = new Client(username, grid_file_path, args[2], Integer.parseInt(args[3]), Integer.parseInt(args[4]));
 
-        String commandsFilePath = args.length == 5 ? args[4] : null;
+        String commandsFilePath = args.length == 6 ? args[5] : null;
 
         client.start(client.port);
         System.out.println(username + " Started");

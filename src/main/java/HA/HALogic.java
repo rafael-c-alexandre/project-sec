@@ -18,19 +18,23 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class HALogic {
     private SecretKey sessionKey;
     private byte[] iv;
-    private final int f;
+    private final int numberOfByzantineClients;
+    private final int numberOfByzantineServers;
     private String keystorePasswd;
     private List<String> serverNames = new ArrayList<>();
     public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotReadQuorum = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotWriteBackQuorum = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, JSONObject> readRequests = new ConcurrentHashMap<>();
-    public final int serverQuorum = 2; //quorum of responses of servers needed
+    public final int serverQuorum; //quorum of responses of servers needed
 
-    public HALogic(String keystorePasswd, int numberOfByzantines) {
+    public HALogic(String keystorePasswd, int numberOfByzantineClients, int numberOfByzantineServers)  {
 
         this.keystorePasswd = keystorePasswd;
-        f = numberOfByzantines;
+        this.numberOfByzantineServers = numberOfByzantineServers;
+        this.numberOfByzantineClients = numberOfByzantineClients;
+        serverQuorum = (this.numberOfByzantineServers * 2) + 1;
     }
+
 
     public void addServer(String name) {
         serverNames.add(name);
@@ -238,7 +242,7 @@ public class HALogic {
                     validProofs++;
 
                 //got the needed proofs
-                if (validProofs == f)
+                if (validProofs == numberOfByzantineClients)
                     isValid = true;
             }
         }

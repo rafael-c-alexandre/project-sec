@@ -22,7 +22,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class ClientLogic {
 
     private final String username;
-    private final int f;
+    private final int numberOfByzantineClients;
+    private final int numberOfByzantineServers;
     private final Map<String, Map<Integer, Coords>> grid = new HashMap<>();
     private List<String> serverNames = new ArrayList<>();
     private String keystorePasswd;
@@ -31,13 +32,15 @@ public class ClientLogic {
     public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotReadQuorum = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotWriteBackQuorum = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, JSONObject> readRequests = new ConcurrentHashMap<>();
-    public final int serverQuorum = 2; //quorum of responses of servers needed
+    public final int serverQuorum; //quorum of responses of servers needed
 
 
-    public ClientLogic(String username, String gridFilePath, String keystorePasswd, String numberOfByzantines) {
+    public ClientLogic(String username, String gridFilePath, String keystorePasswd, int numberOfByzantineClients, int numberOfByzantineServers) {
         this.username = username;
         this.keystorePasswd = keystorePasswd;
-        this.f = Integer.parseInt(numberOfByzantines);
+        this.numberOfByzantineClients = numberOfByzantineClients;
+        this.numberOfByzantineServers = numberOfByzantineServers;
+        serverQuorum = (this.numberOfByzantineServers * 2) + 1;
         populateGrid(gridFilePath);
     }
 
@@ -456,7 +459,7 @@ public class ClientLogic {
                     validProofs++;
 
                 //got the needed proofs
-                if (validProofs == f)
+                if (validProofs == numberOfByzantineClients)
                     isValid = true;
             }
         }
