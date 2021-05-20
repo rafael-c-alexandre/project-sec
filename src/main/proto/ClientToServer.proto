@@ -12,6 +12,7 @@ service ClientToServer {
     rpc SubmitLocationProof (SubmitLocationProofRequest) returns (SubmitLocationProofReply){}
     rpc ObtainLocationReport (ObtainLocationReportRequest) returns (ObtainLocationReportReply){}
     rpc RequestMyProofs (RequestMyProofsRequest) returns (RequestMyProofsReply) {}
+    rpc WriteBack (WriteBackRequest) returns (WriteBackReply) {}
 }
 
 
@@ -70,4 +71,15 @@ message ObtainLocationReportReply {
     bytes message = 2;
     bytes signature = 3;
     bytes iv = 4;
+}
+
+message WriteBackRequest {
+    bytes message = 1;
+    bytes signature = 2;
+    bytes encryptedSessionKey = 3;
+    bytes iv = 4;
+    int64 timestamp = 5;
+}
+
+message WriteBackReply {
 }

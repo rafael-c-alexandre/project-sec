@@ -71,6 +71,7 @@ public class ServerLogic {
         JSONObject message = jsonObject.getJSONObject("message");
         String username = message.getString("username");
         int epoch = message.getInt("epoch");
+        String requestUid = message.getString("uid");
 
 
         //Verify signature
@@ -82,37 +83,51 @@ public class ServerLogic {
                 System.out.println("Valid signature for HA request!");
         } else {
             if (!EncryptionLogic.verifyDigitalSignature(decryptedData, signature, EncryptionLogic.getPublicKey(username))) {
-                System.out.println("Invalid signature for client" + username + "!");
+                System.out.println("Invalid signature for client " + username + "!");
                 throw new InvalidSignatureException();
             } else
-                System.out.println("Valid signature for client" + username + "!");
+                System.out.println("Valid signature for client " + username + "!");
         }
 
 
         //process request
-        Coords coords = obtainClosedLocationReport(username, epoch).getCoords();
+        UserReport report = obtainClosedLocationReport(username, epoch);
 
         JSONObject jsonResponse = new JSONObject();
         JSONObject jsonResponseMessage = new JSONObject();
 
-        jsonResponseMessage.put("x", coords.getX());
-        jsonResponseMessage.put("y", coords.getY());
+        jsonResponseMessage.put("x", report.getCoords().getX());
+        jsonResponseMessage.put("y", report.getCoords().getY());
+        jsonResponseMessage.put("uid", requestUid);
 
         jsonResponse.put("message", jsonResponseMessage);
 
+        //add proofs to response
+        JSONArray proofs = new JSONArray();
+
+        for (int i = 0; i < report.getProofsList().size(); i++) {
+            proofs.put(report.getProofsList().get(i).getProofJSON());
+        }
+
+        //add array to json response
+        jsonResponse.put("proofs", proofs);
 
         //encrypt response
         byte[] responseIv = EncryptionLogic.generateIV();
         byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
 
+        //put back session key into response
+        byte[] responseEncryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey(username), sessionKeyBytes);
+
 
         //generate signature
         byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey(serverName, keystorePasswd));
 
-        byte[][] ret = new byte[3][];
+        byte[][] ret = new byte[4][];
         ret[0] = encryptedResponse;
         ret[1] = responseSignature;
-        ret[2] = responseIv;
+        ret[2] = responseEncryptedSessionKey;
+        ret[3] = responseIv;
 
         return ret;
     }
@@ -142,8 +157,6 @@ public class ServerLogic {
         //verify message integrity
         if(verifyMessage(decipheredMessage, digitalSignature)) {
             UserReport userReport = new UserReport(reportJSON, digitalSignature);
-
-
 
 
             if(duplicateReport(userReport)) {
@@ -230,8 +243,11 @@ public class ServerLogic {
         //decrypt proof
         byte[] decryptedProof = EncryptionLogic.decryptWithAES(sessionKey,encryptedProof,iv);
 
+        //Decrypt witnesssession key
+        byte[] witnessSessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), witnessEncryptedSessionKey);
+
         //verify proofs integrity
-        Proof newProof = verifyProof(witnessEncryptedSessionKey,decryptedProof, signature,witnessIv);
+        Proof newProof = verifyProof(witnessSessionKeyBytes,decryptedProof, signature,witnessIv);
 
         UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
         System.out.println("\t Proof received from " + newProof.getWitnessUsername() + " to " + newProof.getProverUsername() + " report verified");
@@ -281,7 +297,7 @@ public class ServerLogic {
     }
 
 
-    public Proof verifyProof(byte[] witnessEncryptedSessionKey,byte[] proof, byte[] signature, byte[] witnessIv) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
+    public Proof verifyProof(byte[] witnessSessionKeyBytes ,byte[] proof, byte[] signature, byte[] witnessIv) throws InvalidProofException, NoReportFoundException, AlreadyConfirmedReportException {
 
         JSONObject messageJSON = new JSONObject(new String(proof));
         JSONObject proofJSON = messageJSON.getJSONObject("proof");
@@ -289,6 +305,7 @@ public class ServerLogic {
         String witnessUser = proofJSON.getString("witnessUsername");
 
         byte[] witnessSignature = Base64.getDecoder().decode(messageJSON.getString("digital_signature"));
+
 
         //get prover public key
         PublicKey proverPubKey = EncryptionLogic.getPublicKey(proverUser);
@@ -325,9 +342,7 @@ public class ServerLogic {
         //decrypt witness location
         byte[] witnessLocationBytes = Base64.getDecoder().decode(proofJSON.getString("encrypted_location"));
 
-        //Decrypt session key
-        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), witnessEncryptedSessionKey);
-        SecretKey witnessSessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+        SecretKey witnessSessionKey = EncryptionLogic.bytesToAESKey(witnessSessionKeyBytes);
         byte[] witnessLocation = EncryptionLogic.decryptWithAES(witnessSessionKey, witnessLocationBytes, witnessIv);
 
         JSONObject locationJSON = new JSONObject(new String(Objects.requireNonNull(witnessLocation)));
@@ -344,7 +359,7 @@ public class ServerLogic {
             throw new InvalidProofException("Prover and witness are not close enough");
         }
 
-        return new Proof(proofJSON, locationJSON,signature);
+        return new Proof(proofJSON, locationJSON, proof, witnessSessionKey.getEncoded(), witnessIv);
 
     }
 
@@ -382,7 +397,6 @@ public class ServerLogic {
             System.out.println("Valid signature for HA request!");
 
 
-
         //process request
         List<String> users = obtainUsersAtLocation(x,y, epoch);
 
@@ -397,7 +411,6 @@ public class ServerLogic {
         //encrypt response
         byte[] responseIv = EncryptionLogic.generateIV();
         byte[] encryptedResponse = EncryptionLogic.encryptWithAES(sessionKey, jsonResponse.toString().getBytes(), responseIv);
-
 
         //generate signature
         byte[] responseSignature = EncryptionLogic.createDigitalSignature(jsonResponse.toString().getBytes(), EncryptionLogic.getPrivateKey(serverName, keystorePasswd));
@@ -486,5 +499,54 @@ public class ServerLogic {
         ret[3] = newEncryptedSessionKey;
 
         return ret;
+    }
+
+    public void writeback(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long proofOfWork) throws InvalidSignatureException, InvalidReportException, InvalidProofOfWorkException, AlreadyConfirmedReportException, NoReportFoundException {
+
+        //submit report if it does not exist
+        try {
+            submitReport(encryptedSessionKey, encryptedData, signature,iv, proofOfWork);
+        } catch (ReportAlreadyExistsException e) {
+            //continue
+        }
+
+        //Decrypt session key
+        byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
+        SecretKey sessionKey = EncryptionLogic.bytesToAESKey(sessionKeyBytes);
+
+        //Decrypt data
+        byte[] decryptedData = EncryptionLogic.decryptWithAES(sessionKey, encryptedData, iv);
+
+        JSONObject obj = new JSONObject(new String(decryptedData));
+        JSONArray proofs = obj.getJSONArray("proofs");
+
+
+        //submit proofs if they do not exist
+        for (Object o : proofs) {
+            JSONObject proof = (JSONObject) o;
+
+            byte[] witnessIv = Base64.getDecoder().decode(proof.getString("witness_iv"));
+            byte[] witnessSessionKey = Base64.getDecoder().decode(proof.getString("witness_session_key_bytes"));
+
+            //verify proofs integrity
+            Proof newProof = null;
+            try {
+                newProof = verifyProof(witnessSessionKey, proof.toString().getBytes(), signature, witnessIv);
+            } catch (InvalidProofException e) {
+                continue;
+            }
+
+            UserReport report = obtainLocationReport(newProof.getProverUsername(), newProof.getEpoch());
+            System.out.println("\t Proof received from " + newProof.getWitnessUsername() + " to " + newProof.getProverUsername() + " report verified");
+            report.addProof(newProof);
+            reportsRepository.submitProof(newProof);
+            if (report.getProofsList().size() >= responseQuorum && !report.isClosed()) {
+                System.out.println("Reached quorum of proofs for report of user " + report.getUsername() + " for epoch " + report.getEpoch());
+                report.setClosed(true);
+                reportsRepository.closeUserReport(report);
+                return;
+            }
+        }
+
     }
 }
