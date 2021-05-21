@@ -154,7 +154,7 @@ For this test case, start 1 server, 1 byzantine user with username byzantine_use
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 123456 0" 
 ```
 
 On terminal 2:
@@ -187,7 +187,7 @@ For this test case, start 1 server, 1 byzantine user with username byzantine_use
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 123456 0" 
 ```
 
 On terminal 2:
@@ -223,7 +223,7 @@ For this test case, start 1 server, 2 byzantine users with usernames byzantine_u
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 123456 0" 
 ```
 
 On terminal 2:
@@ -276,7 +276,7 @@ For this test case, start 1 server, 1 byzantine user with username byzantine_use
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 123456 0" 
 ```
 
 On terminal 2:
@@ -315,7 +315,7 @@ For this test case, start 1 server with 0 byzantine users. 3 regular users with 
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 123456 0" 
 ```
 
 On terminal 2:
@@ -347,7 +347,7 @@ After submitting all the reports, **crash the server**.
 Then reboot it again:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456 0" 
 ```
 
 
@@ -383,19 +383,15 @@ The HA should return the correct answer from the quorum of responses from the co
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 5 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
 
-Note that when the users request a location proof there will be displayed an error message stating the received report was invalid, that was the report from the byzantine correclty identified as faked. The user should also receive good reports from the correct servers and display the result.
+This should return the correct proofs because the client merges all the correct proofs received and the client waits for a majority of servers, which means at least one response was from a correct server.
 
 #### Case 12. Byzantine server sends 0 proofs to request my proofs by client
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 6 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
 
-Note that when the users request a location proof there will be displayed an error message stating the received report was invalid, that was the report from the byzantine correclty identified as faked. The user should also receive good reports from the correct servers and display the result.
+This should return the correct proofs because the client merges all the correct proofs received and the client waits for a majority of servers, which means at least one response was from a correct server.
+ 
 
-#### Case 13. Byzantine server sends fake proofs to request my proofs by client
-
-For this test case, start 3 correct servers and 1 byzantine server in mode 7 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
-
-Note that when the users request a location proof there will be displayed an error message stating the received report was invalid, that was the report from the byzantine correclty identified as faked. The user should also receive good reports from the correct servers and display the result.
 
 #### Note
 If command `konsole` is installed, it is also possible to run the test scripts `test<case_number>.sh` to perform the test. 
