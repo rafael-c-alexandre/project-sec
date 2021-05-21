@@ -104,7 +104,7 @@ mysql -p < schema.sql
 ``` 
 on `<root-project-directory>/src/main/assets/sql_scripts>` to create a clean database.
 
-### Case 1. Correct Behaviour
+### Case 1 - stage 1. Correct Behaviour
 
 For this test case, start 1 server with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
 
@@ -146,7 +146,7 @@ mvn exec:java -Dexec.mainClass="HA.HAClient" -Dexec.args="123456 src/main/assets
 This test reflects the correct behaviour of the program. Users prove their location correctly by issuing broadcast proof request to other witnesses and submitting them to the server. Plus, clients request their locations for a specific epoch and the HA request all the clients in some position at a given epoch.
 
 
-### Case 2. Byzantine user tries to generate a valid report using a fake location
+### Case 2 - stage 1. Byzantine user tries to generate a valid report using a fake location
 
 For this test case, start 1 server, 1 byzantine user with username byzantine_user1 in mode 1, 3 regular users with usernames user1 and user2 , all of them using the grid file **grid2.txt**. 
 
@@ -179,7 +179,7 @@ A byzantine prover sends a legit proof request to the witnesses but sends an inc
 
 
 
-### Case 3. Byzantine user generating and sending a wrong proof to a correct user (altered epoch)
+### Case 3 - stage 1. Byzantine user generating and sending a wrong proof to a correct user (altered epoch)
 
 For this test case, start 1 server, 1 byzantine user with username byzantine_user1 in mode 2, 2 regular users with usernames user1 and user2,  all of them using the grid file **grid3.txt**. 
 
@@ -214,7 +214,7 @@ In this test case, a byzantine user sends wrong location proofs to correct users
 
 
 
-### Case 4. Byzantine users collaborate to fake one byzantine user's location
+### Case 4 - stage 1. Byzantine users collaborate to fake one byzantine user's location
 
 
 For this test case, start 1 server, 2 byzantine users with usernames byzantine_user1 in mode 3 and byzantine_user2 in mode 4, 3 regular users with usernames user1 user2 and user3, all of them using the grid file **grid4.txt**. 
@@ -266,7 +266,7 @@ In this test, there are 2 byzantine users collaborating. One is trying to prove 
 
 
 
-### Case 5. Byzantine user tries to replay a correct user's proof
+### Case 5 - stage 1. Byzantine user tries to replay a correct user's proof
 
 
 For this test case, start 1 server, 1 byzantine user with username byzantine_user1 in mode 5, 2 regular users with usernames user1 and user2, all of them using the grid file **grid5.txt**. 
@@ -308,7 +308,7 @@ mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="byzantine_user2 rc/m
 In this test, the byzantine user captures a valid proof from a correct witness to a correct prover and replays it, also sending it to the prover. Because the proof comes, supposedly, from a user that has already submitted a proof for that report, the server will reject it.
 
 
-#### Case 6. Server crashes and recovers its states after rebooting
+#### Case 6 - stage 1. Server crashes and recovers its states after rebooting
 
 For this test case, start 1 server with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid6.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
 
