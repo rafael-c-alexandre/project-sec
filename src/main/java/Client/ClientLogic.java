@@ -2,6 +2,7 @@ package Client;
 
 import Exceptions.InvalidSignatureException;
 import Exceptions.ProverNotCloseEnoughException;
+import Server.Proof;
 import javafx.util.Pair;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,12 +32,16 @@ public class ClientLogic {
     public ConcurrentHashMap<Integer, CopyOnWriteArrayList<String>> gotProofQuorums = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotReadQuorum = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotWriteBackQuorum = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, CopyOnWriteArrayList<String>> gotMyProofsQuorum = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, CopyOnWriteArrayList<JSONObject>> myProofsResponses = new ConcurrentHashMap<>(); //<Epoch, <ProverUsername, ProofJSON
     public ConcurrentHashMap<String, JSONObject> readRequests = new ConcurrentHashMap<>();
     private final int byzantineMode;
     public final int serverQuorum; //quorum of responses of servers needed
 
 
+
     public ClientLogic(String username, String gridFilePath, String keystorePasswd, int numberOfByzantineClients, int numberOfByzantineServers, int mode) {
+
         this.username = username;
         this.keystorePasswd = keystorePasswd;
         this.numberOfByzantineClients = numberOfByzantineClients;
@@ -396,58 +401,68 @@ public class ClientLogic {
         return grid;
     }
 
-    public byte[][] requestMyProofs(String username, List<Integer> epochs) {
-        byte[][] ret = new byte[6][];
-        JSONObject object = new JSONObject();
-        JSONObject message = new JSONObject();
+    public List<byte[][]> requestMyProofs(String readId, String username, List<Integer> epochs) {
+        List<byte[][]> proofRequests = new ArrayList<>();
 
-        //Generate a session Key
-        SecretKey sessionKey = EncryptionLogic.generateAESKey();
-        byte[] sessionKeyBytes = sessionKey.getEncoded();
+        for (String server : serverNames) {
 
-        //Encrypt session jey with server public key
-        byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey("server"), sessionKeyBytes);
+            byte[][] ret = new byte[8][];
+            JSONObject object = new JSONObject();
+            JSONObject message = new JSONObject();
 
-        //Pass data to json
-        message.put("username", username);
-        message.put("epochs", epochs);
+            //Generate a session Key
+            SecretKey sessionKey = EncryptionLogic.generateAESKey();
+            byte[] sessionKeyBytes = sessionKey.getEncoded();
 
-        object.put("message", message);
+            //Encrypt session jey with server public key
+            byte[] encryptedSessionKey = EncryptionLogic.encryptWithRSA(EncryptionLogic.getPublicKey(server), sessionKeyBytes);
 
-        //Encrypt data with session key
-        byte[] iv = EncryptionLogic.generateIV();
-        byte[] encryptedData = EncryptionLogic.encryptWithAES(
-                sessionKey,
-                object.toString().getBytes(),
-                iv
-        );
+            //Pass data to json
+            message.put("username", username);
+            message.put("epochs", epochs);
+            message.put("readId", readId);
 
-        long timestamp = System.currentTimeMillis();
-        long proofOfWork = EncryptionLogic.generateProofOfWork(object.toString() + timestamp);
+            object.put("message", message);
+
+            //Encrypt data with session key
+            byte[] iv = EncryptionLogic.generateIV();
+            byte[] encryptedData = EncryptionLogic.encryptWithAES(
+                    sessionKey,
+                    object.toString().getBytes(),
+                    iv
+            );
+
+            long timestamp = System.currentTimeMillis();
+            long proofOfWork = EncryptionLogic.generateProofOfWork(object.toString() + timestamp);
 
 
-        String data = object.toString() + timestamp + proofOfWork;
+            String data = object.toString() + timestamp + proofOfWork;
 
-        //Generate digital signature
-        byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
-                data.getBytes(),
-                EncryptionLogic.getPrivateKey(username, keystorePasswd)
-        );
+            //Generate digital signature
+            byte[] digitalSignature = EncryptionLogic.createDigitalSignature(
+                    data.getBytes(),
+                    EncryptionLogic.getPrivateKey(username, keystorePasswd)
+            );
 
-        ret[0] = encryptedData;
-        ret[1] = digitalSignature;
-        ret[2] = encryptedSessionKey;
-        ret[3] = iv;
+            ret[0] = encryptedData;
+            ret[1] = digitalSignature;
+            ret[2] = encryptedSessionKey;
+            ret[3] = iv;
+            ret[4] = sessionKeyBytes;
+            ret[5] = server.getBytes(StandardCharsets.UTF_8);
 
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(proofOfWork);
-        ret[4] = buffer.array();
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+            buffer.putLong(proofOfWork);
+            ret[6] = buffer.array();
 
-        ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
-        buffer2.putLong(timestamp);
-        ret[5] = buffer2.array();
+            ByteBuffer buffer2 = ByteBuffer.allocate(Long.BYTES);
+            buffer2.putLong(timestamp);
+            ret[7] = buffer2.array();
 
-        return ret;
+            proofRequests.add(ret);
+        }
+
+        return proofRequests;
     }
 
     public synchronized JSONObject verifyLocationReportResponse(byte[] encryptedMessage, byte[] signature, byte[] encryptedSessionKey, byte[] iv, String serverName, int epoch, String requestUid) {
@@ -636,5 +651,54 @@ public class ClientLogic {
 
 
        return response;
+    }
+
+    public List<Proof> getMyProofs(String readId, List<Integer> epochs) {
+        Map<Integer, Map<String, Proof>> uniqueProofMap = new HashMap<>(); //<epoch, <ProverUsername, Proof>>
+
+        for(JSONObject jsonObject: myProofsResponses.get(readId)){
+            JSONObject proofJson = jsonObject.getJSONObject("proof");
+            byte[] proofSignature = Base64.getDecoder().decode(jsonObject.getString("digital_signature"));
+
+            String witnessUsername = proofJson.getString("witnessUsername");
+            String proverUsername = proofJson.getString("proverUsername");
+            //verify if proof witness is the current user
+            if(!witnessUsername.equals(username)){
+                System.out.println("Wrong proof witness, should be: " + username + " but is: " + witnessUsername);
+                continue;
+            }
+
+            //verify if proof is signed by the current user
+            if(!EncryptionLogic.verifyDigitalSignature(proofJson.toString().getBytes(),
+                    proofSignature, EncryptionLogic.getPublicKey(witnessUsername))){
+                System.out.println("Wrong proof signature, not signed by the current user");
+                continue;
+            }
+
+            //verify if epoch is inside the requested epoch range
+            int proofEpoch = proofJson.getInt("epoch");
+            if(!epochs.contains(proofEpoch)){
+                System.out.println("Proof received is not is the requested epoch range");
+            }
+
+            //Get x and y encryped with session key
+            byte[] witnessIv = Base64.getDecoder().decode(jsonObject.getString("witness_iv"));
+            byte[] witnessSessionKeyBytes = Base64.getDecoder().decode(jsonObject.getString("witness_session_key_bytes"));
+            byte[] witnessLocationBytes = Base64.getDecoder().decode(proofJson.getString("encrypted_location"));
+
+            SecretKey witnessSessionKey = EncryptionLogic.bytesToAESKey(witnessSessionKeyBytes);
+            byte[] witnessLocation = EncryptionLogic.decryptWithAES(witnessSessionKey, witnessLocationBytes, witnessIv);
+            JSONObject locationJSON = new JSONObject(new String(Objects.requireNonNull(witnessLocation)));
+
+            //Add to map, to guarantee unique proofs, only at most one proof per epoch and prover
+            uniqueProofMap.putIfAbsent(proofEpoch, new HashMap<String, Proof>());
+            uniqueProofMap.get(proofEpoch).putIfAbsent(proverUsername, new Proof(proofJson, locationJSON));
+        }
+        ArrayList<Proof> proofs = new ArrayList<>();
+        for(Map<String, Proof> map: uniqueProofMap.values()){
+            for(Proof p: map.values())
+                proofs.add(p);
+        }
+        return proofs;
     }
 }

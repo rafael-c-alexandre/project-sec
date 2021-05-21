@@ -560,9 +560,8 @@ public class ServerLogic {
 
         String username = message.getString("username");
 
-
         //verify message integrity
-        if(EncryptionLogic.verifyDigitalSignature(data.getBytes(),signature,EncryptionLogic.getPublicKey(username)))
+        if(!EncryptionLogic.verifyDigitalSignature(data.getBytes(),signature,EncryptionLogic.getPublicKey(username)))
             throw new InvalidSignatureException();
 
         List<Proof> proofs = getUserProofs(username,epochs);
@@ -571,7 +570,7 @@ public class ServerLogic {
         List<JSONObject> proofList = proofs.stream().map(proof -> proof.getProofJSON()).collect(Collectors.toList());
 
         jsonResponseMessage.put("proofList", proofList);
-
+        jsonResponseMessage.put("readId", message.getString("readId"));
 
         //encrypt response
         byte[] responseIv = EncryptionLogic.generateIV();
