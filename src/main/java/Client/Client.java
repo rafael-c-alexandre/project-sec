@@ -137,6 +137,7 @@ public class Client {
 
     public void displayHelp() {
         System.out.println("obtain_report - obtain my location report from a specific epoch");
+        System.out.println("request_proofs - request my proofs for a range of epochs");
         System.out.println("help - displays help message");
         System.out.println("exit - exits client");
 

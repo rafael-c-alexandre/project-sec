@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class HAFrontend {
     private final Map<String, ManagedChannel> channelMap = new HashMap<>();
@@ -102,7 +103,7 @@ public class HAFrontend {
                             if (!EncryptionLogic.verifyDigitalSignature(response, responseSignature, EncryptionLogic.getPublicKey(server)))
                                 System.err.println("Invalid signature for obtain users at location response");
                             else
-                                System.err.println("Valid signature for obtain users at location response");
+                                System.out.println("Valid signature for obtain users at location response from server " + server);
 
                             //process response to get read ID
                             String jsonString = new String(response);
@@ -163,7 +164,7 @@ public class HAFrontend {
         haLogic.gotUsersQuorum.get(readId).clear();
         obtainUsersTimeoutExpired = false;
 
-        return users;
+        return users.stream().distinct().collect(Collectors.toList());
 
     }
 

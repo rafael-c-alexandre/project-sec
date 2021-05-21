@@ -1,5 +1,7 @@
 server,localhost,8084
 server2,localhost,8085
+server3,localhost,8086
+server4,localhost,8087
 user1,localhost,8001
 user2,localhost,8002
 user3,localhost,8003

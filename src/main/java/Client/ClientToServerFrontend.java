@@ -229,7 +229,7 @@ public class ClientToServerFrontend {
                             if (!EncryptionLogic.verifyDigitalSignature(response, responseSignature, EncryptionLogic.getPublicKey(server)))
                                 System.err.println("Invalid signature from My Proofs response");
                             else
-                                System.err.println("Valid signature from My Proofs response");
+                                System.out.println("Valid signature from My Proofs response from server " + server);
 
                             //process response to get read ID
                             String jsonString = new String(response);

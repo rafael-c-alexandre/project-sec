@@ -426,7 +426,7 @@ public class ServerLogic {
             p1.setWitnessUsername("yyy");
             p1.setEpoch(1);
             p1.setCoords(new Coords(0,0));
-            p1.setProofBytes(new byte[128]);
+            p1.setProofBytes(new JSONObject().toString().getBytes());
             p1.setWitnessIV(new byte[128]);
             p1.setWitnessSessionKeyBytes(new byte[128]);
 
@@ -435,7 +435,7 @@ public class ServerLogic {
             p2.setWitnessUsername("xxx");
             p2.setEpoch(1);
             p2.setCoords(new Coords(0,0));
-            p2.setProofBytes(new byte[128]);
+            p2.setProofBytes(new JSONObject().toString().getBytes());
             p2.setWitnessIV(new byte[128]);
             p2.setWitnessSessionKeyBytes(new byte[128]);
 
@@ -444,7 +444,7 @@ public class ServerLogic {
             p3.setWitnessUsername("zzz");
             p3.setEpoch(1);
             p3.setCoords(new Coords(0,0));
-            p3.setProofBytes(new byte[128]);
+            p3.setProofBytes(new JSONObject().toString().getBytes());
             p3.setWitnessIV(new byte[128]);
             p3.setWitnessSessionKeyBytes(new byte[128]);
 

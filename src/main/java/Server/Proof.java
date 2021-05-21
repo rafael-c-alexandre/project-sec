@@ -49,6 +49,7 @@ public class Proof {
     }
 
     public JSONObject getProofJSON(){
+
         JSONObject proof = new JSONObject();
         JSONObject message = new JSONObject(new String(proofBytes));
 
