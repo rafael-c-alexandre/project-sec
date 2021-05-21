@@ -22,7 +22,7 @@ public class Server {
 
     private final Connector connector;
     private final ServerLogic serverLogic;
-    final String ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings.txt";
+    final String ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings2.txt";
 
     private io.grpc.Server server;
     private int byzantineMode = 0;

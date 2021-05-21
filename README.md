@@ -1,5 +1,5 @@
 # SEC project - Highly Dependable Location Tracker
-SEC course project: stage 1 - MEIC-A, Group 8:
+SEC course project: final stage  - MEIC-A, Group 8:
 - Afonso Paredes, ist189401
 - Rafael Poças, ist189527
 - Rafael Alexandre, ist189528
@@ -18,14 +18,14 @@ The requirements needed to run the program are:
 
 In order to run the program, at least 3 terminal windows must be open:
 - 1 server
-- 1+ client(s)
+- 1+ client(s)obtainClosedLocationReport(username, epoch);
 - 1 Healthcare Authority (HA)
 
 #### 0. Installing and compiling project 
 
 1. Have all the previous required tools/software installed and ready for usage.
 
-2. Have MySQL server started. Afterwards, Open `<root-project-directory>/src/main/assets/sql_scripts>` and run `mysql -p < schema.sql`, which will create and initialize the `SecDB` databse.
+2. Have MySQL server started. 
 
 3. Open `<root-project-directory>/src/main/assets/scripts` and run script **init.sh** to install and compile the whole project.
 
@@ -34,13 +34,22 @@ In order to run the program, at least 3 terminal windows must be open:
 On `<root-project-directory>`, run 
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> <nByzantineUsers> <keyStorePassword>" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> <nByzantineUsers> <keyStorePassword> <byzantineMode>" 
 ```
 
 - **dbUser**: created user for using the MySQL database
 - **dbPass**: password for created user in MySQL database
 - **nByzantineUsers**: number of byzantine users in the whole system
 - **keyStorePassword**: the private key store password
+- **byzantineMode**: The mode that specifies which attack should be performed by the byzatine server
+    - Mode `1`: Byzantine server sends wrong report when user request a location report 
+    - Mode `2`: Byzantine server sends 0 reports when user request a location report 
+    - Mode `3`: Byzantine server responds with fake users at location to the HA
+    - Mode `4`: Byzantine server responds with no users at location to the HA
+    - Mode `5`: Byzantine server always responds that the report is proven when a proof is submited
+    - Mode `6`: Byzantine server sends 0 proofs to request my proofs by client
+    - Mode `7`: Byzantine server sends fake proofs to request my proofs by client
+    - Default: Normal server behaviour
 
 For this program, it is required to enter the passwords of the key stores that store all the keys/certificates used during communication.
 For every one of those stores, the password is set by default to `123456`. However, we **strongly recommend** that the user changes that password to a stronger one, which can be done by issuing the command `keytool -storepasswd -keystore <root-project-directory>/src/assets/keyStores/<key-store-name>`.
@@ -50,13 +59,22 @@ For every one of those stores, the password is set by default to `123456`. Howev
 On `<root-project-directory>`, run 
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="<username> <gridFilePath> <keyStorePassword> [<scriptFilePath>]" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="<username> <gridFilePath> <keyStorePassword> <nByzantineUsers> <nByzantineServers> <byzantineMode> [<scriptFilePath>]" 
 ```
 
 - **username**: username for the client
 - **gridFilePath**: path to the file containing the locations' grid
 - **keyStorePassword**: the private key store password
 - **scriptFilePath**: path to the file containing a script of user's commands 
+- **nByzantineUsers**: number of byzantine users in the whole systemcommands 
+- **nByzantineServers**: number of byzantine servers in the whole system
+- **byzantineMode**: The mode that specifies which attack should be performed by the byzatine user
+    - Mode `1`: generates wrong location in report when requesting to server
+    - Mode `2`: wrong epoch when creating proofs to other prover
+    - Mode `3`: sends proof request to every witness available, at any range
+    - Mode `4`: gives proof to every prover who requests, use prover location as own location in the proof to make sure the server accepts it
+    - Mode `5`: witness captures other user's proof and replays it
+    - Mode `0`: Regular user
 
 
 For this program, it is required to enter the passwords of the key stores that store all the keys/certificates used during communication.
@@ -67,34 +85,12 @@ For every one of those stores, the password is set by default to `123456`. Howev
 On `<root-project-directory>`, run 
 
 ```bash
-mvn exec:java -Dexec.mainClass="HA.HAClient" -Dexec.args="<keyStorePassword> [<scriptFilePath>]"
+mvn exec:java -Dexec.mainClass="HA.HAClient" -Dexec.args="<keyStorePassword> <numberOfByzantineUsers> <numberOfByzantineServers> [<scriptFilePath>]"
 ```
 - **keyStorePassword**: the private key store password
+- **nByzantineUsers**: number of byzantine users in the whole systemcommands 
+- **nByzantineServers**: number of byzantine servers in the whole system
 - **scriptFilePath**: path to the file containing a script of user's commands 
-
-For this program, it is required to enter the passwords of the key stores that store all the keys/certificates used during communication.
-For every one of those stores, the password is set by default to `123456`. However, we **strongly recommend** that the user changes that password to a stronger one, which can be done by issuing the command `keytool -storepasswd -keystore <root-project-directory>/src/assets/keyStores/<key-store-name>`.
-
-#### 4. Byzantine Client initialization
-
-On `<root-project-directory>`, run 
-
-```bash
-mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="<username> <gridFilePath> <keyStorePassword> <byzantineMode> [<scriptFilePath>] " 
-```
-
-- **username**: username for the client
-- **gridFilePath**: path to the file containing the locations' grid
-- **keyStorePassword**: the private key store password
-- **byzantineMode**: The mode that specifies which attack should be performed by the byzatine user
-    - Mode `1`: generates wrong location in report when requesting to server
-    - Mode `2`: wrong epoch when creating proofs to other prover
-    - Mode `3`: sends proof request to every witness available, at any range
-    - Mode `4`: gives proof to every prover who requests, use prover location as own location in the proof to make sure the server accepts it
-    - Mode `5`: witness captures other user's proof and replays it
-    - Default: Regular user
-- **scriptFilePath**: path to the file containing a script of user's commands 
-
 
 For this program, it is required to enter the passwords of the key stores that store all the keys/certificates used during communication.
 For every one of those stores, the password is set by default to `123456`. However, we **strongly recommend** that the user changes that password to a stronger one, which can be done by issuing the command `keytool -storepasswd -keystore <root-project-directory>/src/assets/keyStores/<key-store-name>`.
@@ -116,19 +112,19 @@ For this test case, start 1 server with 0 byzantine users. 3 regular users with 
 On terminal 1:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456" 
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 123456 0" 
 ```
 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid1.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid1.txt 123456 0 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid1.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid1.txt 123456 0 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 
@@ -136,7 +132,7 @@ On terminal 4:
 
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid1.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid1.txt 123456 0 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 5:
@@ -164,18 +160,18 @@ mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid2.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid2.txt 123456 1 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid2.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid2.txt 123456 1 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 4:
 ```bash
-mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid2.txt 123456 1" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid2.txt 123456 1 0 1 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 
@@ -197,19 +193,19 @@ mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 1 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid3.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid3.txt 123456 1 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid3.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid3.txt 123456 1 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 
 On terminal 4:
 ```bash
-mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid3.txt 123456 2" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid3.txt 123456 1 0 2 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 
@@ -233,36 +229,36 @@ mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid4.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid4.txt 123456 2 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid4.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid4.txt 123456 2 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 4:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid4.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid4.txt 123456 2 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 5:
 
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid4.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid4.txt 123456 2 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 6:
 ```bash
-mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid4.txt 123456 3" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid4.txt 123456 2 0 3 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 7:
 ```bash
-mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user2 rc/main/assets/grid_examples/grid4.txt 123456 4" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="byzantine_user2 rc/main/assets/grid_examples/grid4.txt 123456 2 0 4 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 
@@ -286,25 +282,25 @@ mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid5.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid5.txt 123456 2 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid5.txt 123456" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid5.txt 123456 2 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 
 On terminal 4:
 ```bash
-mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid4.txt 123456 5" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="byzantine_user1 rc/main/assets/grid_examples/grid4.txt 123456 2 0 5 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 5:
 
 ```bash
-mvn exec:java -Dexec.mainClass="ByzantineClient.ByzantineClient" -Dexec.args="byzantine_user2 rc/main/assets/grid_examples/grid4.txt 123456 5" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="byzantine_user2 rc/main/assets/grid_examples/grid4.txt 123456 2 0 5 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 
@@ -325,19 +321,19 @@ mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 2 
 On terminal 2:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid6.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid6.txt 123456 0 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 3:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid6.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid6.txt 123456 0 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 4:
 
 ```bash
-mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid6.txt 123456 src/main/assets/command_files/correct_behaviour.txt" 
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user3 src/main/assets/grid_examples/grid6.txt 123456 0 0 0 src/main/assets/command_files/correct_behaviour.txt" 
 ```
 
 On terminal 5:
@@ -357,6 +353,49 @@ mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 
 
 When the central server goes down, its in-memmory data is lost forever. However, all data is also stored in an external database, allowing the server to reboot and recover its previous up-to-date state.
 
+
+#### Case 7. Byzantine server sends wrong report when user request a location report
+
+For this test case, start 3 correct servers and 1 byzantine server in mode 1 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
+
+Note that when the users request a location proof there will be displayed an error message stating the received report was invalid, that was the report from the byzantine correclty identified as faked. The user should also receive good reports from the correct servers and display the result.
+
+#### Case 8. Byzantine server sends 0 reports when user request a location report 
+
+For this test case, start 3 correct servers and 1 byzantine server in mode 2 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
+
+
+The user should receive good reports from the correct servers and display the result even though one byzantine user returned an error.
+
+#### Case 9. Byzantine server responds with fake users at location to the HA
+
+For this test case, start 3 correct servers and 1 byzantine server in mode 3 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
+
+The HA should return the correct answer from the quorum of responses from the correct servers even though one response is fake.
+
+#### Case 10. Byzantine server responds with no users at location to the HA
+
+For this test case, start 3 correct servers and 1 byzantine server in mode 3 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
+
+The HA should return the correct answer from the quorum of responses from the correct servers even though an error will be returned from the byzantine server
+
+#### Case 11. Byzantine server always responds that the report is proven when a proof is submited
+
+For this test case, start 3 correct servers and 1 byzantine server in mode 5 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
+
+Note that when the users request a location proof there will be displayed an error message stating the received report was invalid, that was the report from the byzantine correclty identified as faked. The user should also receive good reports from the correct servers and display the result.
+
+#### Case 12. Byzantine server sends 0 proofs to request my proofs by client
+
+For this test case, start 3 correct servers and 1 byzantine server in mode 6 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
+
+Note that when the users request a location proof there will be displayed an error message stating the received report was invalid, that was the report from the byzantine correclty identified as faked. The user should also receive good reports from the correct servers and display the result.
+
+#### Case 13. Byzantine server sends fake proofs to request my proofs by client
+
+For this test case, start 3 correct servers and 1 byzantine server in mode 7 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
+
+Note that when the users request a location proof there will be displayed an error message stating the received report was invalid, that was the report from the byzantine correclty identified as faked. The user should also receive good reports from the correct servers and display the result.
 
 #### Note
 If command `konsole` is installed, it is also possible to run the test scripts `test<case_number>.sh` to perform the test. 

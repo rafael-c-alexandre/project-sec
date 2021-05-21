@@ -11,8 +11,8 @@ import java.util.UUID;
 
 public class HAClient {
 
-    final String GRID_FILE_PATH = "src/main/assets/grid_examples/grid1.txt";
-    final String CLIENT_ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings.txt";
+    final String GRID_FILE_PATH = "src/main/assets/grid_examples/grid1-stage1.txt";
+    final String CLIENT_ADDR_MAPPINGS_FILE = "src/main/assets/mappings/mappings2.txt";
 
     private HAFrontend haFrontend;
     private final HALogic haLogic;
