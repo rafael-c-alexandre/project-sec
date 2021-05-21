@@ -354,7 +354,7 @@ mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 
 When the central server goes down, its in-memmory data is lost forever. However, all data is also stored in an external database, allowing the server to reboot and recover its previous up-to-date state.
 
 
-#### Case 7. Byzantine server sends wrong report when user request a location report
+#### Case 1 - stage 2. Byzantine server sends wrong report when user request a location report
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 1 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
 
@@ -393,7 +393,7 @@ mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/asset
 
 Note that when the users request a location proof there will be displayed an error message stating the received report was invalid, that was the report from the byzantine correclty identified as faked. The user should also receive good reports from the correct servers and display the result.
 
-#### Case 8. Byzantine server sends 0 reports when user request a location report 
+#### Case 2 - stage 2. Byzantine server sends 0 reports when user request a location report 
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 2 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
 
@@ -433,7 +433,7 @@ mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/asset
 
 The user should receive good reports from the correct servers and display the result even though one byzantine user returned an error.
 
-#### Case 9. Byzantine server responds with fake users at location to the HA
+#### Case 3 - stage 2. Byzantine server responds with fake users at location to the HA
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 3 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
 
@@ -472,7 +472,7 @@ mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/asset
 
 The HA should return the correct answer from the quorum of responses from the correct servers even though one response is fake.
 
-#### Case 10. Byzantine server responds with no users at location to the HA
+#### Case 4 - stage 2. Byzantine server responds with no users at location to the HA
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 4 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
 
@@ -511,7 +511,7 @@ mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/asset
 
 The HA should return the correct answer from the quorum of responses from the correct servers even though an error will be returned from the byzantine server
 
-#### Case 11. Byzantine server always responds that the report is proven when a proof is submited
+#### Case 5 - stage 2. Byzantine server always responds that the report is proven when a proof is submited
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 5 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
 
@@ -550,7 +550,7 @@ mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/asset
 
 This should return the correct proofs because the client merges all the correct proofs received and the client waits for a majority of servers, which means at least one response was from a correct server.
 
-#### Case 12. Byzantine server sends 0 proofs to request my proofs by client
+#### Case 6 - stage 2. Byzantine server sends 0 proofs to request my proofs by client
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 6 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
 
@@ -593,4 +593,4 @@ This should return the correct proofs because the client merges all the correct 
 
 
 #### Note
-If command `konsole` is installed, it is also possible to run the test scripts `test<case_number>.sh` to perform the test. 
+If command `konsole` is installed, it is also possible to run the test scripts `test<case_number>-stage<x>.sh` to perform the test. 
