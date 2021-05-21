@@ -98,10 +98,11 @@ public class Client {
                     .map(Integer::parseInt)
                     .collect(Collectors.toList());
 
-            List<Proof> proofs = clientToServerFrontend.requestMyProofs(this.username,epochList);
+            String uuid = UUID.randomUUID().toString();
+            List<Proof> proofs = clientToServerFrontend.requestMyProofs(uuid, this.username,epochList);
 
             for(Proof proof : proofs){
-                System.out.println(proof);
+                System.out.println("\t Received my proof: " + proof);
             }
 
 
