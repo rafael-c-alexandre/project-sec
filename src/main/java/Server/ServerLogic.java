@@ -81,13 +81,10 @@ public class ServerLogic {
         UserReport report = obtainClosedLocationReport(username, epoch);
 
         JSONObject jsonResponse = new JSONObject();
-        JSONObject jsonResponseMessage = new JSONObject();
+        
+        jsonResponse.put("report",report.getReportJSON());
+        jsonResponse.put("uid", requestUid);
 
-        jsonResponseMessage.put("x", report.getCoords().getX());
-        jsonResponseMessage.put("y", report.getCoords().getY());
-        jsonResponseMessage.put("uid", requestUid);
-
-        jsonResponse.put("message", jsonResponseMessage);
 
         //add proofs to response
         JSONArray proofs = new JSONArray();
@@ -158,13 +155,9 @@ public class ServerLogic {
         UserReport report = obtainClosedLocationReport(username, epoch);
 
         JSONObject jsonResponse = new JSONObject();
-        JSONObject jsonResponseMessage = new JSONObject();
 
-        jsonResponseMessage.put("x", report.getCoords().getX());
-        jsonResponseMessage.put("y", report.getCoords().getY());
-        jsonResponseMessage.put("uid", requestUid);
-
-        jsonResponse.put("message", jsonResponseMessage);
+        jsonResponse.put("report",report.getReportJSON());
+        jsonResponse.put("uid", requestUid);
 
         //add proofs to response
         JSONArray proofs = new JSONArray();
@@ -226,8 +219,10 @@ public class ServerLogic {
             throw new InvalidProofOfWorkException();
 
         //verify message integrity
-        if(verifyMessage(data.getBytes(), digitalSignature, isHA)) {
-            UserReport userReport = new UserReport(reportJSON, digitalSignature);
+        byte[] reportSignature = verifyMessage(data.getBytes(), digitalSignature, isHA);
+
+        if (reportSignature != null) {
+            UserReport userReport = new UserReport(reportJSON.getJSONObject("report_info"), reportSignature);
 
 
             if(duplicateReport(userReport)) {
@@ -239,7 +234,7 @@ public class ServerLogic {
 
             System.out.println("Initial Report received from " + userReport.getUsername() + " from epoch " + userReport.getEpoch() + " report verified");
             //Add to database
-            reportsRepository.submitUserReport(userReport, digitalSignature);
+            reportsRepository.submitUserReport(userReport, reportSignature);
         } else {
             throw new InvalidReportException();
         }
@@ -277,13 +272,16 @@ public class ServerLogic {
         return false;
     }
 
-    public boolean verifyMessage(byte[] decipheredMessage, byte[] digitalSignature, boolean isHA) throws ReportAlreadyExistsException, InvalidSignatureException {
+    public byte[] verifyMessage(byte[] decipheredMessage, byte[] digitalSignature, boolean isHA) throws ReportAlreadyExistsException, InvalidSignatureException {
 
 
         //get username and respective public key
         JSONObject obj = new JSONObject(new String(decipheredMessage));
-        String username = obj.getString("username");
-        int epoch = obj.getInt("epoch");
+        JSONObject report = obj.getJSONObject("report_info");
+        String username = report.getString("username");
+        int epoch = report.getInt("epoch");
+
+        byte[] reportDS = Base64.getDecoder().decode(new String(obj.getString("report_digital_signature")));
 
         PublicKey userPubKey = null;
 
@@ -302,7 +300,7 @@ public class ServerLogic {
                 throw new ReportAlreadyExistsException(username, epoch);
             } catch (NoReportFoundException e) {
                 //return true if there is no report for that epoch
-                return true;
+                return reportDS;
             }
         } else
             throw new InvalidSignatureException();

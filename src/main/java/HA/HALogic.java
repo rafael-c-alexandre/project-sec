@@ -188,7 +188,7 @@ public class HALogic {
         return list;
     }
 
-    public synchronized JSONObject verifyLocationReportResponse(byte[] encryptedMessage, byte[] signature, byte[] encryptedSessionKey, byte[] iv, String serverName, int epoch, String requestUid) {
+    public synchronized JSONObject verifyLocationReportResponse(byte[] encryptedMessage, byte[] signature, byte[] encryptedSessionKey, byte[] iv, String serverName, int epoch, String requestUid, String username) {
 
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey("ha", keystorePasswd),encryptedSessionKey);
 
@@ -207,9 +207,16 @@ public class HALogic {
         //process response and return coords
         String jsonString = new String(response);
         JSONObject jsonObject = new JSONObject(jsonString);
-        JSONObject msg = jsonObject.getJSONObject("message");
+        JSONObject report = jsonObject.getJSONObject("report");
+        byte[] reportSignature = Base64.getDecoder().decode(report.getString("report_digital_signature"));
 
-        String uid = msg.getString("uid");
+        //verify location report
+        if (!isValidReport(report.getJSONObject("report_info"),reportSignature, epoch, username)) {
+            System.err.println("Invalid user report");
+            return null;
+        }
+
+        String uid = jsonObject.getString("uid");
 
         //verify if uid corresponds to request uid
         if (!uid.equals(requestUid)) {
@@ -238,7 +245,7 @@ public class HALogic {
 
                 proofUsers.add(witnessUsername);
 
-                if (isValidProof( proofJson, proofSignature, epoch))
+                if (isValidProof( proofJson, proofSignature, epoch, username))
                     validProofs++;
 
                 //got the needed proofs
@@ -254,7 +261,30 @@ public class HALogic {
 
     }
 
-    public boolean isValidProof(JSONObject proofJson, byte[] signature, int epoch) {
+    public boolean isValidReport(JSONObject reportJson, byte[] signature, int epoch, String username) {
+
+        int reportEpoch = reportJson.getInt("epoch");
+        String proverUsername = reportJson.getString("username");
+
+        if (!username.equals(proverUsername)) {
+            System.err.println("Invalid report prover");
+            return false;
+        }
+
+
+        if (reportEpoch != epoch) {
+            System.err.println("Invalid report epoch");
+            return false;
+        }
+
+
+        //verify witness proof
+        return EncryptionLogic.verifyDigitalSignature(reportJson.toString().getBytes(),
+                signature, EncryptionLogic.getPublicKey(username));
+
+    }
+
+    public boolean isValidProof(JSONObject proofJson, byte[] signature, int epoch, String username) {
 
         int proofEpoch = proofJson.getInt("epoch");
         String witnessUsername = proofJson.getString("witnessUsername");
@@ -266,7 +296,7 @@ public class HALogic {
             return false;
         }
 
-        if (witnessUsername.equals(proverUsername)) {
+        if (witnessUsername.equals(proverUsername) || !proverUsername.equals(username)) {
             System.err.println("Invalid proof user");
             return false;
         }
@@ -277,22 +307,17 @@ public class HALogic {
 
     }
 
-    public List<byte[][]> generateWritebackMessage(JSONObject jsonObject, int epoch, String username) {
-
+    public List<byte[][]> generateWritebackMessage(JSONObject jsonObject, int epoch) {
 
         List<byte[][]> response = new ArrayList<>();
 
-        JSONObject reportJson = jsonObject.getJSONObject("message");
+        JSONObject reportJson = jsonObject.getJSONObject("report");
 
         //report section
-        int x = reportJson.getInt("x");
-        int y = reportJson.getInt("y");
 
         JSONObject report = new JSONObject();
-        report.put("x", x);
-        report.put("y", y);
-        report.put("epoch", epoch);
-        report.put("username", username);
+        report.put("report_info", reportJson.getJSONObject("report_info"));
+        report.put("report_digital_signature", reportJson.getString("report_digital_signature"));
 
         //proofs section
         JSONArray proofs = jsonObject.getJSONArray("proofs");

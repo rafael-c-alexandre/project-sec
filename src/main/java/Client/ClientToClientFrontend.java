@@ -78,6 +78,7 @@ public class ClientToClientFrontend {
         serverFrontend.submitReport(epoch, message);
 
         clientLogic.gotProofQuorums.putIfAbsent(epoch, new CopyOnWriteArrayList<>());
+
         /* Request proof of location to other close clients */
         for (String user : closePeers) {
             /* Create location proof request */
@@ -107,7 +108,7 @@ public class ClientToClientFrontend {
 
                     for (int i = 0; i < proofs.size(); i++) {
                         JSONObject proofJSON = new JSONObject(new String(proofs.get(i)));
-                        System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername"));
+                        System.out.println("Received proof reply from " + proofJSON.getString("witnessUsername") + " for epoch " + epoch);
                         if (!closePeers.contains(proofJSON.getString("witnessUsername"))) {
                             System.out.println("Witness " + proofJSON.getString("witnessUsername") + " was not asked for a proof, is not a close peer");
                             return;
@@ -157,7 +158,7 @@ public class ClientToClientFrontend {
                 @Override
                 public void onError(Throwable throwable) {
                     io.grpc.Status status = io.grpc.Status.fromThrowable(throwable);
-                    System.err.println("Exception received from server: " + status.getDescription());
+                    System.err.println("Exception received from peer client: " + status.getDescription());
                 }
 
                 @Override

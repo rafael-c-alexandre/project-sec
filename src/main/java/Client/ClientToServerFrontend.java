@@ -327,7 +327,7 @@ public class ClientToServerFrontend {
             }
         }).start();
 
-        JSONObject reportObject = this.clientLogic.readRequests.get(requestUid).getJSONObject("message");
+        JSONObject reportObject = this.clientLogic.readRequests.get(requestUid).getJSONObject("report").getJSONObject("report_info");
 
         return new Coords(reportObject.getInt("x"),
                 reportObject.getInt("y"));
@@ -341,7 +341,7 @@ public class ClientToServerFrontend {
 
         System.out.println("Sending writeback request...");
         //use the same uid for the writeback phase as for the obtain report request
-        String uid = jsonObject.getJSONObject("message").getString("uid");
+        String uid = jsonObject.getString("uid");
 
 
         for (byte[][] report : response) {
@@ -413,7 +413,7 @@ public class ClientToServerFrontend {
                 break;
             }
         }
-        if (clientLogic.gotWriteBackQuorum.get(uid).size() == clientLogic.serverQuorum) {
+        if (clientLogic.gotWriteBackQuorum.get(uid).size() >= clientLogic.serverQuorum) {
             for (String name : clientLogic.gotWriteBackQuorum.get(uid))
                 System.out.println("Got response quorum from server " + name + " for report submission, for epoch " + epoch);
         } else if (writebackTimeoutExpired)

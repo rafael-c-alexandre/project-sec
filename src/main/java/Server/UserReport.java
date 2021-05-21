@@ -6,6 +6,7 @@ import org.json.JSONObject;
 import util.Coords;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Objects;
 
 public class UserReport {
@@ -40,6 +41,21 @@ public class UserReport {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    }
+
+    public JSONObject getReportJSON() {
+        JSONObject reportInfo = new JSONObject();
+        reportInfo.put("username", username);
+        reportInfo.put("epoch", epoch);
+        reportInfo.put("x", coords.getX());
+        reportInfo.put("y", coords.getY());
+
+        JSONObject report = new JSONObject();
+        report.put("report_info", reportInfo);
+        report.put("report_digital_signature", Base64.getEncoder().encodeToString(this.signature));
+
+        return report;
+
     }
 
 

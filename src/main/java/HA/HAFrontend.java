@@ -116,7 +116,7 @@ public class HAFrontend {
                             JSONObject report = haLogic.verifyLocationReportResponse(obtainLocationReportReply.getMessage().toByteArray(),
                                     obtainLocationReportReply.getSignature().toByteArray(),
                                     obtainLocationReportReply.getEncryptedSessionKey().toByteArray(),
-                                    obtainLocationReportReply.getIv().toByteArray(), server, epoch, requestUid);
+                                    obtainLocationReportReply.getIv().toByteArray(), server, epoch, requestUid, username);
 
                             haLogic.gotReadQuorum.get(requestUid).add(server);
 
@@ -173,7 +173,7 @@ public class HAFrontend {
             }
         }).start();
 
-        JSONObject reportObject = this.haLogic.readRequests.get(requestUid).getJSONObject("message");
+        JSONObject reportObject = this.haLogic.readRequests.get(requestUid).getJSONObject("report").getJSONObject("report_info");
 
         return new Coords(reportObject.getInt("x"),
                 reportObject.getInt("y"));
@@ -182,11 +182,11 @@ public class HAFrontend {
 
     private void writeBackToServers(JSONObject jsonObject, int epoch, String username) {
 
-        List<byte[][]> response = this.haLogic.generateWritebackMessage(jsonObject, epoch, username);
+        List<byte[][]> response = this.haLogic.generateWritebackMessage(jsonObject, epoch);
 
         System.out.println("Sending writeback request...");
         //use the same uid for the writeback phase as for the obtain report request
-        String uid = jsonObject.getJSONObject("message").getString("uid");
+        String uid = jsonObject.getString("uid");
 
 
         for (byte[][] report : response) {

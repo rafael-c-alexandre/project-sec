@@ -36,26 +36,34 @@ public class Client {
     private io.grpc.Server server;
     private int port;
 
-    public Client(String username, String grid_file_path, String keystorePasswd, int numberOfByzantineClients, int numberOfByzantineServers) throws IOException, InterruptedException {
+    public Client(String username, String grid_file_path, String keystorePasswd, int numberOfByzantineClients, int numberOfByzantineServers, int byzantineMode) throws IOException, InterruptedException {
         this.username = username;
 
         /* Initialize client logic */
-        clientLogic = new ClientLogic(username, grid_file_path, keystorePasswd, numberOfByzantineClients, numberOfByzantineServers);
+        clientLogic = new ClientLogic(username, grid_file_path, keystorePasswd, numberOfByzantineClients, numberOfByzantineServers, byzantineMode);
         /* Import users and server from mappings */
         importAddrMappings();
 
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length > 6 || args.length < 5) {
-            System.err.println("Invalid args. Try -> username grid_file_path keystorePasswd numberOfByzantineClients numberOfByzantineServers [commands_file_path] ");
+        /* byzantineMode 0 = normal mode
+         * byzantineMode 1 = generate wrong location in report when requesting to server
+         * byzantineMode 2 = wrong epoch (epoch=999) when creating proofs to other prover
+         * byzantineMode 3 = send proof request to every witness available, at any range
+         * byzantineMode 4 = give proof to every prover who requests, use prover location as own location in the proof to make sure the server accepts it
+         * byzantineMode 5 = witness returns replayed proof, proof with signature of user1 for user2
+         * */
+
+        if (args.length > 7 || args.length < 6) {
+            System.err.println("Invalid args. Try -> username grid_file_path keystorePasswd numberOfByzantineClients numberOfByzantineServers byzantineMode [commands_file_path] ");
             return;
         }
         String username = args[0];
         String grid_file_path = args[1];
-        Client client = new Client(username, grid_file_path, args[2], Integer.parseInt(args[3]), Integer.parseInt(args[4]));
+        Client client = new Client(username, grid_file_path, args[2], Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer.parseInt(args[5]));
 
-        String commandsFilePath = args.length == 6 ? args[5] : null;
+        String commandsFilePath = args.length == 7 ? args[6] : null;
 
         client.start(client.port);
         System.out.println(username + " Started");
