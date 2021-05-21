@@ -358,11 +358,77 @@ When the central server goes down, its in-memmory data is lost forever. However,
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 1 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
 
+On terminal 1:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server 1"
+```
+
+On terminal 2:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server2 0"
+```
+
+On terminal 3:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server3 0"
+```
+
+On terminal 4:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server4 0"
+```
+
+On terminal 6:
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
+
+On terminal 7:
+
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
+
 Note that when the users request a location proof there will be displayed an error message stating the received report was invalid, that was the report from the byzantine correclty identified as faked. The user should also receive good reports from the correct servers and display the result.
 
 #### Case 8. Byzantine server sends 0 reports when user request a location report 
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 2 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
+
+On terminal 1:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server 2"
+```
+
+On terminal 2:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server2 0"
+```
+
+On terminal 3:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server3 0"
+```
+
+On terminal 4:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server4 0"
+```
+
+On terminal 6:
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
+
+On terminal 7:
+
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
 
 
 The user should receive good reports from the correct servers and display the result even though one byzantine user returned an error.
@@ -371,11 +437,77 @@ The user should receive good reports from the correct servers and display the re
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 3 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
 
+On terminal 1:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server 3"
+```
+
+On terminal 2:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server2 0"
+```
+
+On terminal 3:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server3 0"
+```
+
+On terminal 4:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server4 0"
+```
+
+On terminal 6:
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
+
+On terminal 7:
+
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
+
 The HA should return the correct answer from the quorum of responses from the correct servers even though one response is fake.
 
 #### Case 10. Byzantine server responds with no users at location to the HA
 
-For this test case, start 3 correct servers and 1 byzantine server in mode 3 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
+For this test case, start 3 correct servers and 1 byzantine server in mode 4 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
+
+On terminal 1:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server 4"
+```
+
+On terminal 2:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server2 0"
+```
+
+On terminal 3:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server3 0"
+```
+
+On terminal 4:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server4 0"
+```
+
+On terminal 6:
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
+
+On terminal 7:
+
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
 
 The HA should return the correct answer from the quorum of responses from the correct servers even though an error will be returned from the byzantine server
 
@@ -383,11 +515,78 @@ The HA should return the correct answer from the quorum of responses from the co
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 5 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
 
+On terminal 1:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server 5"
+```
+
+On terminal 2:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server2 0"
+```
+
+On terminal 3:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server3 0"
+```
+
+On terminal 4:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server4 0"
+```
+
+On terminal 6:
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
+
+On terminal 7:
+
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
+
 This should return the correct proofs because the client merges all the correct proofs received and the client waits for a majority of servers, which means at least one response was from a correct server.
 
 #### Case 12. Byzantine server sends 0 proofs to request my proofs by client
 
 For this test case, start 3 correct servers and 1 byzantine server in mode 6 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**. After the users stabilize by proving each others' locations, start an HA client using the command file **correct_behaviour_ha.txt**.
+
+
+On terminal 1:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server 6"
+```
+
+On terminal 2:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server2 0"
+```
+
+On terminal 3:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server3 0"
+```
+
+On terminal 4:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server4 0"
+```
+
+On terminal 6:
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
+
+On terminal 7:
+
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0"
+```
 
 This should return the correct proofs because the client merges all the correct proofs received and the client waits for a majority of servers, which means at least one response was from a correct server.
  
