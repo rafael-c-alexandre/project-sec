@@ -143,25 +143,30 @@ public class Server {
                 responseObserver.onCompleted();
 
             } catch ( InvalidReportException e) {
-                System.out.println("InvalidReportException: " + e.getMessage());
+                System.err.println("InvalidReportException: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidSignatureException e) {
-                System.out.println("InvalidSignatureException: " + e.getMessage());
+                System.err.println("InvalidSignatureException: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (ReportAlreadyExistsException e) {
-                System.out.println("ReportAlreadyExistsException: " + e.getMessage());
+                System.err.println("ReportAlreadyExistsException: " + e.getMessage());
                 Status status = Status.ALREADY_EXISTS
                         .withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidProofOfWorkException e) {
-                System.out.println("InvalidProofOfWorkException: " + e.getMessage());
+                System.err.println("InvalidProofOfWorkException: " + e.getMessage());
                 Status status = Status.ABORTED
                         .withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidFreshnessToken e) {
-                System.out.println("InvalidFreshnessToken: " + e.getMessage());
+                System.err.println("InvalidFreshnessToken: " + e.getMessage());
+                Status status = Status.ABORTED
+                        .withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (ReportAlreadyClosedException e) {
+                System.err.println("ReportAlreadyClosedException: " + e.getMessage());
                 Status status = Status.ABORTED
                         .withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
@@ -186,19 +191,19 @@ public class Server {
                 responseObserver.onCompleted();
 
             } catch (InvalidProofException e) {
-                System.out.println("InvalidProofException: " + e.getMessage());
+                System.err.println("InvalidProofException: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (NoReportFoundException e) {
-                System.out.println("NoReportFoundException: " + e.getMessage());
+                System.err.println("NoReportFoundException: " + e.getMessage());
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (AlreadyConfirmedReportException e) {
-                System.out.println("AlreadyConfirmedReportException: " + e.getMessage());
+                System.err.println("AlreadyConfirmedReportException: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidFreshnessToken e) {
-                System.out.println("InvalidFreshnessToken: " + e.getMessage());
+                System.err.println("InvalidFreshnessToken: " + e.getMessage());
                 Status status = Status.ABORTED
                         .withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
@@ -229,6 +234,7 @@ public class Server {
                 responseObserver.onCompleted();
 
             } catch (InvalidSignatureException | InvalidProofOfWorkException | ReportAlreadyExistsException | InvalidFreshnessToken e) {
+                System.err.println("InvalidArgumentException: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
@@ -254,15 +260,23 @@ public class Server {
                 responseObserver.onCompleted();
 
             } catch (InvalidSignatureException | InvalidProofOfWorkException | InvalidFreshnessToken e) {
+                System.err.println("InvalidArgumentException: " + e.getMessage());
                 Status status = Status.INVALID_ARGUMENT.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (AlreadyConfirmedReportException e) {
+                System.err.println("AlreadyConfirmedReportException: " + e.getMessage());
                 Status status = Status.ALREADY_EXISTS.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (NoReportFoundException e) {
+                System.err.println("NoReportFoundException: " + e.getMessage());
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidReportException e) {
+                System.err.println("InvalidReportException: " + e.getMessage());
+                Status status = Status.ABORTED.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (ReportAlreadyClosedException e) {
+                System.err.println("ReportAlreadyClosedException: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
@@ -292,9 +306,11 @@ public class Server {
                 responseObserver.onCompleted();
 
             } catch (NoReportFoundException e) {
+                System.err.println("NoReportFoundException: " + e.getMessage());
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidSignatureException | InvalidFreshnessToken | InvalidProofOfWorkException e) {
+                System.err.println("InvalidArgument: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
@@ -332,9 +348,11 @@ public class Server {
                 responseObserver.onCompleted();
 
             } catch (NoReportFoundException e) {
+                System.err.println("NoReportFoundException: " + e.getMessage());
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidSignatureException e) {
+                System.err.println("InvalidSignatureException: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }
@@ -390,15 +408,23 @@ public class Server {
                 responseObserver.onCompleted();
 
             } catch (InvalidSignatureException | InvalidProofOfWorkException | InvalidFreshnessToken e) {
+                System.err.println("InvalidArgument: " + e.getMessage());
                 Status status = Status.INVALID_ARGUMENT.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (AlreadyConfirmedReportException e) {
+                System.err.println("AlreadyConfirmedReportException: " + e.getMessage());
                 Status status = Status.ALREADY_EXISTS.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (NoReportFoundException e) {
+                System.err.println("NoReportFoundException: " + e.getMessage());
                 Status status = Status.NOT_FOUND.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             } catch (InvalidReportException e) {
+                System.err.println("InvalidReportException: " + e.getMessage());
+                Status status = Status.ABORTED.withDescription(e.getMessage());
+                responseObserver.onError(status.asRuntimeException());
+            } catch (ReportAlreadyClosedException e) {
+                System.err.println("ReportAlreadyClosedException: " + e.getMessage());
                 Status status = Status.ABORTED.withDescription(e.getMessage());
                 responseObserver.onError(status.asRuntimeException());
             }

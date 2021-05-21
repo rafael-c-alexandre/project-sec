@@ -124,7 +124,7 @@ public class ClientToServerFrontend {
                 break;
             }
         }
-        if (clientLogic.gotReportQuorums.get(epoch).size() == clientLogic.serverQuorum) {
+        if (clientLogic.gotReportQuorums.get(epoch).size() >= clientLogic.serverQuorum) {
             for (String name : clientLogic.gotReportQuorums.get(epoch))
                 System.out.println("Got response quorum from server " + name + " for report submission, for epoch " + epoch);
         } else if (reportTimeoutExpired)
@@ -270,14 +270,14 @@ public class ClientToServerFrontend {
         System.out.println("Waiting for my proofs quorum...");
 
         long start = System.currentTimeMillis();
-        while ((clientLogic.gotMyProofsQuorum.get(readId).size() != clientLogic.serverQuorum) && !myProofsTimeoutExpired) {
+        while ((clientLogic.gotMyProofsQuorum.get(readId).size() < clientLogic.serverQuorum) && !myProofsTimeoutExpired) {
             long delta = System.currentTimeMillis() - start;
             if (delta > 10000) {
                 myProofsTimeoutExpired = true;
                 break;
             }
         }
-        if (clientLogic.gotMyProofsQuorum.get(readId).size() == clientLogic.serverQuorum) {
+        if (clientLogic.gotMyProofsQuorum.get(readId).size() >= clientLogic.serverQuorum) {
             System.out.println("Got response quorum for my proofs request");
         } else if (myProofsTimeoutExpired)
             System.err.println("Couldn't get my proofs the time limit");
@@ -474,7 +474,7 @@ public class ClientToServerFrontend {
         System.out.println("Waiting for writeback submit quorum...");
 
         long start = System.currentTimeMillis();
-        while ((clientLogic.gotWriteBackQuorum.get(uid).size() != clientLogic.serverQuorum) && !writebackTimeoutExpired) {
+        while ((clientLogic.gotWriteBackQuorum.get(uid).size() < clientLogic.serverQuorum) && !writebackTimeoutExpired) {
             long delta = System.currentTimeMillis() - start;
             if (delta > 10000) {
                 writebackTimeoutExpired = true;

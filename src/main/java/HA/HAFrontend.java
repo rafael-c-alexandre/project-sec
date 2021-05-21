@@ -144,14 +144,14 @@ public class HAFrontend {
         System.out.println("Waiting for Users at location quorum");
 
         long start = System.currentTimeMillis();
-        while ((haLogic.gotUsersQuorum.get(readId).size() != haLogic.serverQuorum) && !obtainUsersTimeoutExpired) {
+        while ((haLogic.gotUsersQuorum.get(readId).size() < haLogic.serverQuorum) && !obtainUsersTimeoutExpired) {
             long delta = System.currentTimeMillis() - start;
             if (delta > 10000) {
                 obtainUsersTimeoutExpired = true;
                 break;
             }
         }
-        if (haLogic.gotUsersQuorum.get(readId).size() == haLogic.serverQuorum) {
+        if (haLogic.gotUsersQuorum.get(readId).size() >= haLogic.serverQuorum) {
             System.out.println("Got response quorum for obtain users at location request");
         } else if (obtainUsersTimeoutExpired)
             System.err.println("Couldn't get users at location in the time limit");
@@ -348,14 +348,14 @@ public class HAFrontend {
         System.out.println("Waiting for writeback submit quorum...");
 
         long start = System.currentTimeMillis();
-        while ((haLogic.gotWriteBackQuorum.get(uid).size() != haLogic.serverQuorum) && !writebackTimeoutExpired) {
+        while ((haLogic.gotWriteBackQuorum.get(uid).size() < haLogic.serverQuorum) && !writebackTimeoutExpired) {
             long delta = System.currentTimeMillis() - start;
             if (delta > 10000) {
                 writebackTimeoutExpired = true;
                 break;
             }
         }
-        if (haLogic.gotWriteBackQuorum.get(uid).size() == haLogic.serverQuorum) {
+        if (haLogic.gotWriteBackQuorum.get(uid).size() >= haLogic.serverQuorum) {
             for (String name : haLogic.gotWriteBackQuorum.get(uid))
                 System.out.println("Got response quorum from server " + name + " for report submission, for epoch " + epoch);
         } else if (writebackTimeoutExpired)

@@ -172,14 +172,14 @@ public class ClientToClientFrontend {
         System.out.println("Waiting for proofs quorum...");
 
         long start = System.currentTimeMillis();
-        while ((clientLogic.gotProofQuorums.get(epoch).size()!=clientLogic.serverQuorum) && !proofTimeoutExpired) {
+        while ((clientLogic.gotProofQuorums.get(epoch).size() < clientLogic.serverQuorum) && !proofTimeoutExpired) {
             long delta = System.currentTimeMillis() - start;
             if (delta > 10000) {
                 proofTimeoutExpired = true;
                 break;
             }
         }
-        if (clientLogic.gotProofQuorums.get(epoch).size() == clientLogic.serverQuorum){
+        if (clientLogic.gotProofQuorums.get(epoch).size() >= clientLogic.serverQuorum){
             for(String name: clientLogic.gotProofQuorums.get(epoch))
                 System.out.println("Got proof quorum from server "+ name + ", ");// for epoch " + epoch + " by the server");
         }

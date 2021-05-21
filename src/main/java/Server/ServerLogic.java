@@ -246,7 +246,7 @@ public class ServerLogic {
         return userReports;
     }
 
-    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork, long timestamp, boolean isHA) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException, InvalidProofOfWorkException, InvalidFreshnessToken {
+    public synchronized void submitReport(byte[] encryptedSessionKey, byte[] encryptedMessage, byte[] digitalSignature, byte[] iv, long proofOfWork, long timestamp, boolean isHA) throws InvalidReportException, ReportAlreadyExistsException, InvalidSignatureException, InvalidProofOfWorkException, InvalidFreshnessToken, ReportAlreadyClosedException {
 
         //max skew assumed: 30s
         if (timestamp > System.currentTimeMillis() + 30000 || timestamp < System.currentTimeMillis() - 30000  ) {
@@ -321,7 +321,7 @@ public class ServerLogic {
         return false;
     }
 
-    public byte[] verifyMessage(byte[] decipheredMessage, byte[] digitalSignature, boolean isHA) throws ReportAlreadyExistsException, InvalidSignatureException {
+    public byte[] verifyMessage(byte[] decipheredMessage, byte[] digitalSignature, boolean isHA) throws ReportAlreadyExistsException, InvalidSignatureException, ReportAlreadyClosedException {
 
 
         //get username and respective public key
@@ -346,7 +346,7 @@ public class ServerLogic {
         if (isValid) {
             try {
                 obtainClosedLocationReport(username, epoch);
-                throw new ReportAlreadyExistsException(username, epoch);
+                throw new ReportAlreadyClosedException(username, epoch);
             } catch (NoReportFoundException e) {
                 //return true if there is no report for that epoch
                 return reportDS;
@@ -688,7 +688,8 @@ public class ServerLogic {
         return ret;
     }
 
-    public void writeback(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long proofOfWork, long timestamp, boolean isHA) throws InvalidSignatureException, InvalidReportException, InvalidProofOfWorkException, AlreadyConfirmedReportException, NoReportFoundException, InvalidFreshnessToken {
+    public void writeback(byte[] encryptedData, byte[] encryptedSessionKey, byte[] signature, byte[] iv, long proofOfWork, long timestamp, boolean isHA) throws InvalidSignatureException, InvalidReportException, InvalidProofOfWorkException, AlreadyConfirmedReportException, NoReportFoundException, InvalidFreshnessToken, ReportAlreadyClosedException {
+
 
         //submit report if it does not exist
         try {
@@ -696,6 +697,7 @@ public class ServerLogic {
         } catch (ReportAlreadyExistsException e) {
             System.err.println(e.getMessage());
         }
+
 
         //Decrypt session key
         byte[] sessionKeyBytes = EncryptionLogic.decryptWithRSA(EncryptionLogic.getPrivateKey(serverName, keystorePasswd), encryptedSessionKey);
