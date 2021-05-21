@@ -353,6 +353,48 @@ mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="<dbUser> <dbPass> 0 
 
 When the central server goes down, its in-memmory data is lost forever. However, all data is also stored in an external database, allowing the server to reboot and recover its previous up-to-date state.
 
+#### Correct Behaviour - stage 2. 
+
+For this test case, start 3 correct servers and 1 byzantine server in mode 1 with 0 byzantine users. 3 regular users with usernames, user1 user2 and user3 using the grid file **grid1.txt** and using the command file **correct_behaviour.txt**.
+
+On terminal 1:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server 1"
+```
+
+On terminal 2:
+
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server2 0"
+```
+
+On terminal 3:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server3 0"
+```
+
+On terminal 4:
+```bash
+mvn exec:java -Dexec.mainClass="Server.Server" -Dexec.args="root 123 1 123456 server4 0"
+```
+
+On terminal 6:
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user1 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0 src/main/assets/command_files/stage2_behaviour.txt"
+```
+
+On terminal 7:
+
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="user2 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0 src/main/assets/grid_examples/grid7-stage2.txt 123456 1 1 0 src/main/assets/command_files/stage2_behaviour.txt"
+```
+
+On terminal 8:
+
+```bash
+mvn exec:java -Dexec.mainClass="Client.Client" -Dexec.args="123456 1 1 src/main/assets/command_files/stage2_behaviour_ha.txt"
+```
 
 #### Case 1 - stage 2. Byzantine server sends wrong report when user request a location report
 

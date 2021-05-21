@@ -1,0 +1,7 @@
+sleep
+30000
+users_at_location
+10
+10
+0
+exit
