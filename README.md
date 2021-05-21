@@ -17,8 +17,8 @@ The requirements needed to run the program are:
 ## Usage
 
 In order to run the program, at least 3 terminal windows must be open:
-- 1 server
-- 1+ client(s)obtainClosedLocationReport(username, epoch);
+- 1+ server(s)
+- 1+ client(s)
 - 1 Healthcare Authority (HA)
 
 #### 0. Installing and compiling project 
