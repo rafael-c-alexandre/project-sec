@@ -1,1 +1,2 @@
 src/main/assets/crypto/** filter=git-crypt diff=git-crypt
+src/main/assets/keyStores/** filter=git-crypt diff=git-crypt
